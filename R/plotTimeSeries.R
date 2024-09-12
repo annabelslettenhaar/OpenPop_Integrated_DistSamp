@@ -85,15 +85,10 @@ plotTimeSeries <- function(mcmc.out,
       pDetect.sum <- rbind(pDetect.sum, pDetect_add)
       
       # Summarize annual average population densities
-      popDens_juv <- out.mat[, paste0("Density[",  i, ", 1, ", 1:N_sites[i], ", ", area_yearIdxs[t], "]")]
-      popDens_ad <- out.mat[, paste0("Density[",  i, ", 2, ", 1:N_sites[i], ", ", area_yearIdxs[t], "]")]
-      #popDens_mean <- rowMeans(popDens_juv + popDens_ad) This gives error if number of transects within area is 1
-      
-      if(N_sites[i] > 1){
-        popDens_mean <- rowMeans(popDens_juv + popDens_ad)
-      }else{
-        popDens_mean <- popDens_juv + popDens_ad
-      }
+      popDens_juv <- out.mat[, paste0("meanDens[",  i, ", 1, ", area_yearIdxs[t], "]")]
+      popDens_ad <- out.mat[, paste0("meanDens[",  i, ", 2, ", area_yearIdxs[t], "]")]
+
+      popDens_mean <- popDens_juv + popDens_ad
       
       popDens_add <- data.frame(Area = area_names[i],
                                 Year = area_years[t], 
@@ -103,11 +98,7 @@ plotTimeSeries <- function(mcmc.out,
       popDens.sum <- rbind(popDens.sum, popDens_add)
       
       # Summarize annual population age structure (proportion juveniles)
-      if(N_sites[i] > 1){
-        ageStr_mean <- rowMeans(popDens_juv/(popDens_juv + popDens_ad))
-      }else{
-        ageStr_mean <- popDens_juv/(popDens_juv + popDens_ad)
-      }
+      ageStr_mean <- popDens_juv/(popDens_juv + popDens_ad)
       
       ageStr_add <- data.frame(Area = area_names[i],
                                  Year = area_years[t], 

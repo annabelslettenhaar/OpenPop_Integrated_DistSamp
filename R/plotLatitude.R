@@ -119,7 +119,6 @@ plotLatitude <- function(PostSum.list,
   p_popDens1 <- ggplot(subset(popDens.sum, SummaryPeriod == paste0(minYear, "-", maxYear))) + 
     geom_pointrange(aes(x = Latitude, y = Median, ymin = lCI, ymax = uCI, colour = Longitude), size = 0, fatten = 4, alpha = 0.5) +
     geom_point(aes(x = Latitude, y = Median, fill = Longitude), shape = 21, color = "black", size = 2, alpha = 0.75) +
-    ylim(0, 500) + 
     ylab("Estimate") + 
     paletteer::scale_color_paletteer_c("grDevices::Temps") + 
     paletteer::scale_fill_paletteer_c("grDevices::Temps") + 
@@ -169,7 +168,6 @@ plotLatitude <- function(PostSum.list,
     geom_point(aes(x = dens.Median, y = Median, fill = Latitude), shape = 21, color = "black", size = 2, alpha = 0.75) +
     paletteer::scale_color_paletteer_c("grDevices::Temps") + 
     paletteer::scale_fill_paletteer_c("grDevices::Temps") + 
-    xlim(0, 500) + 
     xlab("Population density") +
     ylab("Population growth rate") + 
     theme_classic()

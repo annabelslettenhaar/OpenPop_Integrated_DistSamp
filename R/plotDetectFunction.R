@@ -28,7 +28,7 @@ plotDetectFunction <- function(mcmc.out,
   for(i in 1:N_areas){
     
     ## Extract posterior samples of relevant parameters
-    sigma_avg <- mcmc.mat[, paste0("mu.dd[", i, "]")]
+    sigma_avg <- exp(mcmc.mat[, paste0("mu.dd[", i, "]")])
 
     ## Make, summarise, and store predictions for each covariate value
     for(x in 1:100){

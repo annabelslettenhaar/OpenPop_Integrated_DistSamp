@@ -1,0 +1,475 @@
+---
+title: "Walkthrough of model application to multiple areas"
+author: "Chloé R. Nater"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "..")
+```
+
+## About this document
+In this document, we walk you through the application of the integrated distance sampling model (IDSM) to line transect and optionally telemetry data collected 
+from willow ptarmigans (*Lagopus lagopus*) in Norway. The model, workflow, and
+application to data from the 41 reporting districts that publicly archive data
+are presented in: 
+
+Nater, C. R., Martin, J. A, Frassinelli, F., and Nilsen, E. B. (2024). Large-scale spatiotemporal variation in vital rates and population dynamics of an alpine bird. *EcoEvoRxiv*. DOI: <https://doi.org/10.32942/X2VP6J>
+
+In essence, this document is a version of the workflow in "Analysis_RealData.R" with additional annotation and documentation.
+It is also nearly identical to the contents of "Analysis_RealData_LierneVest.R", which carries out an equivalent analysis but only for a single locality (Lierne Vest) instead of for a larger number of reporting districts. 
+
+There are three ways to run this workflow, two from "within" R and a third one using Nix and GNUparallel from a terminal. For the latter, refer to the second vignette "workflow_Nix_GNUparallel.Rmd".
+
+
+## Before you start
+
+The code in the following uses relative directory and file paths. For that to work smoothly, we need to make sure that the walkthrough (.Rmd file) uses the same root directory as the project repository. Since the walkthrough is located inside a subfolder "vignettes", we have to move the working directory up one level. For knitting this document, that can be taken care of by `knitr::opts_knit$set(root.dir = "..")` in the setup chunk (due to long runtimes, we currently knit the document wihtout evaluating code chunks). If we want to work through the document interactively, though, we need to double-check that the working directory is set to the root directory (using `getwd()`). This should be the case if you have opened the Rproject ("OpenPop_Integrated_DistSamp.Rproj"), but if we are instead inside the "vignettes" folder, we have to move the working directory up one level: 
+
+```{r, eval = FALSE}
+setwd("..")
+```
+
+Before getting into running the code for the analyses, we have to make sure that we have all the necessary data in the correct directory and that all the dependencies are installed correctly. 
+
+### Retrieving data
+The line transect data that form the core of this analysis are publicly available from both the [GBIF](<https://www.gbif.org/dataset/b49a2978-0e30-4748-a99f-9301d17ae119>) and [Living Norway](<https://data.livingnorway.no/dataset?key=b49a2978-0e30-4748-a99f-9301d17ae119>) data portals. Downloading from GBIF requires login credentials (anyone can sign up at no cost). Downloading from the Living Norway data portal does not require credentials, and in this workflow, we download data directly from Living Norway into R using the ("LivingNorwayR")[<https://rdrr.io/github/LivingNorway/LivingNorwayR/>] package (installation instructions below).
+
+In addition to the line transect data, this workflow also requires two auxiliary datasets: data from a telemetry study of ptarmigans in Lierne, and data on rodent occupancy that is collected as part of the line transect survey (but not currently included in the publicly available version of the dataset). Both data sets are part of the code repository and the corresponding files ("CMR_Data.csv" and "Rodent_data.rds") should already be present in the "data" folder in the project directory. If either of them are missing, they can be downloaded from OSF here: <https://osf.io/9ygsc>. 
+
+Finally, one of the plotting functions downstream in the workflow generates maps, and requires shapefiles to do so. These are not well suited for upload to GitHub, and therefore have to be retrieved from OSF: <https://osf.io/9ygsc>.
+Download the contents of the subfolder "AuxiliaryData/norway_municipalities" (4 files) and place them in a corresponding subfolder "data/norway_municipalities" in the repository directory. 
+
+
+### Installing dependencies
+Next, we want to make sure you have all the dependencies installed. 
+
+Downloading the data requires the "LivingNorwayR" package. As per now, the package is not yet available from CRAN, and we therefore have to install it from GitHub directly. This can be done using `install_github`from the `remotes` package:
+
+```{r, eval = FALSE}
+if(!("remotes" %in% installed.packages())){
+  install.packages("remotes")
+}
+
+if(!("LivingNorwayR" %in% installed.packages())){
+  remotes::install_github("LivingNorway/LivingNorwayR")
+}
+```
+
+Then, we have to ensure that we have all other R packages needed for wrangling data, managing workflow, visualizing results, etc. For each one, the code below checks if it is available, and installs it if not.
+
+```{r, eval = FALSE}
+pkg.list <- c("coda", "colorspace", "cowplot", "EnvStats", "extraDistr", 
+              "ggforce", "ggplot2", "ggpubr", "grDevices", "knitr", 
+              "MCMCvis", "paletteer", "parallel", "popbio", "qs", "Rage", 
+              "reshape2", "RJSONIO", "sf", "see", "targets", "terra", 
+              "tidybayes", "tidyverse", "tmap", "viridis", "visNetwork")
+for(i in 1:length(pkg.list)){
+  if(!(pkg.list[i] %in% installed.packages())){
+    install.packages(pkg.list[i])
+  }
+}
+```
+
+We need to do the same for the `nimble`R package. This package is required to use the NIMBLE compiler (see <https://r-nimble.org/> for more information) for model fitting. Installing and using NIMBLE requires us to have a compiler and a set of related tools readily available. Instructions on how to make sure we have these available can be found on the NIMBLE website under "Download": <https://r-nimble.org/downloadhttps://r-nimble.org/download>
+Once we know that we have a compiler and that it works, we can install the `nimble`package just like the other R packages:
+
+```{r, eval = FALSE}
+if(!("nimble" %in% installed.packages())){
+  remotes::install_github("nimble")
+}
+```
+
+And finally, we also need to manually install the `nimbleDistance`R package from GitHub. This package contains custom-made distribution functions for distance sampling data, incl. the half-normal distribution we are going to be using in the IDSM here: 
+
+```{r, eval = FALSE}
+if(!("nimbleDistance" %in% installed.packages())){
+  remotes::install_github("scrogster/nimbleDistance")
+}
+```
+
+## Workflow setup
+
+The workflow can be run from within R in two ways. 
+The first one is the semi-automated implementation using the R package "targets". In this case, the main setup for the workflow is contained in the masterscript "_targets.R"; the components of the targets script are almost identical to those of the manual workflow that is described below. The workflow structure and status can be investigated using `targets::tar_visnetwork()`and the execution is done with a single command `targets::tar_make()`. For more information on targets pipelines, see <https://books.ropensci.org/targets/>. 
+
+In the following, we will walk you through the manual workflow ("Analysis_RealData.R") step by step. 
+
+We get started by loading a range of packages, setting the seed for the session (to ensure reproducibility), and sourcing all the functions contained in the "R" folder. This workflow is function-based, meaning that each step is written into a specific function. Each of the functions has roxygen documentation, which we can consult to learn more about its purpose and use.
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(coda)
+library(nimble)
+library(parallel)
+library(ggplot2)
+library(viridis)
+library(sf)
+library(terra)
+
+## Define seed for initial value simulation and MCMC
+mySeed <- 32
+
+## Source all functions in "R" folder
+sourceDir <- function(path, trace = TRUE, ...) {
+  for (nm in list.files(path, pattern = "[.][RrSsQq]$")) {
+    if(trace) cat(nm,":")
+    source(file.path(path, nm), ...)
+    if(trace) cat("\n")
+  }
+}
+sourceDir('R')
+```
+
+In addition to functions, the workflow also makes use of "toggles" (or "switches"). These are a series (mostly) logical variables that we use to specify the "settings" of our run of the workflow. 
+
+```{r, eval = FALSE}
+# (Re-)downloading data
+# downloadData <- FALSE
+downloadData <- TRUE
+
+# Aggregation to area level
+areaAggregation <- TRUE 
+
+# Recruitment per adult or per adult female
+R_perF <- FALSE
+
+# Drop observations of juveniles with no adults present
+R_parent_drop0 <- TRUE
+
+# Aggregation level for reproduction data
+# NOTE: if this is not defined, will default to group level
+sumR.Level <- "line" # Summing at the line level
+
+# Time variation in survival
+survVarT <- TRUE
+
+# Rodent covariate on reproduction
+fitRodentCov <- TRUE
+
+# Use of telemetry data from Lierne
+telemetryData <- TRUE
+
+# Test run or not
+testRun <- TRUE
+
+# Run MCMC in parallel
+parallelMCMC <- FALSE
+```
+
+`downloadData` determines whether we re-download data from Living Norway. We are going to do that every time as per now, there is an error with encoding if we try to read in an already downloaded data archive using `LivingNorwayR::initializeDwCArchive()`. 
+For this implementation, we are focusing on multiple locations and therefore aggregate sampling locations into larger-scale reporting areas, hence `areaAggregation <- TRUE`. With `R_perF`, `R_parent_drop0`, and `sumR.Level` we specify how we want to define recruitment rate and treat the recruitment data; here, we opt for estimating juveniles per adult (not per female), summarise data at the level of the transect line (as opposed to group of observed birds), and drop observations where we only encountered juveniles but no adults on an entire transect. We are going to model time variation in survival (`survVarT <- TRUE`), include an effect of rodent occupancy on recruitment (`firRodentCov <- TRUE`), and use information provided by the telemetry data from Lierne aea (`telemetryData <- TRUE`). The toggle `testRun` determines how many iterations of the MCMC we will run for fitting the model; if it is set to FALSE, it will run the MCMC for either a default number of 150 000 or a user specified number of iterations while TRUE results in a short test run of 50 iterations only. Finally, with `parallelMCMC` we determine whether we want MCMC chains to be run in parallel or sequence. 
+
+## Data download and wrangling
+
+Telemetry and rodent data should be ready in the "data" folder (see above), so it is only the line transect data that needs retrieving from Living Norway:
+```{r, eval = FALSE}
+Rype_arkiv <- downloadLN(datasets = c("Fjellstyrene", "Statskog", "FeFo"), versions = c(1.7, 1.8, 1.12), save = TRUE)
+```
+This retrieves **all** of the publicly available line transect data (3 datasets). 
+
+Before proceeding with data preparations, we need to define both the areas/localities and years we are interested in:
+```{r, eval = FALSE}
+## Set localities/areas and time period of interest
+#localities <- listLocations()
+areas <- listAreas()
+minYear <- 2007
+maxYear <- 2021
+```
+`listAreas()` currently returns the names of all 41 reporting districts for which ptarmigan line transect data are made publicly available. You could also run the analysis for any subset of areas, as long as Lierne is included (at the moment, the pipeline will throw an error if it cannot match the radio telemetry data to the area index for Lierne).
+Alternatively, the analysis can also be run at the finer spatial resolution of sampling localities (`areaAggregation = FALSE`) by instead using `listLocations()`. At the moment, this function only comes up with western Lierne ("Lierne Fjellst. Vest"), but more localities could be added to `R/listLocations()` if we wanted to run an analysis involving multiple localities. 
+
+We proceed by loading, filtering, and reformatting line transect, telemetry (= known fate CMR), and rodent data:
+```{r, eval = FALSE}
+## List duplicate transects to remove
+duplTransects <- listDuplTransects()
+
+## Extract transect and observational data from DwC archive
+LT_data <- wrangleData_LineTrans(DwC_archive_list = Rype_arkiv, 
+                                 duplTransects = duplTransects,
+                                 #localities = localities,
+                                 areas = areas,
+                                 areaAggregation = areaAggregation,
+                                 minYear = minYear, maxYear = maxYear)
+
+## Read in and reformat CMR data
+d_cmr <- wrangleData_CMR(minYear = minYear)
+
+## Load and reformat rodent data
+d_rodent <- wrangleData_Rodent(duplTransects = duplTransects,
+                               #localities = localities,
+                               areas = areas,
+                               areaAggregation = areaAggregation,
+                               minYear = minYear, maxYear = maxYear)
+
+```
+`wrangleData_LineTrans()` will throw a warning about coerced NAs, but that is okay and can just be ignored. 
+NIMBLE takes its input data in list format. To be more specific, one list containing "data" and one list containing "constants". We set our input data up accordingly using:
+```{r, eval = FALSE}
+## Reformat data into vector/array list for analysis with Nimble
+input_data <- prepareInputData(d_trans = LT_data$d_trans, 
+                               d_obs = LT_data$d_obs,
+                               d_cmr = d_cmr,
+                               d_rodent = d_rodent,
+                               #localities = localities, 
+                               areas = areas,
+                               areaAggregation = areaAggregation,
+                               excl_neverObs = TRUE,
+                               R_perF = R_perF,
+                               R_parent_drop0 = R_parent_drop0,
+                               sumR.Level = "line",
+                               dataVSconstants = TRUE,
+                               save = TRUE)
+```
+
+## Model setup and implementation
+
+We are now going to set up the model. To do so, we first set the number of MCMC chains we want to run and select run seeds based on the origin seed we set at the beginning of the code. The function `expandSeed_MCMC()` returns up to 5 run seeds that are derived (deterministically) from the origin seed: 
+
+```{r, eval = FALSE}
+## Expand seeds for simulating initial values
+nchains <- 5
+MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
+                              nchains = nchains)
+```
+
+Next, we write the code for the model we want to run (based on `survVarT` and `telemetryData`) and then combine it with input data, relevant toggles, and run seeds into an object `model_setup`. The corresponding wrapper function, `setupModel()` also checks dependencies, simulates initial values (by calling `simulateInits()`), lists parameters to monitor, and sets up MCMC parameters. The latter is governed by an additional switch `testRun`, which allows us to choose between setting the model up for a short test run (50 iterations, no burn-in, no thinning) versus a full run (200 000 iterations, 110 000 burn-in, thinning factor 30). It's also possible to pass other MCMC parameters directly to the function (see function documentation for details). 
+
+```{r, eval = FALSE}
+## Write model code
+modelCode <- writeModelCode(survVarT = survVarT,
+                            telemetryData = telemetryData)
+
+## Setup for model using nimbleDistance::dHN
+model_setup <- setupModel(modelCode = modelCode,
+                          R_perF = R_perF,
+                          survVarT = survVarT, 
+                          fitRodentCov = fitRodentCov,
+                          nim.data = input_data$nim.data,
+                          nim.constants = input_data$nim.constants,
+                          testRun = testRun, 
+                          nchains = nchains,
+                          initVals.seed = MCMC.seeds)
+```
+
+With the setup in place, we are then ready to run the model. This is done either sequentially using NIMBLE's wrapper function `nimbleMCMC` or by building the model stepwise and then parallelising the MCMC (see <https://r-nimble.org/nimbleExamples/parallelizing_NIMBLE.html> for additional documentation). In the latter case, another wrapper function we wrote, `runMCMC_allcode()` is used. 
+Once the model has finished running, we save the output in an RDS file in the root directory. 
+
+```{r, eval = FALSE}
+if(!parallelMCMC){
+  IDSM.out <- nimbleMCMC(code = model_setup$modelCode,
+                         data = input_data$nim.data, 
+                         constants = input_data$nim.constants,
+                         inits = model_setup$initVals, 
+                         monitors = model_setup$modelParams,
+                         nchains = model_setup$mcmcParams$nchains, 
+                         niter = model_setup$mcmcParams$niter, 
+                         nburnin = model_setup$mcmcParams$nburn, 
+                         thin = model_setup$mcmcParams$nthin, 
+                         samplesAsCodaMCMC = TRUE, 
+                         setSeed = MCMC.seeds)
+}else{
+  
+  ## Add toggles to constants
+  input_data$nim.constants$fitRodentCov <- fitRodentCov
+  input_data$nim.constants$survVarT <- survVarT
+  input_data$nim.constants$R_perF <- R_perF
+  input_data$nim.constants$telemetryData <- telemetryData
+  
+  ## Set up cluster
+  this_cluster <- makeCluster(model_setup$mcmcParams$nchains)
+  #clusterEvalQ(this_cluster, library(nimble))
+  #clusterEvalQ(this_cluster, library(nimbleDistance))
+  
+  ## Collect chain-specific information
+  per_chain_info <- vector("list", model_setup$mcmcParams$nchains)
+  for(i in 1:model_setup$mcmcParams$nchains){
+    per_chain_info[[i]] <- list(mySeed = MCMC.seeds[i],
+                                inits = model_setup$initVals[[i]])
+  }
+  
+  ## Run chains in parallel
+  t.start <- Sys.time()
+  IDSM.out <- parLapply(cl = this_cluster, 
+                            X = per_chain_info, 
+                            fun = runMCMC_allcode, 
+                            model_setup = model_setup,
+                            input_data = input_data)
+  Sys.time() - t.start
+  
+  
+  stopCluster(this_cluster)
+  
+}
+
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_realData_allAreas.rds")
+```
+
+Note that with the 41 reporting areas, this is a big model that has not been optimized for efficiency (yet). Building the model and checking calculations alone can take >1h. Running the MCMC with the default parameters likely takes 2-3 days per chain depending on your hardware, and memory load is substantial at 8-13 GB per chain when run in parallel and somewhere between 20 and 30 GB when run in sequence. If you just want to play around with the model and the workflow, you can do a test run (`testRun = TRUE`) and/or only include a subset of areas instead of all 41. 
+
+*At the time of writing, there is an inconsistency in the nimbleDistance package that Nimble will notify us of when setting up the model. The inconcsistency affects the implementation of the hazard rate detection distribution (`d_HR`), which we are not using here. So this does not need to concern us further.* 
+
+*Another common issue that can arise at this stage is NIMBLE reporting on a "failure to create shared library". It's a well-known but somewhat uninformative error that typically indicates that something is wrong with the compiler. Often, this will happen if you do not have the correct versions of "Rtools"/"Xcode", or if paths to different resources are not compatible. More information (including instructions on how to fix it) can be found by searching through the (nimble-users Google group)[<https://groups.google.com/g/nimble-users>].* 
+
+
+## Post-processing
+
+Before looking at the results, there is a routine to "tidy up" the posterior samples. "Tidy up" here means that we a) convert the density measures from individuals/m^2^ to -- biologically more sensible -- individuals/km^2^ and b) remove any redundant 0 or NA nodes. Redundant nodes in the model are nodes within the population size and density arrays with area-site-year combinations that do not appear in the data and are not estimated in the model. As such, the "tidying" step also helps saving on storage by reducing the size of RDS file containing the relevant posterior distributions. 
+
+```{r, eval = FALSE}
+IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
+                             save = TRUE,
+                             fileName = "rypeIDSM_dHN_multiArea_realData_allAreas_tidy.rds")
+
+```
+
+For reporting, we would also like to summarize the posterior distributions for the quantities of interest (vital rates, detection parameters, population density estimates). The function `summarisePost_areas()` calculculates posterior medians and 95% credible intervals for all parameters in each area, and writes the results into a file ("PosteriorSummaries_byArea.rds"). 
+
+```{r, eval = FALSE}
+PostSum.list <- summarisePost_areas(mcmc.out = IDSM.out.tidy, 
+                                    N_areas = input_data$nim.constant$N_areas, 
+                                    area_names = input_data$nim.constant$area_names, 
+                                    N_sites = input_data$nim.constant$N_sites, 
+                                    min_years = input_data$nim.constant$min_years, 
+                                    max_years = input_data$nim.constant$max_years, 
+                                    minYear = minYear, maxYear = maxYear,
+                                    fitRodentCov = fitRodentCov,
+                                    save = TRUE)
+```
+
+
+## Results visualizations
+The basic workflow includes seven different types of visualizations: 
+
+1) MCMC traces
+2) Time-series of posterior summaries (median and 95% credible interval) for population density, vital rates, and detection parameters
+3) Whole posterior distributions for key vital rate parameters
+4) Posterior summaries (median and 95% credible intervals) for the predicted relationships between recruitment rate and rodent occupancy
+5) Posterior summaries (median and 95% credible intervals) for the predicted relationships between detection probability and distance to transect line
+6) Maps of posterior medians, standard deviations, and coefficients of variance of average survival, recruitment, detection, population density, and population growth rates.
+7) Relationships of different demographic parameters (posterior summaries) with each other (trade-offs) and latitude.
+
+Before proceeding to plotting, we need to set up a folder in which to save the PDF plots that will be generated (provided we do not already have such a folder):
+
+```{r, eval = FALSE}
+if(!file.exists("Plots")){
+  dir.create("Plots")
+}
+```
+Then, we can proceed with visualizing results. Each of the visualization types outlined above is handled by its own function, and we refer you to the function documentation for additional information. 
+Each of the functions will also output the paths to the PDF figures it creates:
+
+```{r, eval = FALSE}
+## MCMC traces
+plotMCMCTraces(mcmc.out = IDSM.out.tidy,
+               fitRodentCov = fitRodentCov,
+               survVarT = survVarT)
+
+## Parameter time series
+plotTimeSeries(mcmc.out = IDSM.out.tidy, 
+               N_areas = input_data$nim.constant$N_areas, 
+               area_names = input_data$nim.constant$area_names, 
+               N_sites = input_data$nim.constant$N_sites, 
+               min_years = input_data$nim.constant$min_years, 
+               max_years = input_data$nim.constant$max_years, 
+               minYear = minYear, maxYear = maxYear,
+               VitalRates = TRUE, DetectParams = TRUE, Densities = TRUE)
+
+## Vital rate posterior densities
+plotPosteriorDens_VR(mcmc.out = IDSM.out.tidy,
+                     N_areas = input_data$nim.constant$N_areas, 
+                     area_names = input_data$nim.constant$area_names, 
+                     N_years = input_data$nim.constant$N_years,
+                     minYear = minYear,
+                     survAreaIdx = input_data$nim.constants$SurvAreaIdx,
+                     survVarT = survVarT,
+                     fitRodentCov = fitRodentCov) 
+
+## Covariate predictions
+if(fitRodentCov){
+  plotCovPrediction(mcmc.out = IDSM.out.tidy,
+                    effectParam = "betaR.R",
+                    covName = "Rodent occupancy",
+                    minCov = 0, 
+                    maxCov = 1,
+                    meanCov = d_rodent$meanCov,
+                    sdCov = d_rodent$sdCov,
+                    N_areas = input_data$nim.constant$N_areas, 
+                    area_names = input_data$nim.constant$area_names,
+                    fitRodentCov = fitRodentCov)
+}
+
+## Detection function
+plotDetectFunction(mcmc.out = IDSM.out.tidy,
+                   maxDist = input_data$nim.constants$W,
+                   N_areas = input_data$nim.constant$N_areas, 
+                   area_names = input_data$nim.constant$area_names)
+
+## Maps of vital rates, population size, and population growth rate
+NorwayMunic.map <- setupMap_NorwayMunic(shp.path = "data/norway_municipalities/norway_municipalities.shp",
+                                        d_trans = LT_data$d_trans,
+                                        areas = areas, areaAggregation = areaAggregation)
+
+plotMaps(PostSum.list = PostSum.list, 
+         mapNM = NorwayMunic.map,
+         minYear = minYear, maxYear = maxYear,
+         fitRodentCov = fitRodentCov)
+
+## Latitude patterns & trade-offs
+plotLatitude(PostSum.list = PostSum.list, 
+             area_coord = LT_data$d_coord,
+             minYear = minYear, maxYear = maxYear,
+             fitRodentCov = fitRodentCov)
+```
+
+## Follow-up analyses
+
+Finally, there are a few short follow-up analyses based on the posterior distributions from the model.
+
+In the first, we calculate within-sample correlation coefficients between vital rates / population growth rate and population density to look for evidence for potential density-dependence. It's important to remember that this is "potential" indeed, as this kind of post-hoc assessment cannot separate true process correlation (density feedbacks) from MCMC sampling correlation. 
+The function `checkDD()` calculates posterior distribution of correlation coefficients in each area and saves them to RDS and CSV: 
+
+```{r, eval = FALSE}
+checkDD(mcmc.out = IDSM.out.tidy, 
+        N_areas = input_data$nim.constant$N_areas, 
+        area_names = input_data$nim.constant$area_names, 
+        N_sites = input_data$nim.constant$N_sites, 
+        min_years = input_data$nim.constant$min_years, 
+        max_years = input_data$nim.constant$max_years)
+```
+
+MCMC sampling correlation is the focus of the second follow-up analysis. For this model, sampling correlation between survival and recruitment parameters is of particular interest. To make some inference about spatio-temporal variation in vital rates requires that we account for the fact that the model's structure makes is prone to sampling correlations between those parameters in particular. 
+The function `checkVRcorrs()` calculates sampling correlation between survival and recruitment both with ($S_t ~ R_{t+1}$) and without ($S_t ~ R_t$) a time lag for each area seperately and pooled across all areas: 
+
+```{r, eval = FALSE}
+checkVRcorrs(mcmc.out = IDSM.out.tidy, 
+             N_areas = input_data$nim.constant$N_areas, 
+             area_names = input_data$nim.constant$area_names, 
+             area_coord = LT_data$d_coord,
+             min_years = input_data$nim.constant$min_years, 
+             max_years = input_data$nim.constant$max_years)
+```
+             
+The third follow-up analysis is a decomposition of variation in vital rates and detection parameters into the four modelled components covariates, temporal variation, spatial variation, and residual variation. The corresponding function handles both calculation and plotting of results: 
+
+```{r, eval = FALSE}
+plotVarDecomposition(mcmc.out = IDSM.out.tidy, 
+                     N_areas = input_data$nim.constants$N_areas, 
+                     N_years = input_data$nim.constants$N_years, 
+                     fitRodentCov = fitRodentCov, 
+                     RodentOcc_data = input_data$nim.data$RodentOcc,
+                     saveResults = TRUE)
+```
+
+The fourth is the calculation and visualization of area-specific generation time (following two different approaches, see function documentation for details).
+
+```{r, eval = FALSE}
+GT_estimates <- extract_GenTime(mcmc.out = IDSM.out.tidy, 
+                                N_areas = input_data$nim.constants$N_areas, 
+                                area_names = input_data$nim.constant$area_names, 
+                                area_coord = LT_data$d_coord,
+                                mapNM = NorwayMunic.map,
+                                save = TRUE)
+```

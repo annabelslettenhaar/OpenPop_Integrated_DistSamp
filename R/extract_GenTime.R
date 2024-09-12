@@ -101,7 +101,7 @@ extract_GenTime <- function(mcmc.out,
     theme_classic()
     
   pdf("Plots/GenerationTime/GenerationTime_Latitude.pdf", width = 8, height = 4)
-  p_latGT
+  print(p_latGT)
   dev.off()
   
 
@@ -110,7 +110,7 @@ extract_GenTime <- function(mcmc.out,
     dplyr::left_join(., subset(GT_data_all, GT_measure == "Inverse of fecundity elasticity"), by = "Area") 
   
   mapNM.GT_R0 <- mapNM %>%
-    dplyr::left_join(., subset(GT_data_all, GT_measure == "Per generation growth rate (R0)"), by = "Area") 
+    dplyr::left_join(., subset(GT_data_all, GT_measure == "Per generation growth rate"), by = "Area") 
   
   pdf("Plots/GenerationTime/GenerationTime_elasF_Map.pdf", width = 5, height = 6)
   print(

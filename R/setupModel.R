@@ -28,7 +28,7 @@
 setupModel <- function(modelCode, customDist,
                        nim.data, nim.constants,
                        R_perF, survVarT, fitRodentCov, addDummyDim = TRUE,
-                       niter = 150000, nthin = 25, nburn = 75000, nchains = 3,
+                       niter = 200000, nthin = 30, nburn = 111000, nchains = 3,
                        testRun = FALSE, initVals.seed){
   
   require('nimble')
@@ -38,11 +38,10 @@ setupModel <- function(modelCode, customDist,
   params <- c("esw", "p", #"D",
               "R_year", "Mu.R", "h.Mu.R", "h.sigma.R", "sigmaT.R", "sigmaR.R",
               "sigma", "mu.dd", "h.mu.dd", "h.sigma.dd", "sigmaT.dd", "sigmaR.dd",
-              "Density", "N_exp", "N_tot_exp",
+              "meanDens", 
               "Mu.D1", "sigma.D",
               "S", "Mu.S", "h.Mu.S", "h.sigma.S",
-              "Mu.S1", 
-              "ratio.JA1")
+              "Mu.S1")
   
   if(survVarT){
     params <- c(params, "sigmaT.S", "sigmaR.S", "eps.S1.prop")

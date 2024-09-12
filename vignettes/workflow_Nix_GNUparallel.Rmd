@@ -1,0 +1,86 @@
+---
+title: "Instructions for workflow execution with Nix and GNU parallel"
+author: "Chloé R. Nater"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## About this document
+In this document, we briefly describe how to run the integrated distance sampling (IDSM) workflow directly from a terminal in a fully reproducible R environment (Nix shell). By using GNUparalell to parallelise computation outside of R, we are avoiding a range of issues that can arise with R's internal parallelization (e.g. processes running even when the parent R session has been restarted, hard to debug, error handling, etc.). This setup is particularly well suited for running on servers and high-performance computing clusters. Such environments may often be the only viable option for analyses such as the IDSM fit to 40+ areas due to its long run times (3+ days per chain) and high memory loads (10+ GB per chain). 
+
+
+## General preparations
+For details on the different steps in the IDSM analysis workflow, please refer to the vignette "walkthrough_multiArea_Analysis.Rmd" and the documentation of functions in the "R" folder. 
+Before getting started, you have to make sure you have all the necessary dependencies and auxiliary data available. 
+
+### Installing dependencies
+Next, you will want to make sure that your system has the tools for running both Nix and GNUparallel installed. For installation instructions, please refer to the respective tool's documentation: 
+
+- Nix: <https://nixos.org/manual/nix/stable>
+- GNUparallel: <https://www.gnu.org/software/parallel/>
+
+### Retrieving auxiliary data
+The analysis relies on data that is either downloaded from an open repository directly or already included in the repository. The only exception are the shapefiles required for visualizing results on maps. These are not well suited for upload to GitHub, and therefore have to be retrieved from OSF: <https://osf.io/9ygsc>.
+Download the contents of the subfolder "AuxiliaryData/norway_municipalities" (4 files) and place them in a corresponding subfolder "data/norway_municipalities" in the repository directory. 
+
+
+## Using Nix to set up a reproducible environment
+Nix is a tool for setting up environments that contain specified (versions of) software and software packages. For more information and detailed documentation, please see: <https://nixos.org/manual/nix/stable>
+
+The first step for running our analysis is setting the Nix shell. This is done by typing `nix-shell` in the terminal. Execution of the command requires that there is a file named "default.nix" in your working directory. A "default.nix" for reproducing our analyses is contained within the repository, so there is no need to regenerate this. 
+Should you want to set up a new "default.nix" (e.g. to use different versions of R / R packages), you can edit and run the R script "generate_default_nix.R". It uses the R package "rix" (<https://b-rodrigues.github.io/rix/>), which greatly facilitates and largely automates writing "default.nix" files. 
+
+(Note: at the time of writing, we have to manually add one line to "default.nix" to make the integration with RStudio work properly. This issue affects our particular server only and is temporary, so you may not need this extra line. The line is: `QT_XCB_GL_INTEGRATION = "none";`). 
+
+
+## Executing the workflow from command line
+Once within the Nix shell, we have the desired version of R, as well as all specified packages dependencies, readily available. 
+
+The workflow is split into three master scripts corresponding to setup, model fitting, and post-processing. Only the model fitting is run in parallel. 
+
+
+## Setup
+The first script, "Analysis_RealData_GNUparallel_Setup.R", is responsible for retrieving, formatting, and preparing input data for fitting the IDSM. As data is downloaded from GBIF, an internet connection is required for running it. Unlike the R-internal implementations of the workflow ("Analysis_RealData.R", "_targets.R"), this script saves all input data that is needed for model fitting and processing as .rds files in the working directory (where they can be read by the other scripts).
+We can call the script directly from the terminal using: 
+
+```{bash, eval = FALSE}
+Rscript Analysis_RealData_GNUparallel_Setup.R
+```
+
+## Parallel model fitting
+The second script is "rypeIDSM_GNUwrapper.R". It requires two command line arguments representing (1) the origin/main seed and (2) the run seed for the MCMC chain. We run it in parallel, using every origin seed / run seed combination that has been written into a file "inputSeeds.txt" by the first script. The call to GNUparallel from the terminal is: 
+
+```{bash, eval = FALSE}
+parallel --colsep $'\t' --bar --results results --delay 1h --memfree 13G --joblog joblog --resume --resume-failed --retries 3 -- /usr/bin/time Rscript rypeIDSM_GNUwrapper.R :::: inputSeeds.txt
+```
+
+The arguments to the call `parallel /usr/bin/time Rscript rypeIDSM_GNUwrapper.R :::: inputSeeds.txt` are interpreted as follows: 
+
+- `--colSep $'\t'`: how to read arguments from inputSeeds.txt
+- `--bar`: print progress bar
+- `--results results`: store results in a folder "results"
+- `--delay 1h`: wait 1h before starting next child process
+- `--memfree 13G`: wait before starting a child processes if < 13G is available
+- `--joblog joblog`: print joblog into a file "joblog"
+- `--resume`: try to resume processes if they are interrupted
+- `--resume-failed`: try to resume processes if they fail
+- `--retries 3`: try to resume failed processes up to 3 times
+
+`/usr/bin/time` is a utility that prints the runtime and memory usage at the end of the execution.
+
+If you are doing a full model run, this will take while (likely between 3 and 5 days depending on the specs of your system).
+The progress bar in the terminal does not work that well for monitoring MCMC progress (it is updated only after a job is finished), but we can find this elsewhere: if we navigate through the subfolders under "results", we eventually arrive in a folder containing three files "seq", "stderr", and "stdout" (these exist separately for each child process / MCMC run).
+"stderr" is used to store any messages, warnings, and errors from the R console. This includes all of the text that Nimble prints while setting up, checking, and compiling the model. "stdout", on the other hand, shows outputs from the R-console. In this case, that will be the MCMC progress bar printed by Nimble. So you can use "stdout" to check how far along your MCMC has come. If anything goes wrong or does not work out as it should, "stderr" is your place to go. 
+
+Once the runs are completed, the posterior samples will be saved as RDS files into the working directory and you will find an overview of some key characteristics (input arguments, runtimes, potential error or signal codes) in "joblog". Runtime, maximum memory usage, and average CPU load will also get logged at the very end of "stderr".
+
+
+## Post-processing
+The last script, "Analysis_RealData_GNUparallel_PostProcessing.R", combines the posterior samples from the parallel MCMC run into a common `mcmc.list()`, runs follow-up analyses, and records and visualizes results. 
+The call from terminal is equivalent to the one for the first script: 
+
+```{bash, eval = FALSE}
+Rscript Analysis_RealData_GNUparallel_PostProcessing.R
+```
+
+

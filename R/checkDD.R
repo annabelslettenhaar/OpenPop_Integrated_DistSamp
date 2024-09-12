@@ -38,8 +38,8 @@ checkDD <- function(mcmc.out,
       densT <- rep(NA, length(area_yearIdxs))
 
       for(t in 1:length(area_yearIdxs)){
-        densT[t] <- mean(out.mat[i, paste0("Density[",  x, ", 1, ", 1:N_sites[x], ", ", area_yearIdxs[t], "]")] + 
-          out.mat[i, paste0("Density[",  x, ", 2, ", 1:N_sites[x], ", ", area_yearIdxs[t], "]")])
+        densT[t] <- out.mat[i, paste0("meanDens[",  x, ", 1, ", area_yearIdxs[t], "]")] + 
+          out.mat[i, paste0("meanDens[",  x, ", 2, ", area_yearIdxs[t], "]")]
       }
       
       lambdaT <- c(densT[2:length(densT)]/densT[1:(length(densT)-1)], NA)

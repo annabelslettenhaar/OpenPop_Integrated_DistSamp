@@ -8,7 +8,9 @@
 #' @param d_cmr list with 2 elements. Surv1 and Surv2 are matrices of individuals 
 #' released (column 1) and known to have survived (column 2) in each year (row)
 #' for season 1 and season 2, respectively. Output of wrangleData_CMR().
-#' @param d_rodent matrix containing the average number of transects with rodent observations per area and year.
+#' @param d_rodent list containing the matrix with average number of transects 
+#' with rodent observations per area and year and the mean and standard deviation
+#' of the original covariate. 
 #' @param localities vector of strings listing localities to consider. Either localities or areas must be provided. 
 #' @param areas vector of strings listing areas to consider. Either localities or areas must be provided. 
 #' @param areaAggregation logical. If TRUE, areas are used as smallest spatial unit. If FALSE, locations (within areas) are used as smallest spatial unit.
@@ -356,7 +358,9 @@ prepareInputData <- function(d_trans, d_obs, d_cmr, d_rodent, localities = NULL,
     year_Survs = d_cmr$year_Survs, # Years (indices) of telemetry data
     N_years_RT = length(d_cmr$year_Survs),
     
-    RodentOcc = d_rodent,
+    RodentOcc = d_rodent$rodentAvg,
+    RodentOcc_meanCov = d_rodent$meanCov,
+    RodentOcc_sdCov = d_rodent$sdCov,
     
     N_areas = N_sUnits,
     area_names = sUnits
@@ -384,7 +388,9 @@ prepareInputData <- function(d_trans, d_obs, d_cmr, d_rodent, localities = NULL,
                         year_Survs = input.data$year_Survs, N_years_RT = input.data$N_years_RT,
                         sumR_obs_year = input.data$sumR_obs_year, N_sumR_obs = input.data$N_sumR_obs,
                         N_ageC = N_ageC,
-                        telemetryData = telemetryData)
+                        telemetryData = telemetryData,
+                        RodentOcc_meanCov = input.data$RodentOcc_meanCov,
+                        RodentOcc_sdCov = input.data$RodentOcc_sdCov)
   
   ## Make final data list to return
   if(dataVSconstants){

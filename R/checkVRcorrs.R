@@ -94,10 +94,12 @@ checkVRcorrs <- function(mcmc.out,
   ifelse(!dir.exists("Plots/VitalRate_corr"), dir.create("Plots/VitalRate_corr"), FALSE)
   
   pdf("Plots/VitalRate_corr/SurvRepCorr_Latitude.pdf", width = 8, height = 4)
-  ggpubr::ggarrange(p_VRcorr1 + ggtitle("Survival[t] vs. Recruitment[t+1]") + theme(axis.title.x = element_blank()),
-                    p_VRcorr2 + ggtitle("Survival[t] vs. Recruitment[t]") + theme(axis.title.x = element_blank()), 
-                    heights = c(1, 1), ncol = 2, 
-                    legend = "right", common.legend = TRUE)
+  print(
+    ggpubr::ggarrange(p_VRcorr1 + ggtitle("Survival[t] vs. Recruitment[t+1]") + theme(axis.title.x = element_blank()),
+                      p_VRcorr2 + ggtitle("Survival[t] vs. Recruitment[t]") + theme(axis.title.x = element_blank()), 
+                      heights = c(1, 1), ncol = 2, 
+                      legend = "right", common.legend = TRUE)
+  )
   dev.off()
   
   ## Return filepaths

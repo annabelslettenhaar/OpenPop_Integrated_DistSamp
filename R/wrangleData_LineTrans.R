@@ -34,9 +34,11 @@ wrangleData_LineTrans <- function(DwC_archive_list, duplTransects, localities = 
     Core <- DwC_archive_list[[i]]$getCoreTable()
     
     # Complete event table
-    Eve_all[[i]] <- tibble::as_tibble(Core$exportAsDataFrame()) %>%
-      dplyr::mutate(sampleSizeValue = as.numeric(sampleSizeValue))
-    
+    suppressWarnings(
+      Eve_all[[i]] <- tibble::as_tibble(Core$exportAsDataFrame()) %>%
+        dplyr::mutate(sampleSizeValue = as.numeric(sampleSizeValue))
+    )
+
     # Complete occurrence table
     Occ[[i]] <- tibble::as_tibble(DwC_archive_list[[i]]$getExtensionTables()[[2]]$exportAsDataFrame())
 

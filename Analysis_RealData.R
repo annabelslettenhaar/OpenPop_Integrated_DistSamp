@@ -25,11 +25,14 @@ sourceDir <- function(path, trace = TRUE, ...) {
 sourceDir('R')
 
 
-## Set switches 
+## Set and store switches/toggles 
 
 # (Re-)downloading data
 # downloadData <- FALSE
 downloadData <- TRUE
+
+# Aggregation to area level
+areaAggregation <- TRUE 
 
 # Recruitment per adult or per adult female
 R_perF <- FALSE
@@ -49,6 +52,9 @@ fitRodentCov <- TRUE
 
 # Use of telemetry data from Lierne
 telemetryData <- TRUE
+
+# Test run or not
+testRun <- TRUE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -84,7 +90,7 @@ LT_data <- wrangleData_LineTrans(DwC_archive_list = Rype_arkiv,
                                  duplTransects = duplTransects,
                                  #localities = localities,
                                  areas = areas,
-                                 areaAggregation = TRUE,
+                                 areaAggregation = areaAggregation,
                                  minYear = minYear, maxYear = maxYear)
 
 
@@ -102,7 +108,7 @@ d_cmr <- wrangleData_CMR(minYear = minYear)
 d_rodent <- wrangleData_Rodent(duplTransects = duplTransects,
                                #localities = localities,
                                areas = areas,
-                               areaAggregation = TRUE,
+                               areaAggregation = areaAggregation,
                                minYear = minYear, maxYear = maxYear)
 
 
@@ -113,10 +119,10 @@ d_rodent <- wrangleData_Rodent(duplTransects = duplTransects,
 input_data <- prepareInputData(d_trans = LT_data$d_trans, 
                                d_obs = LT_data$d_obs,
                                d_cmr = d_cmr,
-                               d_rodent = d_rodent$rodentAvg,
+                               d_rodent = d_rodent,
                                #localities = localities, 
                                areas = areas,
-                               areaAggregation = TRUE,
+                               areaAggregation = areaAggregation,
                                excl_neverObs = TRUE,
                                R_perF = R_perF,
                                R_parent_drop0 = R_parent_drop0,
@@ -143,13 +149,9 @@ model_setup <- setupModel(modelCode = modelCode,
                           fitRodentCov = fitRodentCov,
                           nim.data = input_data$nim.data,
                           nim.constants = input_data$nim.constants,
-                          testRun = FALSE, 
+                          testRun = testRun, 
                           nchains = nchains,
                           initVals.seed = MCMC.seeds)
-
-
-## Expand seed to get MCMC seeds
-MCMC.seeds <- expandSeed_MCMC(seed = mySeed, nchains = model_setup$mcmcParams$nchains)
 
 
 # MODEL (TEST) RUN #
@@ -297,12 +299,12 @@ checkDD(mcmc.out = IDSM.out.tidy,
 # OPTIONAL: CHECK VITAL RATE SAMPLING CORRELATIONS #
 #--------------------------------------------------#
 
-checkVRcorr(mcmc.out = IDSM.out.tidy, 
-            N_areas = input_data$nim.constant$N_areas, 
-            area_names = input_data$nim.constant$area_names, 
-            area_coord = LT_data$d_coord,
-            min_years = input_data$nim.constant$min_years, 
-            max_years = input_data$nim.constant$max_years)
+checkVRcorrs(mcmc.out = IDSM.out.tidy, 
+             N_areas = input_data$nim.constant$N_areas, 
+             area_names = input_data$nim.constant$area_names, 
+             area_coord = LT_data$d_coord,
+             min_years = input_data$nim.constant$min_years, 
+             max_years = input_data$nim.constant$max_years)
 
 
 # OPTIONAL: CALCULATE AND PLOT VARIANCE DECOMPOSITION #
@@ -322,7 +324,7 @@ plotVarDecomposition(mcmc.out = IDSM.out.tidy,
 ## Make map of Norwegian municipalities ("fylke")
 NorwayMunic.map <- setupMap_NorwayMunic(shp.path = "data/norway_municipalities/norway_municipalities.shp",
                                         d_trans = LT_data$d_trans,
-                                        areas = areas, areaAggregation = TRUE)
+                                        areas = areas, areaAggregation = areaAggregation)
 
 ## Plot population growth rate, density, and vital rates on map
 plotMaps(PostSum.list = PostSum.list, 
@@ -367,19 +369,4 @@ plotModelComparison(modelPaths = c("rypeIDSM_dHN_multiArea_realData_allAreas_tid
                     max_years = input_data$nim.constants$max_years, 
                     survAreaIdx = input_data$nim.constants$SurvAreaIdx, 
                     plotPath = "Plots/Comp_noTelemetry", 
-                    returnData = FALSE)
-
-plotModelComparison(modelPaths = c("rypeIDSM_dHN_multiArea_realData_allAreas_tidy.rds",
-                                   "rypeIDSM_dHN_multiArea_realData_allAreas_tidy_main.rds"), 
-                    modelChars = c("Using year 1 R",
-                                   "Original"), 
-                    N_areas = input_data$nim.constants$N_areas, 
-                    area_names = areas, 
-                    N_sites = input_data$nim.constants$N_sites, 
-                    N_years = input_data$nim.constants$N_years, 
-                    minYear = minYear, 
-                    #maxYear = maxYear, 
-                    max_years = input_data$nim.constants$max_years, 
-                    survAreaIdx = input_data$nim.constants$SurvAreaIdx, 
-                    plotPath = "Plots/Comp_year1R", 
                     returnData = FALSE)

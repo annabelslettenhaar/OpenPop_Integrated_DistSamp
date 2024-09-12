@@ -102,7 +102,7 @@ list(
     prepareInputData(d_trans = LT_data$d_trans, 
                      d_obs = LT_data$d_obs,
                      d_cmr = d_cmr,
-                     d_rodent = d_rodent$rodentAvg,
+                     d_rodent = d_rodent,
                      #localities = localities,
                      areas = areas,
                      areaAggregation = areaAggregation,
@@ -228,12 +228,12 @@ list(
   
   tar_target(
     VRcorr.checks,
-    checkVRcorr(mcmc.out = IDSM.out.tidy, 
-                N_areas = input_data$nim.constant$N_areas, 
-                area_names = input_data$nim.constant$area_names, 
-                area_coord = LT_data$d_coord,
-                min_years = input_data$nim.constant$min_years, 
-                max_years = input_data$nim.constant$max_years)
+    checkVRcorrs(mcmc.out = IDSM.out.tidy, 
+                 N_areas = input_data$nim.constant$N_areas, 
+                 area_names = input_data$nim.constant$area_names, 
+                 area_coord = LT_data$d_coord,
+                 min_years = input_data$nim.constant$min_years, 
+                 max_years = input_data$nim.constant$max_years)
   ),
   
   tar_target(

@@ -49,23 +49,22 @@ summarisePost_areas <- function(mcmc.out,
     for(t in 1:length(area_years)){
       
       # Summarize annual average population densities (per area, averaged over lines)
-      popDens_juv_t0 <- out.mat[, paste0("Density[",  i, ", 1, ", 1:N_sites[i], ", ", area_yearIdxs[t], "]")]
-      popDens_ad_t0 <- out.mat[, paste0("Density[",  i, ", 2, ", 1:N_sites[i], ", ", area_yearIdxs[t], "]")]
-      popDens_mean_t0 <- rowMeans(popDens_juv_t0 + popDens_ad_t0)
+      popDens_juv_t0 <- out.mat[, paste0("meanDens[",  i, ", 1, ", area_yearIdxs[t], "]")]
+      popDens_ad_t0 <- out.mat[, paste0("meanDens[",  i, ", 2, ", area_yearIdxs[t], "]")]
+      popDens_mean_t0 <- popDens_juv_t0 + popDens_ad_t0
       
       if(t < length(area_years)){
-        popDens_juv_t1 <- out.mat[, paste0("Density[",  i, ", 1, ", 1:N_sites[i], ", ", area_yearIdxs[t+1], "]")]
-        popDens_ad_t1 <- out.mat[, paste0("Density[",  i, ", 2, ", 1:N_sites[i], ", ", area_yearIdxs[t+1], "]")]
-        popDens_mean_t1 <- rowMeans(popDens_juv_t1 + popDens_ad_t1)
+        popDens_juv_t1 <- out.mat[, paste0("meanDens[",  i, ", 1, ", area_yearIdxs[t+1], "]")]
+        popDens_ad_t1 <- out.mat[, paste0("meanDens[",  i, ", 2, ", area_yearIdxs[t+1], "]")]
+        popDens_mean_t1 <- popDens_juv_t1 + popDens_ad_t1
         
         # Calculate annual average population growth rate
         lambda_t0t1 <- popDens_mean_t1 / popDens_mean_t0
       }
       
-      # Merge average density back into posterior samples
+      # Merge average density (summed age classes) back into posterior samples
       out.mat <- cbind(out.mat, popDens_mean_t0)
       colnames(out.mat)[dim(out.mat)[2]] <- paste0("meanDens[",i, ", ", area_yearIdxs[t], "]" )
-      
       
       # Merge population growth rate back into posterior samples
       if(t < length(area_years)){

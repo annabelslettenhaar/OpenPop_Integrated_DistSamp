@@ -27,8 +27,7 @@ writeModelCode <- function(survVarT, telemetryData){
     # W = truncation distance for line transect surveys
     
     # Mu.D1[x] = average initial density in area x
-    # ratio.JA1[x] = average initial juvenile:adult ratio in area x
-    
+
     # S[x, t] = annual survival from year t to t+1 in area x
     # R_year[x, t] = recruitment rate in year t in area x
     # p[x, t] = average distance sampling detection rate in area x in year t
@@ -50,14 +49,19 @@ writeModelCode <- function(survVarT, telemetryData){
       
       for (j in 1:N_sites[x]){
         
-        N_exp[x, 1, j, 1] ~ dpois(Density[x, 1, j, 1]*L[x, j, 1]*W*2) 
-        N_exp[x, 2, j, 1] ~ dpois(Density[x, 2, j, 1]*L[x, j, 1]*W*2) 
+        ## Adult densities
+        Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
         
-        Density[x, 1, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])*ratio.JA1[x]
-        Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])*(1-ratio.JA1[x])
+        ## Juvenile densities
+        if(R_perF){
+          Density[x, 1, j, 1] <- (Density[x, 2, j, 1]/2)*R_year[x, 1] 
+        }else{
+          Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1]
+        }
+        
+        ## Adult and juvenile numbers
+        N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, j, 1]*L[x, j, 1]*W*2      
       }
-      
-      
       
       #-------------------------------#
       # Population dynamics for t > 1 #
@@ -89,6 +93,13 @@ writeModelCode <- function(survVarT, telemetryData){
       for (t in 1:N_years){
         N_tot_exp[x, t] <- sum(N_exp[x, 1, 1:N_sites[x], t] + N_exp[x, 2, 1:N_sites[x], t])
       }
+      
+      ## Area-, year-, and age-class specific density (for monitoring)
+      for(a in 1:N_ageC){
+        for(t in 1:N_years){
+          meanDens[x, a, t] <- mean(Density[x, a, 1:N_sites[x], t])
+        } # t
+      } # a
     } # x
     
     
@@ -223,8 +234,7 @@ writeModelCode <- function(survVarT, telemetryData){
       
       ## Initial density
       Mu.D1[x] ~ dunif(0, 10)
-      ratio.JA1[x] ~ dunif(0, 1)
-      
+
       ## Recruitment
       epsA.R[x]  ~ dnorm(0, sd = h.sigma.R)
       log(Mu.R[x]) <- log(h.Mu.R) + epsA.R[x]

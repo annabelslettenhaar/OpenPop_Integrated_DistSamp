@@ -67,7 +67,7 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   sigmaR.S <- runif(1, 0.05, 0.2)
   
   Mu.S <- rep(NA, N_areas)
-  S <-  matrix(NA, nrow = N_areas, ncol = N_years)
+  S <-  matrix(NA, nrow = N_areas, ncol = N_years-1)
   S1 <- S2 <- rep(NA, N_years)
   
   eps.S1.prop <- runif(1, 0.3, 0.8)
@@ -159,20 +159,24 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   ## Initial densities / population sizes
   Mu.D1 <- rep(NA, N_areas)
   sigma.D <- runif(N_areas, 0.1, 2)
-  ratio.JA1 <- runif(N_areas, 0.4, 0.8)
   
   N_exp <- Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
   
   for(x in 1:N_areas){
     
-    D_x_sum <- apply(nim.data$N_a_line_year[x,,,], c(2,3), sum) / (L[x,,]*W*2)
+    D_x_sum <- nim.data$N_a_line_year[x,2,,] / (L[x,,]*W*2)
     D_data <- D_x_sum[which(!is.na(D_x_sum) & D_x_sum > 0)]
     Mu.D1[x] <- runif(1, quantile(D_data, 0.25), quantile(D_data, 0.75))  
     
     for(j in 1:N_sites[x]){
       
-      Density[x, 1, j, 1] <- Mu.D1[x]*ratio.JA1[x]
-      Density[x, 2, j, 1] <- Mu.D1[x]*(1-ratio.JA1[x])
+      Density[x, 2, j, 1] <- Mu.D1[x]
+      
+      if(R_perF){
+        Density[x, 1, j, 1] <- (Density[x, 2, j, 1]/2)*R_year[x, 1] # Juveniles 
+      }else{
+        Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1] # Juveniles
+      }
       
       N_exp[x, 1, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 1, j, 1]*L[x, j, 1]*W*2, a = 1)
       N_exp[x, 2, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 2, j, 1]*L[x, j, 1]*W*2, a = 1)
@@ -206,6 +210,18 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     }
   }
   
+  ## Area-, year-, and age-class specific density (for monitoring)
+  meanDens <- array(NA, dim = c(N_areas, N_ageC, N_years))
+  
+  for(x in 1:N_areas){
+    for(a in 1:N_ageC){
+      for(t in 1:N_years){
+        meanDens[x, a, t] <- mean(Density[x, a, 1:N_sites[x], t])
+      }
+    } 
+  }
+
+  
   # Assembly #
   #----------#
   
@@ -215,7 +231,6 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     Mu.D1 = Mu.D1, 
     sigma.D = sigma.D,
     eps.D1 = matrix(0, nrow = nim.constants$N_areas, ncol = max(N_sites)),
-    ratio.JA1 = ratio.JA1,
     
     Mu.R = Mu.R,
     h.Mu.betaR.R = h.Mu.betaR.R, h.sigma.betaR.R = h.sigma.betaR.R,
@@ -245,6 +260,7 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     S1 = S1, S2 = S2, S = S,
     
     Density = Density,
+    meanDens = meanDens,
     N_exp = N_exp,
     N_tot_exp = N_tot_exp
   )
