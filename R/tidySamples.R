@@ -22,7 +22,7 @@ tidySamples <- function(IDSM.out, save = TRUE, fileName = NULL){
   n_chains <- length(IDSM.out)
   
   ## Identify density nodes
-  Dnode_idx <- which(stringr::str_detect(colnames(IDSM.out[[1]]), pattern = "Density"))
+  Dnode_idx <- which(stringr::str_detect(colnames(IDSM.out[[1]]), pattern = "meanDens"))
   
   ## Identify unnecessary NA nodes
   NAnode_idx <- unname(which(is.na(colSums(IDSM.out[[1]]))))
