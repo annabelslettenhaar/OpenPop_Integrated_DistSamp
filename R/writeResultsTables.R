@@ -13,6 +13,9 @@ writeResultsTables <- function(){
   postSum_main <- readRDS("PosteriorSummaries_byArea.rds")
   postSum_GenTime <- readRDS("PosteriorSummaries_GenTime_byArea.rds")
   postSum_VarDecomp <- readRDS("PosteriorSummaries_VarDecomp.rds")
+  DD_corrCoef <- readRDS("DD_corrCoef.rds")
+  VR_corrCoef <- readRDS("VR_corrCoef.rds")
+  
   
   sheetNames <- c("HyperParameters", "Recruitment", "Survival", "RodentEffect", "PopDensity", "PopGrowthRate", "Detection")
   sheetMapping <- c("hParams.sum", "rRep.sum", "pSurv.sum", "betaR.sum", "popDens.sum", "lambda.sum", "detect.sum")
@@ -33,4 +36,6 @@ writeResultsTables <- function(){
   
   readr::write_excel_csv(postSum_GenTime, "PosteriorSummaries_GenTime_byArea.csv")
   readr::write_excel_csv(postSum_VarDecomp, "PosteriorSummaries_VarDecomp.csv")
+  readr::write_excel_csv(DD_corrCoef, "DD_corrCoef.csv")
+  readr::write_excel_csv(VR_corrCoef, "VR_corrCoef.csv")
 }
