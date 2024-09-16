@@ -87,10 +87,9 @@ Releases of this repository are archived and issued DOIs via Zenodo:
 
 The citation of the latest version is:
 
-ChloeRNater, ErlendNilsen, christofferhohi, Matthew Grainger, & Bernardo
-Brandão Niebuhr. (2024). ErlendNilsen/OpenPop_Integrated_DistSamp:
-Ptarmigan IDSM v2.0 (v.2.0). Zenodo.
-<https://doi.org/10.5281/zenodo.10462268>
+Chloé R. Nater, ErlendNilsen, christofferhohi, Matthew Grainger, Bernardo Brandão Niebuhr, & Francesco Frassinelli. (2024). 
+ErlendNilsen/OpenPop_Integrated_DistSamp: Ptarmigan IDSM v2.1 (v2.1). Zenodo. 
+<https://doi.org/10.5281/zenodo.13767267>
 
 ## Contact
 
