@@ -1,0 +1,395 @@
+---
+title: "Walkthrough of model application to simulated data"
+output: html_document
+date: "2024-09-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "..")
+```
+
+## About this document
+In this document, we walk you through the application of the integrated distance sampling model (IDSM) to several replicate simulated datasets, as presented in:
+
+Nilsen, E. B., & Nater, C. R. (2024). Open integrated distance sampling for modelling age-structured population dynamics. *EcoEvoRxiv*. DOI: <https://doi.org/10.32942/X2Q899>
+
+In essence, this document a version of the workflow in "Analysis_SimData_Replicates.R" with additional annotation and documentation. It is also consistens with the single dataset implementation in "Analysis_SimData.R". 
+
+Note that the workflow presented here is based on scripts from the initial versions of the repository, i.e. major version 1 (v1.x). As we have made some substantial structural changes in the setup moving from major version 1 to 2, the following will not work with version 2.0 and onwards of the code. 
+
+## Before you start
+
+The code in the following uses relative directory and file paths. For that to work smoothly, we need to make sure that the walkthrough (.Rmd file) uses the same root directory as the project repository. Since the walkthrough is located inside a subfolder "vignettes", we have to move the working directory up one level. For knitting this document, that is taken care of by `knitr::opts_knit$set(root.dir = "..")` in the setup chunk. If we want to work through the document interactively, though, we need to double-check that the working directory is set to the root directory (using `getwd()`). This should be the case if you have opened the Rproject ("OpenPop_Integrated_DistSamp.Rproj"), but if we are instead inside the "vignettes" folder, we have to move the working directory up one level: 
+
+```{r, eval = FALSE}
+setwd("..")
+```
+Note that depending on your settings, RStudio may default to evaluate manually run code in chunks within the same directory as the .Rmd file. If `getwd()` evaluated from within chunks returns the "vignettes" folder, you either have to move the .Rmd into the root directory, or copy and paste code into the console for relative paths to work correctly. 
+
+Before getting into running the code for the analyses, we have to make sure that we have all the necessary data in the correct directory and that all the dependencies are installed correctly. 
+
+### Retrieving data
+As this is an application to simulated data, there is no need for retrieving data. Replicate datasets are simulated as part of the workflow presented below. 
+
+
+### Installing dependencies
+Next, we want to make sure you have all the dependencies installed. 
+
+First, we have to ensure that we have all other R packages needed for simulating and wrangling data, visualizing results, etc. For each one, the code below checks if it is available, and installs it if not.
+
+```{r, message = FALSE, warning = FALSE}
+pkg.list <- c("coda", "cowplot", "extraDistr", "ggforce", "ggplot2", "MCMCvis", "paletteer", "see", "tidyverse", "tidybayes")
+for(i in 1:length(pkg.list)){
+  if(!(pkg.list[i] %in% installed.packages())){
+    install.packages(pkg.list[i])
+  }
+}
+```
+
+We need to do the same for the `nimble` R package. This package is required to use the NIMBLE compiler (see <https://r-nimble.org/> for more information) for model fitting. Installing and using NIMBLE requires us to have a compiler and a set of related tools readily available. Instructions on how to make sure we have these available can be found on the NIMBLE website under "Download": <https://r-nimble.org/downloadhttps://r-nimble.org/download>
+Once we know that we have a compiler and that it works, we can install the `nimble`package just like the other R packages:
+
+```{r, message = FALSE, warning = FALSE}
+if(!("nimble" %in% installed.packages())){
+  remotes::install_github("nimble")
+}
+```
+
+And finally, we also need to manually install the `nimbleDistance`R package from GitHub. This package contains custom-made distribution functions for distance sampling data, incl. the half-normal distribution we are going to be using in the IDSM here. As this package is not yet available from CRAN, we have to install it from GitHub directly. This can be done using `install_github`from the `remotes` package:
+
+```{r, message = FALSE, warning = FALSE}
+if(!("remotes" %in% installed.packages())){
+  install.packages("remotes")
+}
+
+if(!("nimbleDistance" %in% installed.packages())){
+  remotes::install_github("scrogster/nimbleDistance")
+}
+```
+
+
+## Workflow setup
+We get started by loading the `tidyverse` package and sourcing all the functions contained in the "R" folder. This workflow is function-based, meaning that each step is written into a specific function. Each of the functions has roxygen documentation, which we can consult to learn more about its purpose and use.
+
+```{r, warning = FALSE}
+library(tidyverse)
+
+## Define seed for initial value simulation and MCMC
+mySeed <- 0
+
+## Source all functions in "R" folder
+sourceDir <- function(path, trace = TRUE, ...) {
+  for (nm in list.files(path, pattern = "[.][RrSsQq]$")) {
+    if(trace) cat(nm,":")
+    source(file.path(path, nm), ...)
+    if(trace) cat("\n")
+  }
+}
+sourceDir('R')
+```
+
+In addition to functions, the workflow also makes use of "toggles" (or "switches"). These are a series (mostly) logical variables that we use to specify the "settings" of our run of the workflow. 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+## Set switches
+
+# Recruitment per adult or per adult female
+R_perF <- FALSE
+
+# Drop observations of juveniles with no adults present
+R_parent_drop0 <- TRUE
+
+# Time variation in survival
+survVarT <- FALSE
+
+# Rodent covariate on reproduction
+fitRodentCov <- FALSE
+
+# Addition of dummy dimension for running multi-area setup
+addDummyDim <- FALSE
+
+# Random effects shared across areas
+if(survVarT & addDummyDim){
+  shareRE <- FALSE
+}else{
+  shareRE <- TRUE
+}
+```
+
+With `R_perF`, `R_parent_drop0`, and `sumR.Level` we specify how we want to define and the recruitment data; here, we opt for estimating juveniles per adult, summarise data at the level of the transect line (as opposed to group of observed birds), and drop observations where we simulated encoutners of juveniles but no adults on an entire transect. `addDummyDim` determines whether we are going to simulate data across multiple areas and fit a model with an extra dimension for area. We are not doing this here, and as a consequence, the toggle `shareRE` is irrelevant, as this defines whether temporal random effects are shared across locations/areas. We are not going to model time variation in survival (`survVarT <- FALSE`) or effects of rodent occupancy on recruitment (`firRodentCov <- FALSE`).
+
+## Setting simulation parameters
+
+Next, we are going to set the parameters for simulating datasets. We are opting for 10 replicate datasets here. The values chosen for the different biological and detection parameters were inspired by preliminary fits of the IDSM to data from willow ptarmigans in Lierne municipality, Norway. 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+# General simulation parameters
+#---
+
+N_datasets <- 10 # Number of replicate datasets
+
+Amax <- 2 # Number of age classes
+Tmax <- 15 # Number of years
+Jmax <- 50 # Number of sites/transect lines
+
+
+# Vital rate parameters
+#---
+
+## Annual survival
+Mu.S <- 0.35 # Average annual survival probability
+if(survVarT){
+  sigmaT.S <- 0.8 # SD of random year variation in survival
+}else{
+  sigmaT.S <- 0 # SD of random year variation in survival
+}
+
+sigmaJ.S <- 0 # SD of random site variation in survival
+
+## Reproduction
+Mu.R <- 2 # Average number of chicks in August
+sigmaT.R <- 0.4 # SD of random year variation in number of chicks
+sigmaJ.R <- 0 # SD of random site variation in number of chicks
+
+
+# Population parameters
+#---
+
+# Initial population numbers per site
+N1_juv_limits <- c(3, 8)
+
+# Average group size
+avg_Gsize <- 5.6
+
+
+# Data & observation parameters 
+#---
+
+## Line-transect distance sampling
+min.Tlength <- 1000 # Minimum transect length
+max.Tlength <- 1000  # Maximum transect length
+
+W <- 200 # Truncation distance (max. distance at which observation is possible)
+
+Mu.dd <- 75 # Average width parameter for half-normal detection function
+sigmaT.dd <- 0.3 # SD of random year variation in detection probability
+sigmaJ.dd <- 0 # SD of random line variation in detection probability
+
+## Known-fate radio-telemetry
+Tmin.RT <- 5 # First year for which radio-telemetry data has been collected
+Tmax.RT <- 10 # Last year for which radio-telemetry data has been collected
+
+# Average number of individuals fitted with transmitters each year
+nind.avg.RT <- 30
+
+```
+
+## Data simulation and wrangling
+
+Before proceeding to data simulations, we set up a directory in which to store the simulated datasets and then pick as many random numbers to use as seeds as we want to simulate datasets: 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+## Make directory (if not present)
+if(!dir.exists("simData")){
+  dir.create("simData")
+}
+
+## Select seeds randomly
+seed.list <- sample(1:1000, size = N_datasets, replace = FALSE)
+```
+
+To reproduce the exact datasets and results from the study, we can alternatively recreate the seed list used in the study: 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+seed.list <- c(120, 199, 216, 265, 541, 596, 706, 794, 919, 956)
+```
+
+With that, we are ready to simulate datasets iteratively. The workflow uses a wrapper function, `assembleSimData`, which calls a set of downstream functions for simulating different parts of the data (all functions in the "R" folder named `simulate[X]()` where `[X]` is not "Inits"). 
+Once simulated, we save each dataset (both the complete dataset, object `AllSimData`, and the dataset constituting the model input, `input_data`) in the newly created "simData" folder: 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+for(i in 1:N_datasets){
+  
+  ## Set seed randomly
+  mySeed <- seed.list[i]
+  
+  ## Simulate dataset
+  AllSimData <- assembleSimData(Amax = Amax, Tmax = Tmax, Jmax = Jmax,
+                                avg_Gsize = avg_Gsize, 
+                                Mu.S = Mu.S, sigmaT.S = sigmaT.S, sigmaJ.S = sigmaJ.S,
+                                Mu.R = Mu.R, sigmaT.R = sigmaT.R, sigmaJ.R = sigmaJ.R,
+                                Mu.dd = Mu.dd, sigmaT.dd = sigmaT.dd, sigmaJ.dd = sigmaJ.dd,
+                                W = W, min.Tlength = min.Tlength, max.Tlength = max.Tlength,
+                                nind.avg.RT = nind.avg.RT, 
+                                Tmin.RT = Tmin.RT, Tmax.RT = Tmax.RT,
+                                seed = mySeed, 
+                                R_perF = R_perF,
+                                R_parent_drop0 = R_parent_drop0,
+                                stochasticSim = TRUE,
+                                plotPopSim = TRUE,
+                                save = FALSE)
+  
+  ## Assemble input data object
+  input_data <- prepareInputData_Sim(SimData = AllSimData,
+                                     addDummyDim = addDummyDim)
+  
+  ## Save dataset and input data object with custom name
+  saveRDS(AllSimData, file = paste0("simData/AllSimData_seed", mySeed, ".rds"))
+  saveRDS(input_data, file = paste0("simData/inputData_seed", mySeed, ".rds"))
+}
+```
+
+At this stage, we also want to make sure that we save the list of simulation seeds used as we will want to keep track of them for later: 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+## Save list of seeds
+saveRDS(seed.list, file = "simData/seedList.rds")
+```
+
+## Replicate model runs
+
+Before fitting models, we again create directories into which to save the results:
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+if(!dir.exists("simModelFits")){
+  dir.create("simModelFits")
+}
+
+if(!dir.exists("simModelFits_sum")){
+  dir.create("simModelFits_sum")
+}
+```
+
+We then determine the number of times we want to fit the model to the same dataset (here 3), and also make an empty list to keep track of the specific seeds we use for running the MCMC. 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+## Set number of run replicates
+N_runs <- 3
+runSeed.list <- list()
+
+```
+
+The remainder of the workflow, bar graphical comparison of outputs, happens within two big nested loops: for each simulated dataset (i, 10 in total), we load the correct data, then fit the model 3 times (k) and subsequently reformat and summarise the outputs. We are using NIMBLE's wrapper function `nimbleMCMC`, and subsequently save the full posterior samples, summarised posteriors, and list of seeds in RDS format.
+
+Note that each model run (3 chains run sequentially) takes around half an hour depending on your resources, and running through all 30 replicate fits will therefore take quite a while. If you are just looking to test the workflow, you can set `testRun = TRUE` in the call to `nimbleMCMC` to perform a dummy run of only 50 iterations instead of a full 150 000 iterations run. 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+simSeed.list <- seed.list
+
+for(i in 1:length(simSeed.list)){
+  
+  ## Select seeds randomly (and store)
+  runSeeds <- sample(1:100, size = N_runs, replace = FALSE)
+  runSeed.list[[i]] <- runSeeds
+  names(runSeed.list)[i] <- paste0("simSeed_", simSeed.list[i])
+  
+  ## Load corresponding dataset
+  input_data <- readRDS(paste0("simData/inputData_seed", simSeed.list[i], ".rds"))
+  
+  for(k in 1:length(runSeeds)){
+    
+    ## Set run seed
+    mySeed <- runSeeds[k]
+    
+    ## Determine correct code path
+    modelCode.path <- selectCodePath(shareRE = shareRE,
+                                     survVarT = survVarT,
+                                     addDummyDim = addDummyDim)
+    
+    ## Set up model
+    model_setup <- setupModel(modelCode.path = modelCode.path,
+                              customDist = TRUE,
+                              R_perF = R_perF,
+                              shareRE = shareRE, 
+                              survVarT = survVarT, 
+                              addDummyDim = addDummyDim,
+                              fitRodentCov = fitRodentCov,
+                              nim.data = input_data$nim.data,
+                              nim.constants = input_data$nim.constants,
+                              testRun = TRUE,
+                              initVals.seed = mySeed)
+    
+    ## Run model
+    IDSM.out <- nimbleMCMC(code = model_setup$modelCode,
+                           data = input_data$nim.data, 
+                           constants = input_data$nim.constants,
+                           inits = model_setup$initVals, 
+                           monitors = model_setup$modelParams,
+                           nchains = model_setup$mcmcParams$nchains, 
+                           niter = model_setup$mcmcParams$niter, 
+                           nburnin = model_setup$mcmcParams$nburn, 
+                           thin = model_setup$mcmcParams$nthin, 
+                           samplesAsCodaMCMC = TRUE, 
+                           setSeed = mySeed)
+    
+    ## Save full posteriors (incl. seed information)
+    saveRDS(list(samples = IDSM.out,
+                 simSeed = simSeed.list[i],
+                 runSeed = runSeeds[k]),
+            file = paste0("simModelFits/IDSMsamples_simSeed", simSeed.list[i], "_runSeed", runSeeds[k], ".rds"))
+    
+    ## Summarise posteriors to minimum necessary for plotting sim checks
+    
+    # Recruitment parameters
+    R_year <- IDSM.out %>% tidybayes::spread_draws(R_year[year])
+    Mu_R <- IDSM.out %>% tidybayes::spread_draws(Mu.R) %>% mutate(lab_code = "Mu.R")
+    sigmaT_R <- IDSM.out %>% tidybayes::spread_draws(sigmaT.R) %>% mutate(lab_code = "sigmaT.R")
+    
+    # Survival parameters
+    Mu_S1 <- IDSM.out %>% tidybayes::spread_draws(Mu.S1) %>% mutate(Surv = "S1") %>% rename(S = Mu.S1) %>% select(S, Surv)
+    Mu_S <- IDSM.out %>% tidybayes::spread_draws(Mu.S) %>% mutate(Surv = "S") %>% rename(S = Mu.S) %>% select(S, Surv)
+    Mu_S_data <-  tibble(S = Mu_S$S/Mu_S1$S, Surv = "S2") %>% bind_rows(., Mu_S1, Mu_S)
+    
+    # Detection parameters
+    Mu_dd <- IDSM.out %>% tidybayes::spread_draws(mu.dd) %>% mutate(lab_code = "mu.dd")
+    sigmaT_dd <- IDSM.out %>% tidybayes::spread_draws(sigmaT.dd) %>% mutate(lab_code = "sigmaT.dd")
+    esw_year <- IDSM.out %>% tidybayes::spread_draws(esw[year])
+    p_year <- IDSM.out %>% tidybayes::spread_draws(p[year])
+    
+    # Population sizes
+    N_tot <- IDSM.out %>% tidybayes::spread_draws(N_tot_exp[year]) 
+    
+    # Population densities
+    A_temp <- apply(input_data$nim.data$L, 2, sum) * input_data$nim.constants$W*2 / (1000 *1000)
+    Density_year <- IDSM.out %>% tidybayes::spread_draws(N_tot_exp[year]) %>% 
+      dplyr::mutate(density = (N_tot_exp/A_temp))
+    
+    ## Collate and save summarized posteriors
+    sumPost <- list(
+      sum.post = list(
+        R_year = R_year, Mu_R = Mu_R, sigmaT_R = sigmaT_R,
+        Mu_S_data = Mu_S_data,
+        Mu_dd = Mu_dd, sigmaT_dd = sigmaT_dd, esw_year = esw_year, p_year = p_year,
+        N_tot = N_tot, Density_year = Density_year
+      ),
+      simSeed = simSeed.list[i],
+      runSeed = runSeeds[k])
+    
+    saveRDS(sumPost, file = paste0("simModelFits_sum/IDSMsampleSum_simSeed", simSeed.list[i], "_runSeed", runSeeds[k], ".rds"))
+    
+    ## Remove samples and free up disk space
+    rm(IDSM.out)
+    gc()
+  }
+  
+}
+
+## Save complete seed information
+saveRDS(runSeed.list, file = "simModelFits/seedInfo.rds")
+```
+
+*A common error that can arise at this stage is NIMBLE reporting on a "failure to create shared library". It's a well-known but somewhat uninformative error that typically indicates that something is wrong with the compiler. Often, this will happen if you do not have the correct versions of "Rtools"/"Xcode", or if paths to different resources are not compatible. More information (including instructions on how to fix it) can be found by searching through the (nimble-users Google group)[<https://groups.google.com/g/nimble-users>].* 
+
+
+##  Comparing model estimates and simulated data
+
+Once we have run all the replicate model fits, we can compare the resulting model estimates with each other and with the true simulation parameters that we set in the start. Memory is typically limited, so we are going to want to do the comparison based on a subset of the total posterior samples (hence thinning by 100 here for the full runs. If you are running tests, set thin = 1 instead): 
+
+```{r, message = FALSE, warning = FALSE, eval = FALSE}
+plotSimCheck_replicates("Temps", thin = 100)
+plotSimCheckMetrics_replicates("Temps", thin = 100)
+```
+
+The functions `plotSimCheck_replicates()` and `plotSimCheckMetrics_replicates()` will create a folder "Plots" with subfolder "SimCheck_replicates" in the project directory (unless it exists already), and save the graphs they create as PDF files in that subfolder. These graphs will be equivalent to what is presented in the study (Figures 2 & 3 in Nilsen & Nater 2024) and deposited as supplementary materials on the study's OSF repository: <https://osf.io/bc3en/files/osfstorage>.
+
+
