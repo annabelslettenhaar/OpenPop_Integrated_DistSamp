@@ -67,7 +67,8 @@ setupModel <- function(modelCode, customDist,
                                                 nim.constants = nim.constants, 
                                                 R_perF = R_perF,
                                                 survVarT = survVarT,
-                                                fitRodentCov = fitRodentCov)
+                                                fitRodentCov = fitRodentCov,
+                                                initVals.seed = initVals.seed[c])
     }else{
       
       initVals[[c]] <- simulateInits(nim.data = nim.data, 

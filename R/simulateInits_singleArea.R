@@ -13,7 +13,9 @@
 #'
 #' @examples
 
-simulateInits_singleArea <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCov){
+simulateInits_singleArea <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCov, initVals.seed){
+  
+  set.seed(initVals.seed)
   
   # Limits and constants #
   #----------------------#
