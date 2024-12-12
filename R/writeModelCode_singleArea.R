@@ -213,26 +213,13 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     # Intercepts / averages #
     #-----------------------#
     
-    h.Mu.R  ~ dunif(0, 20) # Recruitment
-    h.Mu.S ~ dunif(0, 1) # Survival
-    h.mu.dd ~ dunif(-10, 100) # Detection
-    
+    Mu.R  ~ dunif(0, 20) # Recruitment
+    Mu.S ~ dunif(0, 1) # Survival
+    mu.dd ~ dunif(-10, 100) # Detection
     
     ## Initial density
     Mu.D1 ~ dunif(0, 10)
-    
-    ## Recruitment
-    epsA.R  ~ dnorm(0, sd = h.sigma.R)
-    log(Mu.R) <- log(h.Mu.R) + epsA.R
-    
-    ## Survival
-    epsA.S  ~ dnorm(0, sd = h.sigma.S)
-    mu.S <- logit(h.Mu.S) + epsA.S
-    
-    ## Detection
-    epsA.dd ~ dnorm(0, sd = h.sigma.dd)
-    mu.dd <- h.mu.dd + epsA.dd
-    
+
     
     #----------------#
     # Random effects #
@@ -241,12 +228,10 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     ## Standard deviations
     
     # Recruitment
-    h.sigma.R ~ dunif(0, 5)    
     sigmaT.R ~ dunif(0, 5)
     sigmaR.R ~ dunif(0, 5)
     
     # Survival 
-    h.sigma.S ~ dunif(0, 5)
     Mu.S1 ~ dunif(0, 1)
     
     if(survVarT){
@@ -256,7 +241,6 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     }
     
     # Detection
-    h.sigma.dd ~ dunif(0, 5)
     sigmaT.dd ~ dunif(0, 20)
     sigmaR.dd ~ dunif(0, 20)
     
@@ -305,12 +289,7 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     
     ## Rodent effect on reproduction
     if(fitRodentCov){
-      
-      h.Mu.betaR.R ~ dunif(-5, 5)
-      h.sigma.betaR.R ~ dunif(0, 5)
-      
-      epsA.betaR.R ~ dnorm(0, sd = h.sigma.betaR.R)
-      betaR.R <- h.Mu.betaR.R + epsA.betaR.R
+      betaR.R ~ dunif(-5, 5)
     }
     
     
