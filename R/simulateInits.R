@@ -58,10 +58,10 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   
   ## Area-specific survival parameters
   h.Mu.S <- runif(1, 0.40, 0.45) 
-  h.sigma.S <- runif(1, 0.05, 0.2)
+  h.sigma.S <- ifelse(N_areas > 1, runif(1, 0.05, 0.2), 0)
   Mu.S1 <- runif(1, 0.5, 0.7)
   
-  mu.S <- EnvStats::rnormTrunc(N_areas, qlogis(h.Mu.S), sd = h.sigma.S, max = qlogis(Mu.S1))
+  mu.S <- ifelse(N_areas > 1, EnvStats::rnormTrunc(N_areas, qlogis(h.Mu.S), sd = h.sigma.S, max = qlogis(Mu.S1)), qlogis(h.Mu.S))
 
   sigmaT.S <- runif(1, 0.05, 0.2)
   sigmaR.S <- runif(1, 0.05, 0.2)
@@ -93,10 +93,10 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   
   ## Area-specific reproductive parameters
   h.Mu.R  <- runif(1, 1.5, 3)
-  h.sigma.R <- runif(1, 0.05, 0.2)
+  h.sigma.R <- ifelse(N_areas > 1, runif(1, 0.05, 0.2), 0)
   
   h.Mu.betaR.R <- runif(1, 0.01, 0.1)
-  h.sigma.betaR.R <- runif(1, 0.05, 0.1)
+  h.sigma.betaR.R <- ifelse(N_areas > 1, runif(1, 0.05, 0.1), 0)
   
   Mu.R <- rlnorm(N_areas, meanlog = log(h.Mu.R), sdlog =  h.sigma.R)
   
@@ -127,7 +127,7 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   
   ## Area-specific detection parameters
   h.mu.dd <- runif(1, 3.5, 5.5)
-  h.sigma.dd <- runif(1, 0.05, 0.2)
+  h.sigma.dd <- ifelse(N_areas > 1, runif(1, 0.05, 0.2), 0)
   
   #mu.dd <- rnorm(N_areas, h.mu.dd, sd = h.sigma.dd)
   mu.dd <- rep(h.mu.dd, N_areas)
