@@ -26,7 +26,7 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     # W = truncation distance for line transect surveys
     
     # Mu.D1 = average initial density
-
+    
     # S[t] = annual survival from year t to t+1
     # R_year[t] = recruitment rate in year t
     # p[t] = average distance sampling detection rate in year t
@@ -34,103 +34,103 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     
     # eps.D1[j] = random site effect on initial density (site j)
     
-
+    
     
     ####################
     # POPULATION MODEL #
     ####################
+    
+    #-----------------------------------------#
+    # Initial population size/density (t = 1) #
+    #-----------------------------------------#
+    
+    for (j in 1:N_sites){
       
-      #-----------------------------------------#
-      # Initial population size/density (t = 1) #
-      #-----------------------------------------#
+      ## Adult densities
+      Density[2, j, 1] <- exp(log(Mu.D1) + eps.D1[j])
       
-      for (j in 1:N_sites){
+      ## Juvenile densities
+      if(R_perF){
+        Density[1, j, 1] <- (Density[2, j, 1]/2)*R_year[1] 
+      }else{
+        Density[1, j, 1] <- Density[2, j, 1]*R_year[1]
+      }
+      
+      ## Adult and juvenile numbers
+      N_exp[1:N_ageC, j, 1] <- Density[1:N_ageC, j, 1]*L[j, 1]*W*2      
+    }
+    
+    #-------------------------------#
+    # Population dynamics for t > 1 #
+    #-------------------------------#
+    
+    for(j in 1:N_sites){
+      for(t in 2:N_years){
         
         ## Adult densities
-        Density[2, j, 1] <- exp(log(Mu.D1) + eps.D1[j])
+        Density[2, j, t] <- sum(Density[1:N_ageC, j, t-1])*S[t-1] 
         
         ## Juvenile densities
         if(R_perF){
-          Density[1, j, 1] <- (Density[2, j, 1]/2)*R_year[1] 
+          Density[1, j, t] <- (Density[2, j, t]/2)*R_year[t] 
         }else{
-          Density[1, j, 1] <- Density[2, j, 1]*R_year[1]
+          Density[1, j, t] <- Density[2, j, t]*R_year[t]
         }
         
         ## Adult and juvenile numbers
-        N_exp[1:N_ageC, j, 1] <- Density[1:N_ageC, j, 1]*L[j, 1]*W*2      
+        N_exp[1:N_ageC, j, t] <- Density[1:N_ageC, j, t]*L[j, t]*W*2
       }
-      
-      #-------------------------------#
-      # Population dynamics for t > 1 #
-      #-------------------------------#
-      
-      for(j in 1:N_sites){
-        for(t in 2:N_years){
-          
-          ## Adult densities
-          Density[2, j, t] <- sum(Density[1:N_ageC, j, t-1])*S[t-1] 
-          
-          ## Juvenile densities
-          if(R_perF){
-            Density[1, j, t] <- (Density[2, j, t]/2)*R_year[t] 
-          }else{
-            Density[1, j, t] <- Density[2, j, t]*R_year[t]
-          }
-          
-          ## Adult and juvenile numbers
-          N_exp[1:N_ageC, j, t] <- Density[1:N_ageC, j, t]*L[j, t]*W*2
-        }
-      }
-      
-      #--------------------#
-      # Derived parameters #
-      #--------------------#
-      
-      ## Area- and year-specific total densities
-      for (t in 1:N_years){
-        N_tot_exp[t] <- sum(N_exp[1, 1:N_sites, t] + N_exp[2, 1:N_sites, t])
-      }
-      
-      ## Area-, year-, and age-class specific density (for monitoring)
-      for(a in 1:N_ageC){
-        for(t in 1:N_years){
-          meanDens[a, t] <- mean(Density[a, 1:N_sites, t])
-        } # t
-      } # a
+    }
+    
+    #--------------------#
+    # Derived parameters #
+    #--------------------#
+    
+    ## Area- and year-specific total densities
+    for (t in 1:N_years){
+      N_tot_exp[t] <- sum(N_exp[1, 1:N_sites, t] + N_exp[2, 1:N_sites, t])
+    }
+    
+    ## Area-, year-, and age-class specific density (for monitoring)
+    for(a in 1:N_ageC){
+      for(t in 1:N_years){
+        meanDens[a, t] <- mean(Density[a, 1:N_sites, t])
+      } # t
+    } # a
     
     
     ####################
     # DATA LIKELIHOODS #
     ####################
-      
-      ## Age-specific line transect counts
-      # N_a_line_year[a, j, t] = number of age class a individuals detected in site j of in year t
-      for(j in 1:N_sites){
-        for(t in 1:N_years){
-          for(a in 1:N_ageC){
-            
-            N_a_line_year[a, j, t] ~ dpois(p[t]*N_exp[a, j, t])
-          }
+    
+    ## Age-specific line transect counts
+    # N_a_line_year[a, j, t] = number of age class a individuals detected in site j of in year t
+    for(j in 1:N_sites){
+      for(t in 1:N_years){
+        for(a in 1:N_ageC){
+          
+          N_a_line_year[a, j, t] ~ dpois(p[t]*N_exp[a, j, t])
         }
-      
-      
-      ## Juvenile:adult ratios from line transect observations
-      # N_sumR_obs = number of observations in juvenile:adult count data
-      # sumR_obs[i] = i'th entry in juvenile count data
-      # sumAd_obs[i] = i'th entry in adult count data
-      for (i in 1:N_sumR_obs){
-        
-        sumR_obs[i] ~ dpois(R_year[sumR_obs_year[i]]*sumAd_obs[i])
       }
+    }
+    
+    ## Juvenile:adult ratios from line transect observations
+    # N_sumR_obs = number of observations in juvenile:adult count data
+    # sumR_obs[i] = i'th entry in juvenile count data
+    # sumAd_obs[i] = i'th entry in adult count data
+    for (i in 1:N_sumR_obs){
       
+      sumR_obs[i] ~ dpois(R_year[sumR_obs_year[i]]*sumAd_obs[i])
+    }
+    
+    
+    ## Line transect observation distances (likelihood using nimbleDistance::dHN)
+    # N_obs = number of observations in detection distance data
+    # y[i] = i'th entry in detection distance data
+    for (i in 1:N_obs){ 
       
-      ## Line transect observation distances (likelihood using nimbleDistance::dHN)
-      # N_obs = number of observations in detection distance data
-      # y[i] = i'th entry in detection distance data
-      for (i in 1:N_obs){ 
-        
-        y[i] ~ dHN(sigma = sigma[Year_obs[i]], Xmax = W, point = 0)
-      }
+      y[i] ~ dHN(sigma = sigma[Year_obs[i]], Xmax = W, point = 0)
+    }
     
     
     if(telemetryData){
@@ -149,48 +149,48 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
         Survs2[t, 2] ~ dbinom(S2[year_Survs[t]], Survs2[t, 1])
       }
     }
-
+    
     
     ################################
     # PARAMETER MODELS/CONSTRAINTS #
     ################################
+    
+    ## Distance sampling detection parameters
+    
+    for(t in 1:N_years){
       
-      ## Distance sampling detection parameters
+      # Detection decay
+      log(sigma[t]) <- mu.dd + epsT.dd + epsR.dd[t]
+      sigma2[t] <- sigma[t] * sigma[t]
       
-      for(t in 1:N_years){
-        
-        # Detection decay
-        log(sigma[t]) <- mu.dd + epsT.dd + epsR.dd[t]
-        sigma2[t] <- sigma[t] * sigma[t]
-        
-        # Effective strip width
-        esw[t] <- sqrt(pi * sigma2[t] / 2) 
-        
-        # Average detection rate 
-        p[t] <- min(esw[t], W) / W
-      }
+      # Effective strip width
+      esw[t] <- sqrt(pi * sigma2[t] / 2) 
       
-      
-      
-      ## Annual recruitment rates
-      
-      if(fitRodentCov){
-        R_year[1:N_years] <- exp(log(Mu.R) + betaR.R*RodentOcc[1:N_years] + epsT.R[1:N_years] + epsR.R[1:N_years])
-      }else{
-        R_year[1:N_years] <- exp(log(Mu.R) + epsT.R[1:N_years] + epsR.R[1:N_years])
-      }
-      
-      
-      
-      ## Annual survival probabilities
-      
-      logit(Mu.S) <- mu.S
-      
-      if(survVarT){
-        logit(S[1:(N_years-1)]) <- logit(Mu.S) + epsT.S[1:(N_years-1)] + epsR.S[1:(N_years-1)]
-      }else{
-        S[1:(N_years-1)] <- Mu.S
-      }
+      # Average detection rate 
+      p[t] <- min(esw[t], W) / W
+    }
+    
+    
+    
+    ## Annual recruitment rates
+    
+    if(fitRodentCov){
+      R_year[1:N_years] <- exp(log(Mu.R) + betaR.R*RodentOcc[1:N_years] + epsT.R[1:N_years] + epsR.R[1:N_years])
+    }else{
+      R_year[1:N_years] <- exp(log(Mu.R) + epsT.R[1:N_years] + epsR.R[1:N_years])
+    }
+    
+    
+    
+    ## Annual survival probabilities
+    
+    logit(Mu.S) <- mu.S
+    
+    if(survVarT){
+      logit(S[1:(N_years-1)]) <- logit(Mu.S) + epsT.S[1:(N_years-1)] + epsR.S[1:(N_years-1)]
+    }else{
+      S[1:(N_years-1)] <- Mu.S
+    }
     
     
     ## Seasonal survival probabilities in area with radiotelemetry data
@@ -217,21 +217,21 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     h.Mu.S ~ dunif(0, 1) # Survival
     h.mu.dd ~ dunif(-10, 100) # Detection
     
-      
-      ## Initial density
-      Mu.D1 ~ dunif(0, 10)
-
-      ## Recruitment
-      epsA.R  ~ dnorm(0, sd = h.sigma.R)
-      log(Mu.R) <- log(h.Mu.R) + epsA.R
-      
-      ## Survival
-      epsA.S  ~ dnorm(0, sd = h.sigma.S)
-      mu.S <- logit(h.Mu.S) + epsA.S
-      
-      ## Detection
-      epsA.dd ~ dnorm(0, sd = h.sigma.dd)
-      mu.dd <- h.mu.dd + epsA.dd
+    
+    ## Initial density
+    Mu.D1 ~ dunif(0, 10)
+    
+    ## Recruitment
+    epsA.R  ~ dnorm(0, sd = h.sigma.R)
+    log(Mu.R) <- log(h.Mu.R) + epsA.R
+    
+    ## Survival
+    epsA.S  ~ dnorm(0, sd = h.sigma.S)
+    mu.S <- logit(h.Mu.S) + epsA.S
+    
+    ## Detection
+    epsA.dd ~ dnorm(0, sd = h.sigma.dd)
+    mu.dd <- h.mu.dd + epsA.dd
     
     
     #----------------#
@@ -261,7 +261,7 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     sigmaR.dd ~ dunif(0, 20)
     
     # Initial density
-      sigma.D ~ dunif(0, 20)
+    sigma.D ~ dunif(0, 20)
     
     
     ## Random effect levels
@@ -274,30 +274,30 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     }
     
     for(t in 1:(N_years-1)){
-
+      
       if(survVarT){
         epsT.S[t] ~ dnorm(0, sd = sigmaT.S) # Survival
       }
     }
     
     # Residual variation
-      for (t in 1:N_years){
-        
-        epsR.R[t] ~ dnorm(0, sd = sigmaR.R)
-        epsR.dd[t] ~ dnorm(0, sd = sigmaR.dd)
-      }
+    for (t in 1:N_years){
+      
+      epsR.R[t] ~ dnorm(0, sd = sigmaR.R)
+      epsR.dd[t] ~ dnorm(0, sd = sigmaR.dd)
+    }
     
-      for (t in 1:(N_years-1)){
-        
-        if(survVarT){
-          epsR.S[t] ~ dnorm(0, sd = sigmaR.S)
-        }
+    for (t in 1:(N_years-1)){
+      
+      if(survVarT){
+        epsR.S[t] ~ dnorm(0, sd = sigmaR.S)
       }
+    }
     
     # Site/transect variation
-      for(j in 1:N_sites){
-        eps.D1[j] ~ dnorm(0, sd = sigma.D)
-      }
+    for(j in 1:N_sites){
+      eps.D1[j] ~ dnorm(0, sd = sigma.D)
+    }
     
     #-------------------#
     # Covariate effects #
@@ -309,15 +309,15 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
       h.Mu.betaR.R ~ dunif(-5, 5)
       h.sigma.betaR.R ~ dunif(0, 5)
       
-        epsA.betaR.R ~ dnorm(0, sd = h.sigma.betaR.R)
-        betaR.R <- h.Mu.betaR.R + epsA.betaR.R
+      epsA.betaR.R ~ dnorm(0, sd = h.sigma.betaR.R)
+      betaR.R <- h.Mu.betaR.R + epsA.betaR.R
     }
-
+    
     
     #------------------#
     # Other parameters #
     #------------------#
-
+    
     pi <- 3.141593
     
     
@@ -326,10 +326,10 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     ###############################
     
     if(fitRodentCov){
-        for (t in 1:N_years){
-          
-          RodentOcc[t] ~ dnorm(mean = 0, sd = 1)
-        }
+      for (t in 1:N_years){
+        
+        RodentOcc[t] ~ dnorm(mean = 0, sd = 1)
+      }
     }
     
     
