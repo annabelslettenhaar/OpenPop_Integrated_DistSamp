@@ -253,8 +253,8 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     # Shared year variation
     for(t in 1:N_years){
       
-      epsT.R ~ dnorm(0, sd = sigmaT.R) # Recruitment
-      epsT.dd ~ dnorm(0, sd = sigmaT.dd) # Detection
+      epsT.R[t] ~ dnorm(0, sd = sigmaT.R) # Recruitment
+      epsT.dd[t] ~ dnorm(0, sd = sigmaT.dd) # Detection
     }
     
     for(t in 1:(N_years-1)){
