@@ -226,6 +226,35 @@ plotMCMCTraces(mcmc.out = IDSM.out.tidy,
                survVarT = survVarT)
 
 
+# OPTIONAL: ADD DUMMY DIMENSION FOR PLOTTING #
+#--------------------------------------------#
+
+# This is needed when the model has been run for one area/locality only and
+# with addDummyDim = FALSE
+
+## Change names in posterior samples list
+IDSM.out.tidy <- editPosteriorNames_dummyDim(IDSM.out.tidy = IDSM.out.tidy,
+                                             N_areas = input_data$nim.constants$N_areas,
+                                             addDummyDim = addDummyDim)
+
+## Re-assemble input data with dummy dimension
+input_data <- prepareInputData(d_trans = LT_data$d_trans, 
+                               d_obs = LT_data$d_obs,
+                               d_cmr = d_cmr,
+                               d_rodent = d_rodent,
+                               localities = localities, 
+                               #areas = areas,
+                               areaAggregation = areaAggregation,
+                               excl_neverObs = TRUE,
+                               R_perF = R_perF,
+                               R_parent_drop0 = R_parent_drop0,
+                               sumR.Level = "line",
+                               dataVSconstants = TRUE,
+                               addDummyDim = TRUE,
+                               save = TRUE)
+
+
+
 # OPTIONAL: TIME SERIES PLOTS #
 #-----------------------------#
 
