@@ -55,6 +55,9 @@ testRun <- TRUE
 # Run MCMC in parallel
 parallelMCMC <- FALSE
 
+# Addition of dummy dimension
+addDummyDim <- FALSE
+
 
 # DOWNLOAD/FETCH DATA #
 #---------------------#
@@ -123,6 +126,7 @@ input_data <- prepareInputData(d_trans = LT_data$d_trans,
                                R_parent_drop0 = R_parent_drop0,
                                sumR.Level = "line",
                                dataVSconstants = TRUE,
+                               addDummyDim = addDummyDim,
                                save = TRUE)
 
 
@@ -130,8 +134,8 @@ input_data <- prepareInputData(d_trans = LT_data$d_trans,
 #-------------#
 
 ## Write model code
-modelCode <- writeModelCode(survVarT = survVarT,
-                            telemetryData = telemetryData)
+modelCode <- writeModelCode_singleArea(survVarT = survVarT,
+                                       telemetryData = telemetryData)
 
 
 ## Expand seeds for simulating initial values
@@ -143,6 +147,7 @@ model_setup <- setupModel(modelCode = modelCode,
                           R_perF = R_perF,
                           survVarT = survVarT, 
                           fitRodentCov = fitRodentCov,
+                          addDummyDim = addDummyDim,
                           nim.data = input_data$nim.data,
                           nim.constants = input_data$nim.constants,
                           testRun = testRun, 
