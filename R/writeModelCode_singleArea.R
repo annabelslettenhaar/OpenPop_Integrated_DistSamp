@@ -160,7 +160,7 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     for(t in 1:N_years){
       
       # Detection decay
-      log(sigma[t]) <- mu.dd + epsT.dd + epsR.dd[t]
+      log(sigma[t]) <- mu.dd + epsT.dd[t]
       sigma2[t] <- sigma[t] * sigma[t]
       
       # Effective strip width
@@ -175,19 +175,17 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     ## Annual recruitment rates
     
     if(fitRodentCov){
-      R_year[1:N_years] <- exp(log(Mu.R) + betaR.R*RodentOcc[1:N_years] + epsT.R[1:N_years] + epsR.R[1:N_years])
+      R_year[1:N_years] <- exp(log(Mu.R) + betaR.R*RodentOcc[1:N_years] + epsT.R[1:N_years])
     }else{
-      R_year[1:N_years] <- exp(log(Mu.R) + epsT.R[1:N_years] + epsR.R[1:N_years])
+      R_year[1:N_years] <- exp(log(Mu.R) + epsT.R[1:N_years])
     }
     
     
     
     ## Annual survival probabilities
     
-    logit(Mu.S) <- mu.S
-    
     if(survVarT){
-      logit(S[1:(N_years-1)]) <- logit(Mu.S) + epsT.S[1:(N_years-1)] + epsR.S[1:(N_years-1)]
+      logit(S[1:(N_years-1)]) <- logit(Mu.S) + epsT.S[1:(N_years-1)]
     }else{
       S[1:(N_years-1)] <- Mu.S
     }
@@ -196,7 +194,7 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     ## Seasonal survival probabilities in area with radiotelemetry data
     # Season 1
     if(survVarT){
-      logit(S1[1:(N_years-1)]) <- logit(Mu.S1) + eps.S1.prop*(epsT.S[1:(N_years-1)] + epsR.S[1:(N_years-1)])
+      logit(S1[1:(N_years-1)]) <- logit(Mu.S1) + eps.S1.prop*(epsT.S[1:(N_years-1)])
     }else{
       S1[1:(N_years-1)] <- Mu.S1
     }
@@ -229,21 +227,18 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
     
     # Recruitment
     sigmaT.R ~ dunif(0, 5)
-    sigmaR.R ~ dunif(0, 5)
-    
+
     # Survival 
     Mu.S1 ~ dunif(0, 1)
     
     if(survVarT){
       sigmaT.S ~ dunif(0, 5)
-      sigmaR.S ~ dunif(0, 5)
       eps.S1.prop ~ dunif(0, 1)
     }
     
     # Detection
     sigmaT.dd ~ dunif(0, 20)
-    sigmaR.dd ~ dunif(0, 20)
-    
+
     # Initial density
     sigma.D ~ dunif(0, 20)
     
@@ -261,20 +256,6 @@ writeModelCode_singleArea <- function(survVarT, telemetryData){
       
       if(survVarT){
         epsT.S[t] ~ dnorm(0, sd = sigmaT.S) # Survival
-      }
-    }
-    
-    # Residual variation
-    for (t in 1:N_years){
-      
-      epsR.R[t] ~ dnorm(0, sd = sigmaR.R)
-      epsR.dd[t] ~ dnorm(0, sd = sigmaR.dd)
-    }
-    
-    for (t in 1:(N_years-1)){
-      
-      if(survVarT){
-        epsR.S[t] ~ dnorm(0, sd = sigmaR.S)
       }
     }
     
