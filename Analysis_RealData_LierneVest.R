@@ -264,6 +264,7 @@ if(fitRodentCov){
                     maxCov = 1,
                     meanCov = d_rodent$meanCov,
                     sdCov = d_rodent$sdCov,
+                    covData = d_rodent$rodentAvg,
                     N_areas = input_data$nim.constant$N_areas, 
                     area_names = input_data$nim.constant$area_names,
                     fitRodentCov = fitRodentCov)
