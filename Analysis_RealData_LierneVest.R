@@ -80,7 +80,7 @@ areas <- listAreas()
 minYear <- 2007
 maxYear <- 2021
 
-## List duplicate transects to remove
+## List duplicate transects and remove
 duplTransects <- listDuplTransects()
 
 ## Extract transect and observational data from DwC archive
