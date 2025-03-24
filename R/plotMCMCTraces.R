@@ -46,7 +46,7 @@ plotMCMCTraces <- function(mcmc.out, fitRodentCov, survVarT, VitalRates = TRUE, 
   
   # Vital rates
   if(VitalRates){
-    ifelse(!dir.exists("Plots/MCMCTraces"), dir.create("Plots/MCMCTraces"), FALSE) ## Check if folder exists, if not create folder
+    ifelse(!dir.exists("Plots/MCMCTraces"), dir.create("Plots/MCMCTraces", recursive = TRUE), FALSE) ## Check if folder exists, if not create folder
     pdf("Plots/MCMCTraces/MCMCtrace_mVR.pdf", width = 8, height = 6)
     MCMCvis::MCMCtrace(mcmc.out,
                        params = mVR_params,
