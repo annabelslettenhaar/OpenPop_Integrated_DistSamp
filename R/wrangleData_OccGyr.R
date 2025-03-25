@@ -108,7 +108,7 @@ return(list(gyrOccAvg = gyrOccAvg,
 
 }
 
-d_gyr <- wrangleData_OccGyr(#localities = localities,
-                            areas = areas,
-                            areaAggregation = areaAggregation,
-                            minYear = minYear, maxYear = maxYear)
+#d_gyr_occ <- wrangleData_OccGyr(#localities = localities,
+#                            areas = areas,
+#                            areaAggregation = areaAggregation,
+#                            minYear = minYear, maxYear = maxYear)
