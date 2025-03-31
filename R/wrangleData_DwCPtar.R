@@ -19,11 +19,11 @@
 #' @examples
 
 ## For testing purposes
-areaAggregation <- TRUE
-areas <- c("Kongsvoll", "TOV-Åmotsdalen", "TOV-Børgefjell", "TOV-Møsvatn")
-localities <- c("Gåvålia", "TOV-Åmotsdalen", "TOV-Børgefjell", "TOV-Møsvatn")
-minYear <- 2015
-maxYear <- 2020
+#areaAggregation <- TRUE
+#areas <- c("Kongsvoll", "TOV-Åmotsdalen", "TOV-Børgefjell", "TOV-Møsvatn")
+#localities <- c("Gåvålia", "TOV-Åmotsdalen", "TOV-Børgefjell", "TOV-Møsvatn")
+#minYear <- 2015
+#maxYear <- 2020
 
 
 wrangleData_DwCPtar <- function(localities = NULL, areas = NULL, areaAggregation, minYear, maxYear){
@@ -133,7 +133,7 @@ wrangleData_DwCPtar <- function(localities = NULL, areas = NULL, areaAggregation
   LT_data <- list(d_trans = d_trans, d_obs = d_obs, d_coord = d_coord)
 }
 
-LT_data <- wrangleData_DwCPtar(#localities = localities,
-                               areas = areas,
-                               areaAggregation = areaAggregation,
-                               minYear = minYear, maxYear = maxYear)
+#LT_data <- wrangleData_DwCPtar(#localities = localities,
+#                               areas = areas,
+#                               areaAggregation = areaAggregation,
+#                               minYear = minYear, maxYear = maxYear)
