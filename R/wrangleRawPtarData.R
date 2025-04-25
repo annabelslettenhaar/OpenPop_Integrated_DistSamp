@@ -2,13 +2,14 @@
 library(tidyverse)
 library(uuid)
 library(lubridate)
+library(jsonlite)
 
 ## Convert old data format into 'new' without the unnecessary stuff
 
 old_eve <- read.csv("data/ptar/event_data_1991_2014.csv")
 old_occ <- read.csv("data/ptar/occurrence_data_1991_2014.csv")
 
-## Event table
+#### Event table ####
 new_eve <- old_eve %>%
   mutate(eventID = replicate(nrow(old_eve), UUIDgenerate()),
          transectlength = Lengde * 1000,
@@ -76,7 +77,7 @@ eve_complete <- eve_complete %>%
   mutate(parentEventID = if_else(eventRemarks == "Line transect", NA_character_, parentEventID))
 
 
-## Occurrence table
+#### Occurrence table ####
 # Convert from wide to long format
 new_occ_long <- new_occ %>%
   rename(Adult_Male = Adhann,
@@ -104,3 +105,52 @@ new_occ_long <- new_occ %>%
 
 write.csv(new_occ_long, file="data/ptar/occurrence_1991_2014.csv")  
 write.csv(eve_complete, file="data/ptar/event_1991_2014.csv")  
+
+#### Combine the old and new ptarmigan files into one ####
+
+occ_old <- read.csv("data/ptar/occurrence_1991_2014.csv")
+eve_old <- read.csv("data/ptar/event_1991_2014.csv")
+
+occ_new <- read.csv("data/ptar/occurrence_2015_2020.csv")
+eve_new <- read.csv("data/ptar/event_2015_2020.csv")
+
+## Occurrence table
+occ_total <- bind_rows(occ_new, occ_old)
+occ_total <- occ_total %>%
+  select(-X)
+
+## Event table
+eve_old <- eve_old %>%
+  rename(verbatimLocality = area,
+         sampleSizeValue = transectlength,
+         oldDate = eventDate)
+
+# Change distance from transect line into the JSON format of the DwC layout
+key <- "perpendicular distance in meters from transect line as reported by the field worker"
+
+# Create a new column with the JSON strings in the old data
+eve_old <- eve_old %>%
+  mutate(dynamicProperties = sapply(linedist, function(x) {
+    json_string <- paste0('{"', key, '":"', as.character(x), '"}')
+    return(json_string)
+    })
+  ) %>%
+  mutate(dynamicProperties = ifelse(grepl('"NA"', dynamicProperties), NA, dynamicProperties)) %>%
+  select(-linedist, -X)
+
+# Create a eventDate column with the correct year in the old data
+# I do this because the 'year' column does not correspond to the eventDate
+# After 2007, all eventDates are in 2019, so I assume 'year' is more accurate
+eve_old$oldDate <- as.Date(eve_old$oldDate)
+eve_old <- eve_old %>%
+  mutate(eventDate = as.Date(paste(year, month(oldDate), day(oldDate), sep = "-"))) %>%
+  select(-oldDate, - year)
+
+eve_new$eventDate <- as.Date(eve_new$eventDate)
+eve_total <- bind_rows(eve_new, eve_old)
+
+## Save the total files
+write.csv(occ_total, file = "data/ptar/occurrence_total.csv")
+write.csv(eve_total, file = "data/ptar/event_total.csv")
+
+
