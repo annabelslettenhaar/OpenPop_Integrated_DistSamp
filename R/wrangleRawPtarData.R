@@ -121,9 +121,10 @@ occ_total <- occ_total %>%
 
 ## Event table
 eve_old <- eve_old %>%
+  mutate(eventDate = ifelse(is.na(eventDate), as.Date("2001-01-01"), as.Date(eventDate))) %>%
   rename(verbatimLocality = area,
          sampleSizeValue = transectlength,
-         oldDate = eventDate)
+         oldDate = eventDate) # Dates look weird but will fix this later
 
 # Change distance from transect line into the JSON format of the DwC layout
 key <- "perpendicular distance in meters from transect line as reported by the field worker"
@@ -148,6 +149,15 @@ eve_old <- eve_old %>%
 
 eve_new$eventDate <- as.Date(eve_new$eventDate)
 eve_total <- bind_rows(eve_new, eve_old)
+
+eve_total <- eve_total %>%
+  mutate(gyrArea = recode(verbatimLocality, 
+                          "Kongsvoll" = "Dovrefjell",
+                          "Møsvatn" = "Hardangervidda",
+                          "Åmotsdalen" = "Dovrefjell",
+                          "TOV-Åmotsdalen" = "Dovrefjell",
+                          "TOV-Børgefjell" = "Børgefjell",
+                          "TOV-Møsvatn" = "Hardangervidda"))
 
 ## Save the total files
 write.csv(occ_total, file = "data/ptar/occurrence_total.csv")
