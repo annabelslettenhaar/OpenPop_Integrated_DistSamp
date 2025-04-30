@@ -20,16 +20,16 @@
 
 ## For testing purposes
 #areaAggregation <- TRUE
-#areas <- c("Kongsvoll", "TOV-Åmotsdalen", "TOV-Børgefjell", "TOV-Møsvatn")
+#areas <- c("Hardangervidda", "Dovrefjell", "Børgefjell")
 #localities <- c("Gåvålia", "TOV-Åmotsdalen", "TOV-Børgefjell", "TOV-Møsvatn")
-#minYear <- 2015
-#maxYear <- 2020
+#minYear <- 1990
+#maxYear <- 2021
 
 
 wrangleData_DwCPtar <- function(localities = NULL, areas = NULL, areaAggregation, minYear, maxYear){
 
   ## Check if .csv files are available
-  files <- c("data/ptar/event_2015_2020.csv", "data/ptar/occurrence_2015_2020.csv")
+  files <- c("data/ptar/event_total.csv", "data/ptar/occurrence_total.csv")
 
   missing_files <- files[!file.exists(files)]
     if (length(missing_files) > 0) {
@@ -37,15 +37,15 @@ wrangleData_DwCPtar <- function(localities = NULL, areas = NULL, areaAggregation
     }
 
   ## Load data from .csv files
-  Eve <- read.csv("data/ptar/event_2015_2020.csv")
-  Occ <- read.csv("data/ptar/occurrence_2015_2020.csv")
+  Eve <- read.csv("data/ptar/event_total.csv")
+  Occ <- read.csv("data/ptar/occurrence_total.csv")
 
   ## Filter event data by either locality and year or area and year
   if(areaAggregation){
     Eve <- Eve %>% 
      dplyr::mutate(eventDate = as.Date(eventDate)) %>%
      dplyr::mutate(Year = lubridate::year(eventDate)) %>%
-     dplyr::filter(verbatimLocality %in% areas) %>%
+     dplyr::filter(gyrArea %in% areas) %>%
      dplyr::filter(dplyr::between(Year, minYear, maxYear))
   }else{
    Eve <- Eve %>% 
@@ -60,11 +60,11 @@ wrangleData_DwCPtar <- function(localities = NULL, areas = NULL, areaAggregation
     dplyr::select(locationID, eventDate, eventID, modified, 
                   samplingProtocol, eventRemarks, sampleSizeValue, 
                   stateProvince, municipality, locality, 
-                  verbatimLocality, locationRemarks, Year) %>%
-    dplyr::filter(eventRemarks == "Line transect") %>%
-    dplyr::mutate(locationRemarks = gsub("In the original data this is known as lineID ", '', locationRemarks)) %>%
-    tidyr::separate(., col = locationRemarks, sep = ",", into = c("LineName", "locationRemarks")) %>%
-    dplyr::select(-locationRemarks) 
+                  verbatimLocality, locationRemarks, gyrArea, Year) %>%
+    dplyr::filter(eventRemarks == "Line transect") 
+    #dplyr::mutate(locationRemarks = gsub("In the original data this is known as lineID ", '', locationRemarks)) %>%
+    #tidyr::separate(., col = locationRemarks, sep = ",", into = c("LineName", "locationRemarks")) %>%
+    #dplyr::select(-locationRemarks) 
 
   ## Identify and remove transects with suspiciously short length (< 200 m) and duplicate transects
   bad_transects <- d_trans$eventID[which(d_trans$sampleSizeValue < 200)]
@@ -86,15 +86,15 @@ wrangleData_DwCPtar <- function(localities = NULL, areas = NULL, areaAggregation
 
   # Observations: distance to transect lines
   d_obsTemp <- Eve %>% 
-    dplyr::select(locationID, locality, verbatimLocality, parentEventID, eventID, eventRemarks, 
-                  dynamicProperties, eventDate) %>%
+    dplyr::select(locationID, locality, verbatimLocality, gyrArea, parentEventID, eventID, 
+                  eventRemarks, dynamicProperties, eventDate) %>%
     dplyr::filter(eventRemarks == "Human observation" & !is.na(dynamicProperties)) %>%
     dplyr::mutate(dynamicProperties = purrr::map(dynamicProperties, ~ jsonlite::fromJSON(.) %>% as.data.frame())) %>%
     tidyr::unnest(dynamicProperties) %>% 
     dplyr::rename(DistanceToTransectLine = "perpendicular.distance.in.meters.from.transect.line.as.reported.by.the.field.worker") %>%
     dplyr::mutate(DistanceToTransectLine = as.numeric(DistanceToTransectLine), 
                   Year = lubridate::year(eventDate)) %>%
-    dplyr::select(locationID, locality, verbatimLocality, parentEventID, eventID, DistanceToTransectLine, Year)
+    dplyr::select(locationID, locality, verbatimLocality, gyrArea, parentEventID, eventID, DistanceToTransectLine, Year)
   
   # Observations: remaining information (willow ptarmigan only)
   d_obs <- Occ %>% 
@@ -116,7 +116,7 @@ wrangleData_DwCPtar <- function(localities = NULL, areas = NULL, areaAggregation
   
   # Rename appropriate column
   if(areaAggregation){
-    colnames(Eve)[which(colnames(Eve) == "verbatimLocality")] <- "spatialUnit"
+    colnames(Eve)[which(colnames(Eve) == "gyrArea")] <- "spatialUnit"
   }else{
       colnames(Eve)[which(colnames(Eve) == "locality")] <- "spatialUnit"
   }
