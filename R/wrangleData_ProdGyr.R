@@ -30,10 +30,18 @@ wrangleData_ProdGyr <- function(localities = NULL, areas = NULL, areaAggregation
   ## Load data from .csv file
   gyr_data_raw <- subset(read.csv("data/Gyr_data.csv"), select = -c(1))
   
+  ## Rename areas to a more informative name & to match with ptarmigan datasets
+  gyr_data_raw$Area <- as.factor(gyr_data_raw$Area)
+  gyr_data_raw <- gyr_data_raw %>%
+    mutate(gyrArea = recode(Area,
+                            "1" = "Hardangervidda",
+                            "2" = "Dovrefjell",
+                            "3" = "Børgefjell"))
+  
   ## Filter event data by either locality and year or area and year
   if(areaAggregation){
     gyr_data <- gyr_data_raw %>% 
-      dplyr::filter(Area %in% areas) %>%
+      dplyr::filter(gyrArea %in% areas) %>%
       dplyr::filter(dplyr::between(Year, minYear, maxYear))
   }else{
     gyr_data <- gyr_data_raw %>% 
@@ -43,7 +51,7 @@ wrangleData_ProdGyr <- function(localities = NULL, areas = NULL, areaAggregation
   
   ## Double-check no duplicate transects remain
   duplicates <- gyr_data %>%
-    dplyr::group_by(TerritoryID, Area, Year) %>%
+    dplyr::group_by(TerritoryID, gyrArea, Year) %>%
     dplyr::summarise(observations = dplyr::n(), .groups = 'keep') %>%
     dplyr::filter(observations > 1)
   
@@ -61,7 +69,7 @@ wrangleData_ProdGyr <- function(localities = NULL, areas = NULL, areaAggregation
   
   ## Rename appropriate column in line transect data to reflect level of spatial aggregation
   if(areaAggregation){
-    colnames(gyr_data)[which(colnames(gyr_data) == "Area")] <- "spatialUnit"
+    colnames(gyr_data)[which(colnames(gyr_data) == "gyrArea")] <- "spatialUnit"
   }else{
     colnames(gyr_data)[which(colnames(gyr_data) == "TerritoryID")] <- "spatialUnit"
   }
