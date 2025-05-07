@@ -1,0 +1,436 @@
+#' Prepare line transect, known fate CMR, and rodent covariate data for integrated analysis
+#'
+#' @param d_trans tibble containing information on transects (events). Output of
+#' wrangleData_DwCPtar(). 
+#' @param d_obs tibble containing information on observations made along transects 
+#' (distance to transect line, numbers of birds in each age/sex class observed,
+#' etc.). Output of wrangleData_DwCPtar(). 
+#' @param d_rodent list containing the matrix with average number of rodent observations per 
+#' area and year and the mean and standard deviation of the original covariate. 
+#' @param d_gyr_prod list containing the matrix with average number of gyrfalcon chicks produced
+#' per area per year, and the mean and standard deviation of the original covariate.
+#' @param d_gyr_occ list containing a matrix with average number of 'active' gyrfalcon territories
+#' per area per year, and the mean and standard deviation of the original covariate. 
+#' @param localities vector of strings listing localities to consider. Either localities or areas must be provided. 
+#' @param areas vector of strings listing areas to consider. Using gyrArea in gyrfalcon analysis.  
+#' @param areaAggregation logical. If TRUE, areas are used as smallest spatial unit. If FALSE, locations (within areas) are used as smallest spatial unit.
+#' @param excl_neverObs logical. If TRUE (default), transects on which ptarmigans were never observed are excluded. If FALSE, all transects are included.
+#' @param R_perF logical. If TRUE, treats recruitment rate as juvenile per adult female.
+#' If FALSE, treats recruitment rate as juvenile per adult (sum of both sexes).
+#' @param R_parent_drop0 logical. If TRUE, removes observations of juveniles without adults
+#' from recruitment data. If FALSE, sets 1 as the number of adults/adults females when none
+#' are observed. 
+#' @param sumR.Level character string. Default ("group") summarises reproduction/recruitment
+#' data at the group/observation level. Setting to "line" summarises data at the 
+#' transect line level instead. 
+#' @param dataVSconstants logical. If TRUE (default) returns a list of 2 lists
+#' containing data and constants for analysis with Nimble. If FALSE, returns a
+#' list containing all data and constants. 
+#' @param addDummyDim logical. If TRUE (default) adds a dummy dimension when only
+#' one area is included to allow running the multi-area setup. If FALSE, drops
+#' the dummy dimension for running with the single area setup. 
+#' @param save logical. If TRUE (default) saves prepared data in working 
+#' directory as .rds file.
+#'
+#' @return A list or list of lists, depending on argument `dataVSconstants` 
+#' (see above).
+#' @export
+#'
+#' @examples
+
+
+#d_trans <-  LT_data$d_trans 
+#d_obs <- LT_data$d_obs
+#d_rodent <- d_rodent
+#excl_neverObs <- TRUE
+#dataVSconstants <- TRUE
+
+
+prepareInputDataGyr <- function(d_trans, d_obs, d_rodent, d_gyr_occ, d_gyr_prod, 
+                             localities = NULL, areas = NULL, areaAggregation, 
+                             excl_neverObs = TRUE, R_perF, R_parent_drop0, 
+                             sumR.Level = "group", dataVSconstants = TRUE, 
+                             addDummyDim = TRUE, save = TRUE){
+  
+  
+  # Multi-area setup #
+  #------------------#
+  
+  ## Assignment of spatial units
+  if(areaAggregation){
+    sUnits <- areas
+  }else{
+    sUnits <- localities
+  }
+  N_sUnits <- length(sUnits)
+  
+  ## Rename appropriate column in line transect data to reflect level of spatial aggregation
+  if(areaAggregation){
+    colnames(d_trans)[which(colnames(d_trans) == "gyrArea")] <- "spatialUnit"
+    colnames(d_obs)[which(colnames(d_obs) == "gyrArea")] <- "spatialUnit"
+  }else{
+    colnames(d_trans)[which(colnames(d_trans) == "locality")] <- "spatialUnit"
+    colnames(d_obs)[which(colnames(d_obs) == "locality")] <- "spatialUnit"
+  }
+  
+  ## If desired: remove all transects on which willow ptarmigans were never encountered
+  if(excl_neverObs){
+    d_trans <- d_trans %>%
+      dplyr::filter(locationID %in% d_obs$locationID)
+  }
+  
+  ## Variables shared across areas
+  # Number of age classes
+  N_ageC <- 2
+  
+  # (Number of) years
+  range_yearsTot <- min(d_trans$Year):max(d_trans$Year)     
+  idx_yearsTot <- range_yearsTot - min(d_trans$Year) + 1  
+  N_yearsTot <- length(range_yearsTot)
+  
+  # Truncation distance
+  W <- 200
+  
+  ## Count sites per area (for defining correct array dimensions)
+  site_count <- d_trans %>%                             
+    dplyr::group_by(spatialUnit) %>%
+    dplyr::summarise(count = n_distinct(locationID))
+  
+  if(length(which(site_count$count == 0)) > 0){
+    stop("One or more specified areas contain no willow ptarmigan observations")
+  }
+  
+  ## Count observations per area
+  obs_count <- d_obs %>% 
+    dplyr::filter(between(DistanceToTransectLine, -0.1, W)) %>% 
+    dplyr::group_by(spatialUnit) %>%
+    dplyr::summarise(count = n())
+  
+  ## Set up arrays for area-specific data
+  N_sites <- N_years <- min_years <- max_years <- N_obs <- N_sumR_obs <- rep(NA, N_sUnits)
+  
+  A <- matrix(NA, nrow = N_sUnits, ncol = N_yearsTot)
+  y <- Year_obs <- zeros_dist <- matrix(NA, nrow = N_sUnits, ncol = max(obs_count$count))
+  sumR_obs <- sumR_obs_year <- sumAd_obs <- matrix(NA, nrow = N_sUnits, ncol = max(obs_count$count))
+  
+  L <- N_line_year <- N_J_line_year <- N_A_line_year <- array(0, dim = c(N_sUnits, max(site_count$count), N_yearsTot))
+  
+  N_a_line_year <- array(0, dim = c(N_sUnits, N_ageC, max(site_count$count), N_yearsTot))
+  
+  
+  for(x in 1:N_sUnits){
+    
+    ## Subset data (specific area)
+    # if(areaAggregation){
+    #   d_trans_sub <- subset(d_trans, spatialUnit == areas[x])
+    #   d_obs_sub <- subset(d_obs, spatialUnit == areas[x])
+    # }else{
+    #   d_trans_sub <- subset(d_trans, spatialUnit == localities[x])
+    #   d_obs_sub <- subset(d_obs, spatialUnit == localities[x])
+    # }
+    if(!(sUnits[x] %in% d_trans$spatialUnit)){
+      stop(paste0("Spatial unit ", sUnits[x], " (index ", x, ") is not in the data."))
+    }
+    
+    d_trans_sub <- subset(d_trans, spatialUnit == sUnits[x])
+    d_obs_sub <- subset(d_obs, spatialUnit == sUnits[x])
+    
+    # Constants #
+    #-----------#
+    
+    ## Numbers of sites
+    N_sites[x] <- n_distinct(d_trans_sub$locationID)
+    
+    ## (Number of) years with data
+    years_mon <- sort(unique(d_trans_sub$Year)) - min(range_yearsTot) + 1 
+    min_years[x] <- min(years_mon)
+    max_years[x] <- max(years_mon)
+    
+    # Transect characteristics #
+    #--------------------------#
+    
+    ## Tansect lengths
+    TransLen <- d_trans_sub %>% 
+      dplyr::select(locationID, Year, sampleSizeValue) %>%
+      reshape2::dcast(locationID~Year, value.var = "sampleSizeValue", sum) %>%
+      arrange(locationID)
+    
+    TransLen_mat <- TransLen %>% select(-locationID) %>% as.matrix()
+    colnames(TransLen_mat) <- as.numeric(colnames(TransLen_mat)) - min(range_yearsTot) + 1
+    
+    for(t in 1:N_yearsTot){
+      
+      if(t %in% years_mon){
+        L[x, 1:N_sites[x], t] <- TransLen_mat[1:N_sites[x], which(years_mon == t)]
+      }
+    }
+    
+    
+    ## Total covered area 
+    A[x, 1:N_yearsTot] <- colSums(L[x,,])*W*2
+    
+    
+    # Observation distance from transect #
+    #------------------------------------#
+    
+    
+    temp_dist <- d_obs_sub %>% 
+      dplyr::filter(between(DistanceToTransectLine, -0.1, W)) %>% 
+      dplyr::select(Year, DistanceToTransectLine) %>%
+      dplyr::mutate(Year2 = Year - (minYear) + 1)
+    
+    ## Number of observations
+    N_obs[x] <- length(temp_dist$DistanceToTransectLine)
+    
+    ## Distance to transect line
+    y[x, 1:N_obs[x]] <- temp_dist$DistanceToTransectLine
+    
+    ## Observation year
+    Year_obs[x, 1:N_obs[x]] <- temp_dist$Year2
+    
+    ## Vector of 0's of same length as y
+    zeros_dist[x, 1:N_obs[x]] <- rep(0, N_obs[x])
+    
+    
+    # Number of birds/line (pooled age classes) #
+    #-------------------------------------------#
+    
+    temp <- TransLen %>% select(locationID)
+    
+    TaksObs <- d_obs_sub %>% 
+      filter(between(DistanceToTransectLine, -0.1, W)) %>% # 
+      dplyr::mutate(cs = unknownJuvenile+unknownunknown+FemaleAdult+MaleAdult) %>%
+      reshape2::dcast(locationID~Year, value.var = "cs", sum) %>%
+      dplyr::right_join(., temp, by = c("locationID" = "locationID")) %>%
+      replace(., is.na(.), 0) %>%
+      dplyr::arrange(locationID)
+    
+    TaksObs_mat <- TaksObs %>% dplyr::select(-locationID) %>% as.matrix() 
+    colnames(TaksObs_mat) <- as.numeric(colnames(TaksObs_mat)) - min(range_yearsTot) + 1
+    
+    years_mon <- as.numeric(colnames(TaksObs_mat)) # filtering observations on DistanceToTransectLine will in some cases remove all observations for a transect line within 1 year. This recalculates number of years with samples
+    
+    for(t in 1:N_yearsTot){
+      
+      if(t %in% years_mon){
+        N_line_year[x, 1:N_sites[x], t] <- TaksObs_mat[1:N_sites[x], which(years_mon == t)]
+      }
+    }
+    
+    # Number of birds/line (by age class) #
+    #-------------------------------------#
+    
+    ## Juveniles (& unknowns)
+    TaksObs_J <- d_obs_sub %>% 
+      filter(between(DistanceToTransectLine, -0.1, W)) %>%
+      dplyr::mutate(cs = unknownJuvenile + unknownunknown) %>%
+      reshape2::dcast(locationID~Year, value.var="cs", sum) %>%
+      dplyr::right_join(., temp, by=c("locationID"="locationID")) %>%
+      replace(., is.na(.), 0) %>%
+      dplyr::arrange(locationID)
+    
+    TaksObs_J_mat <- TaksObs_J %>% dplyr::select(-locationID) %>% as.matrix() 
+    colnames(TaksObs_J_mat) <- as.numeric(colnames(TaksObs_J_mat)) - min(range_yearsTot) + 1
+    
+    for(t in 1:N_yearsTot){
+      
+      if(t %in% years_mon){
+        N_J_line_year[x, 1:N_sites[x], t] <- TaksObs_J_mat[1:N_sites[x], which(years_mon == t)]
+      }
+    }
+    
+    ## Adults 
+    TaksObs_A <- d_obs_sub %>% 
+      filter(between(DistanceToTransectLine, -0.1, W)) %>%
+      dplyr::mutate(cs = FemaleAdult + MaleAdult) %>%
+      reshape2::dcast(locationID~Year, value.var="cs", sum) %>%
+      dplyr::right_join(., temp, by=c("locationID"="locationID")) %>%
+      replace(., is.na(.), 0) %>%
+      dplyr::arrange(locationID)
+    
+    TaksObs_A_mat <- TaksObs_A %>% dplyr::select(-locationID) %>% as.matrix() 
+    colnames(TaksObs_A_mat) <- as.numeric(colnames(TaksObs_A_mat)) - min(range_yearsTot) + 1
+    
+    for(t in 1:N_yearsTot){
+      
+      if(t %in% years_mon){
+        N_A_line_year[x, 1:N_sites[x], t] <- TaksObs_A_mat[1:N_sites[x], which(years_mon == t)]
+      }
+    }
+    
+    ## Check and combine in array
+    if(!(all(N_J_line_year + N_A_line_year == N_line_year))){
+      warning("Number of observed adults and juveniles does not add up correctly. Double-check data.")
+    }
+    
+    N_a_line_year[x, 1,,] <- N_J_line_year[x,,]
+    N_a_line_year[x, 2,,] <- N_A_line_year[x,,]
+    
+    
+    # Recruitment #
+    #-------------#
+    
+    # NOTE: For consistency with the population model, we need to define R as the number of recruits
+    # per adult (female)
+    
+    # Reformat data
+    temp_Rec <- d_obs_sub %>% filter(between(DistanceToTransectLine, -0.1, W)) %>%
+      dplyr::mutate(sumR = unknownJuvenile + unknownunknown,
+                    sumAd = MaleAdult + FemaleAdult,
+                    sumAdF = FemaleAdult) %>%
+      dplyr::mutate(Year2 = Year - (min(Year)) + 1)
+    
+    # Optional: summarise data at line level (per year)
+    if(sumR.Level == "line"){
+      temp_Rec <- temp_Rec %>%
+        dplyr::group_by(locationID, Year, Year2) %>%
+        dplyr::summarise(sumR = sum(sumR),
+                         sumAd = sum(sumAd),
+                         sumAdF = sum(sumAdF), .groups = "keep")
+    }
+    
+    # Set which adult measure to use
+    if(R_perF){
+      temp_Rec$sumAd_use <- temp_Rec$sumAdF
+    }else{
+      temp_Rec$sumAd_use <- temp_Rec$sumAd
+    }
+    
+    # Deal with instances of 0 adults observed
+    if(R_parent_drop0){ # --> Drop all cases of 0 adults observed
+      temp_Rec <- temp_Rec %>%
+        dplyr::filter(sumAd_use != 0)
+      
+    }else{ # --> Drop only cases when neither adult (females) nor juveniles were observed and add +1 to adults otherwise
+      
+      temp_Rec <- temp_Rec %>%
+        dplyr::filter(sumAd_use + sumR != 0) %>%
+        dplyr::mutate(sumAd_use = ifelse(sumAd_use == 0, 1, sumAd_use))
+    }
+    
+    # Extract relevant data vectors
+    N_sumR_obs[x] <- length(temp_Rec$sumR)
+    sumR_obs[x, 1:N_sumR_obs[x]] <- temp_Rec$sumR
+    sumAd_obs[x, 1:N_sumR_obs[x]] <- temp_Rec$sumAd_use
+    sumR_obs_year[x, 1:N_sumR_obs[x]] <- temp_Rec$Year2
+  }
+  
+  ## Drop excess columns in recruitment data
+  sumR_obs <- sumR_obs[1:N_sUnits, 1:max(N_sumR_obs), drop = FALSE]
+  sumAd_obs <- sumAd_obs[1:N_sUnits, 1:max(N_sumR_obs), drop = FALSE]
+  sumR_obs_year <- sumR_obs_year[1:N_sUnits, 1:max(N_sumR_obs), drop = FALSE]
+  
+  
+  # Data assembly #
+  #---------------#
+  
+  ## Set spatial index for CMR data
+ # if(areaAggregation){
+ #   SurvAreaIdx <- which(sUnits == d_cmr$area_names)
+ # }else{
+ #   SurvAreaIdx <- which(sUnits == d_cmr$locality_names)
+ # }
+ # 
+ # if(length(SurvAreaIdx) == 0){
+ #   stop("No overlap in areas for line transect and survival data. The present implementation of the model requires including line transect data from Lierne.")
+ # }
+  
+  ## Add dummy dimensions if running for only one spatial unit
+  if(N_sUnits == 1 & addDummyDim){
+    N_sites <- c(N_sites, NA)
+  }
+  
+  ## Assembling all data in a list
+  input.data <- list(
+    sumR_obs = sumR_obs, # Observed numbers of recruits
+    sumAd_obs = sumAd_obs, # Observed numbers of adults/adult females
+    sumR_obs_year = sumR_obs_year, # Year of observed numbers of recruits
+    N_sumR_obs = N_sumR_obs, # Total number of observations of numbers of recruits
+    
+    y = y, # Distance to transect line for each individual observation
+    zeros_dist = zeros_dist, # Vector of 0's of same length as y
+    Year_obs = Year_obs, # Year of each observation
+    N_obs = N_obs, # Total number of observations
+    
+    N_line_year = N_line_year, # Number of birds observed per site per year
+    N_a_line_year = N_a_line_year, # Number of birds observed per ageclass per site per year
+    L = L, # Transect length per site and year
+    
+    N_years = N_yearsTot, # Max number of years with data
+    min_years = min_years, # Earliest year (index) of monitoring per area
+    max_years = max_years, # Last year (index) of monitoring per area
+    N_sites = N_sites, # Total number of monitored sites per area
+    
+    A = A, # Total covered area per year
+    W = W, # Truncation distance
+    N_ageC = N_ageC, # Number of age classes
+    
+    RodentOcc = d_rodent$rodentAvg,
+    RodentOcc_meanCov = d_rodent$meanCov,
+    RodentOcc_sdCov = d_rodent$sdCov,
+    
+    GyrOcc = d_gyr_occ$gyrOccAvg,
+    GyrOcc_meanCov = d_gyr_occ$meanCov,
+    GyrOcc_sdCov = d_gyr_occ$sdCov,
+    
+    GyrProd = d_gyr_prod$gyrProdAvg,
+    GyrProd_meanCov = d_gyr_prod$meanCov,
+    GyrProd_sdCov = d_gyr_prod$sdCov,
+    
+    N_areas = N_sUnits,
+    area_names = sUnits
+  )
+  
+  ## Drop dummy dimension when only one area is included
+  if(N_sUnits == 1 & !addDummyDim){
+    
+    for(i in 1:length(input.data)){
+      input.data[[i]] <- drop(input.data[[i]])
+    }
+    
+  }
+  
+  ## Assembling Nimble data
+  nim.data <- list(sumR_obs = input.data$sumR_obs, sumAd_obs = input.data$sumAd_obs,
+                   y = input.data$y, 
+                   zeros.dist = input.data$zeros_dist, L = input.data$L, 
+                   N_line_year = input.data$N_line_year, 
+                   N_a_line_year = input.data$N_a_line_year, 
+                   A = input.data$A,
+                   RodentOcc = input.data$RodentOcc,
+                   GyrOcc = input.data$GyrOcc,
+                   GyrProd = input.data$GyrProd)
+  
+  ## Assembling Nimble constants
+  nim.constants <- list(N_years = input.data$N_years, min_years = input.data$min_years, max_years = input.data$max_years,
+                        W = input.data$W,
+                        N_obs = input.data$N_obs, Year_obs = input.data$Year_obs,
+                        N_sites = input.data$N_sites, 
+                        N_ageC = N_ageC,
+                        N_areas = input.data$N_areas, area_names = input.data$area_names,
+                        sumR_obs_year = input.data$sumR_obs_year, N_sumR_obs = input.data$N_sumR_obs,
+                        N_ageC = N_ageC,
+                        RodentOcc_meanCov = input.data$RodentOcc_meanCov,
+                        RodentOcc_sdCov = input.data$RodentOcc_sdCov,
+                        GyrOcc_meanCov = input.data$GyrOcc_meanCov,
+                        GyrOcc_sdCov = input.data$GyrOcc_sdCov,
+                        GyrProd_meanCov = input.data$GyrProd_meanCov,
+                        GyrProd_sdCov = input.data$GyrProd_sdCov)
+  
+  ## Make final data list to return
+  if(dataVSconstants){
+    rype.data <- list(nim.data = nim.data,
+                      nim.constants = nim.constants)
+  }else{
+    rype.data <- input.data
+  }
+  
+  ## Optional: save data as .rds
+  if(save){
+    saveRDS(rype.data, file = "RypeData_forGyrIM.rds")
+  }
+  
+  ## Return data
+  return(rype.data)
+}
+
