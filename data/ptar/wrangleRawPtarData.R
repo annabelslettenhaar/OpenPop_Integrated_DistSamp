@@ -115,11 +115,19 @@ occ_new <- read.csv("data/ptar/occurrence_2015_2020.csv")
 eve_new <- read.csv("data/ptar/event_2015_2020.csv")
 
 ## Occurrence table
+
+# First correct mistake in the old occ dataframe: swap sex and lifeStage column name
+temp <- names(occ_old)[3]  
+names(occ_old)[3] <- names(occ_old)[4]
+names(occ_old)[4] <- temp
+
+# Combine both dataframes
 occ_total <- bind_rows(occ_new, occ_old)
 occ_total <- occ_total %>%
   select(-X)
 
 ## Event table
+
 eve_old <- eve_old %>%
   mutate(eventDate = ifelse(is.na(eventDate), as.Date("2001-01-01"), as.Date(eventDate))) %>%
   rename(verbatimLocality = area,

@@ -76,7 +76,7 @@ wrangleData_RodentGyr <- function(localities = NULL, areas = NULL, areaAggregati
   
   ## Create column rodentOcc that balances the observations by trapping effort
   rodent_data <- rodent_data %>%
-    mutate(rodentOcc = tot_lem_vol / (trapnights/100))
+    mutate(rodentOcc = tot_lem_vol)
   
   ## Summarise observation by spatial unit and year
   rodent_obs <- rodent_data %>% 
