@@ -96,9 +96,8 @@ LT_data <- wrangleData_DwCPtar(#localities = localities,
 #-----------------------------#
 
 ## Read in and reformat CMR data
-d_cmr <- wrangleData_CMR(minYear = minYear)
-## Cheat: change the area_name to one of the areas of our data
-#d_cmr$area_names <- "Hardangervidda"
+## No CMR data available for the TOV data, so we ignore this for now
+#d_cmr <- wrangleData_CMR(minYear = minYear)
 
 
 # WRANGLE RODENT DATA #
@@ -117,7 +116,7 @@ d_rodent <- wrangleData_RodentGyr(#localities = localities,
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputDataGyr(d_trans = LT_data$d_trans, 
                                   d_obs = LT_data$d_obs,
-                                  d_cmr = d_cmr,
+                                  #d_cmr = d_cmr,
                                   d_rodent = d_rodent,
                                   #localities = localities, 
                                   areas = areas,
@@ -134,23 +133,23 @@ input_data <- prepareInputDataGyr(d_trans = LT_data$d_trans,
 #-------------#
 
 ## Write model code
-modelCode <- writeModelCode(survVarT = survVarT,
-                            telemetryData = telemetryData)
+modelCode <- writeModelCode_Gyr(survVarT = survVarT,
+                                telemetryData = telemetryData)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
                               nchains = nchains)
 
 ## Setup for model using nimbleDistance::dHN
-model_setup <- setupModel(modelCode = modelCode,
-                          R_perF = R_perF,
-                          survVarT = survVarT, 
-                          fitRodentCov = fitRodentCov,
-                          nim.data = input_data$nim.data,
-                          nim.constants = input_data$nim.constants,
-                          testRun = testRun, 
-                          nchains = nchains,
-                          initVals.seed = MCMC.seeds)
+model_setup <- setupModel_Gyr(modelCode = modelCode,
+                              R_perF = R_perF,
+                              survVarT = survVarT, 
+                              fitRodentCov = fitRodentCov,
+                              nim.data = input_data$nim.data,
+                              nim.constants = input_data$nim.constants,
+                              testRun = testRun, 
+                              nchains = nchains,
+                              initVals.seed = MCMC.seeds)
 
 
 # MODEL (TEST) RUN #
