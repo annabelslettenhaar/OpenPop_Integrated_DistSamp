@@ -1,18 +1,18 @@
 #' Prepare line transect, known fate CMR, and rodent covariate data for integrated analysis
 #'
 #' @param d_trans tibble containing information on transects (events). Output of
-#' wrangleData_DwCPtar(). 
+#' wrangleData_LineTrans(). 
 #' @param d_obs tibble containing information on observations made along transects 
 #' (distance to transect line, numbers of birds in each age/sex class observed,
-#' etc.). Output of wrangleData_DwCPtar(). 
-#' @param d_rodent list containing the matrix with average number of rodent observations per 
-#' area and year and the mean and standard deviation of the original covariate. 
-#' @param d_gyr_prod list containing the matrix with average number of gyrfalcon chicks produced
-#' per area per year, and the mean and standard deviation of the original covariate.
-#' @param d_gyr_occ list containing a matrix with average number of 'active' gyrfalcon territories
-#' per area per year, and the mean and standard deviation of the original covariate. 
+#' etc.). Output of wrangleData_LineTrans(). 
+#' @param d_cmr list with 2 elements. Surv1 and Surv2 are matrices of individuals 
+#' released (column 1) and known to have survived (column 2) in each year (row)
+#' for season 1 and season 2, respectively. Output of wrangleData_CMR().
+#' @param d_rodent list containing the matrix with average number of transects 
+#' with rodent observations per area and year and the mean and standard deviation
+#' of the original covariate. 
 #' @param localities vector of strings listing localities to consider. Either localities or areas must be provided. 
-#' @param areas vector of strings listing areas to consider. Using gyrArea in gyrfalcon analysis.  
+#' @param areas vector of strings listing areas to consider. Either localities or areas must be provided. 
 #' @param areaAggregation logical. If TRUE, areas are used as smallest spatial unit. If FALSE, locations (within areas) are used as smallest spatial unit.
 #' @param excl_neverObs logical. If TRUE (default), transects on which ptarmigans were never observed are excluded. If FALSE, all transects are included.
 #' @param R_perF logical. If TRUE, treats recruitment rate as juvenile per adult female.
@@ -39,18 +39,7 @@
 #' @examples
 
 
-#d_trans <-  LT_data$d_trans 
-#d_obs <- LT_data$d_obs
-#d_rodent <- d_rodent
-#excl_neverObs <- TRUE
-#dataVSconstants <- TRUE
-
-
-prepareInputDataGyr <- function(d_trans, d_obs, d_rodent, d_gyr_occ, d_gyr_prod, 
-                             localities = NULL, areas = NULL, areaAggregation, 
-                             excl_neverObs = TRUE, R_perF, R_parent_drop0, 
-                             sumR.Level = "group", dataVSconstants = TRUE, 
-                             addDummyDim = TRUE, save = TRUE){
+prepareInputDataGyr <- function(d_trans, d_obs, d_cmr, d_rodent, localities = NULL, areas = NULL, areaAggregation, excl_neverObs = TRUE, R_perF, R_parent_drop0, sumR.Level = "group", dataVSconstants = TRUE, addDummyDim = TRUE, save = TRUE){
   
   
   # Multi-area setup #
@@ -325,15 +314,21 @@ prepareInputDataGyr <- function(d_trans, d_obs, d_rodent, d_gyr_occ, d_gyr_prod,
   #---------------#
   
   ## Set spatial index for CMR data
- # if(areaAggregation){
- #   SurvAreaIdx <- which(sUnits == d_cmr$area_names)
- # }else{
- #   SurvAreaIdx <- which(sUnits == d_cmr$locality_names)
- # }
- # 
- # if(length(SurvAreaIdx) == 0){
- #   stop("No overlap in areas for line transect and survival data. The present implementation of the model requires including line transect data from Lierne.")
- # }
+  if(areaAggregation){
+    SurvAreaIdx <- which(sUnits == d_cmr$area_names)
+  }else{
+    SurvAreaIdx <- which(sUnits == d_cmr$locality_names)
+  }
+  
+  if(length(SurvAreaIdx) == 0){
+    stop("No overlap in areas for line transect and survival data. The present implementation of the model requires including line transect data from Lierne.")
+  }
+  
+  ## Add dummy dimensions if running for only one spatial unit
+  if(N_sUnits == 1 & addDummyDim){
+    N_sites <- c(N_sites, NA)
+  }
+  
   
   ## Add dummy dimensions if running for only one spatial unit
   if(N_sUnits == 1 & addDummyDim){
@@ -365,17 +360,15 @@ prepareInputDataGyr <- function(d_trans, d_obs, d_rodent, d_gyr_occ, d_gyr_prod,
     W = W, # Truncation distance
     N_ageC = N_ageC, # Number of age classes
     
+    Survs1 = d_cmr$Survs1, # Season 1 releases & survivors (area 1)
+    Survs2 = d_cmr$Survs2, # Season 2 releases & survivors (area 1)
+    SurvAreaIdx = SurvAreaIdx,
+    year_Survs = d_cmr$year_Survs, # Years (indices) of telemetry data
+    N_years_RT = length(d_cmr$year_Survs),
+    
     RodentOcc = d_rodent$rodentAvg,
     RodentOcc_meanCov = d_rodent$meanCov,
     RodentOcc_sdCov = d_rodent$sdCov,
-    
-    GyrOcc = d_gyr_occ$gyrOccAvg,
-    GyrOcc_meanCov = d_gyr_occ$meanCov,
-    GyrOcc_sdCov = d_gyr_occ$sdCov,
-    
-    GyrProd = d_gyr_prod$gyrProdAvg,
-    GyrProd_meanCov = d_gyr_prod$meanCov,
-    GyrProd_sdCov = d_gyr_prod$sdCov,
     
     N_areas = N_sUnits,
     area_names = sUnits
@@ -397,9 +390,8 @@ prepareInputDataGyr <- function(d_trans, d_obs, d_rodent, d_gyr_occ, d_gyr_prod,
                    N_line_year = input.data$N_line_year, 
                    N_a_line_year = input.data$N_a_line_year, 
                    A = input.data$A,
-                   RodentOcc = input.data$RodentOcc,
-                   GyrOcc = input.data$GyrOcc,
-                   GyrProd = input.data$GyrProd)
+                   Survs1 = input.data$Survs1, Survs2 = input.data$Survs2,
+                   RodentOcc = input.data$RodentOcc)
   
   ## Assembling Nimble constants
   nim.constants <- list(N_years = input.data$N_years, min_years = input.data$min_years, max_years = input.data$max_years,
@@ -408,14 +400,13 @@ prepareInputDataGyr <- function(d_trans, d_obs, d_rodent, d_gyr_occ, d_gyr_prod,
                         N_sites = input.data$N_sites, 
                         N_ageC = N_ageC,
                         N_areas = input.data$N_areas, area_names = input.data$area_names,
+                        SurvAreaIdx = input.data$SurvAreaIdx,
+                        year_Survs = input.data$year_Survs, N_years_RT = input.data$N_years_RT,
                         sumR_obs_year = input.data$sumR_obs_year, N_sumR_obs = input.data$N_sumR_obs,
                         N_ageC = N_ageC,
+                        telemetryData = telemetryData,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
-                        RodentOcc_sdCov = input.data$RodentOcc_sdCov,
-                        GyrOcc_meanCov = input.data$GyrOcc_meanCov,
-                        GyrOcc_sdCov = input.data$GyrOcc_sdCov,
-                        GyrProd_meanCov = input.data$GyrProd_meanCov,
-                        GyrProd_sdCov = input.data$GyrProd_sdCov)
+                        RodentOcc_sdCov = input.data$RodentOcc_sdCov)
   
   ## Make final data list to return
   if(dataVSconstants){
@@ -427,7 +418,7 @@ prepareInputDataGyr <- function(d_trans, d_obs, d_rodent, d_gyr_occ, d_gyr_prod,
   
   ## Optional: save data as .rds
   if(save){
-    saveRDS(rype.data, file = "RypeData_forGyrIM.rds")
+    saveRDS(rype.data, file = "RypeData_forIM.rds")
   }
   
   ## Return data
