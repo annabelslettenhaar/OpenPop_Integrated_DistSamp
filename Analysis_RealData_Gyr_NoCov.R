@@ -260,7 +260,7 @@ plotTimeSeries(mcmc.out = IDSM.out.tidy,
 
 # OPTIONAL: PLOT VITAL RATE POSTERIORS #
 #--------------------------------------#
-
+# Needs to be adjusted to work without providing telemetry data
 plotPosteriorDens_VR_Gyr(mcmc.out = IDSM.out.tidy,
                      N_areas = input_data$nim.constant$N_areas, 
                      area_names = input_data$nim.constant$area_names, 
