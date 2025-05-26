@@ -11,8 +11,11 @@ library(nimble)
 mySeed <- 32
 set.seed(mySeed)
 
-## Set number of chains
-nchains <- 5
+## Set number of chains, iterations, burn in and thinning
+nchains <- 3
+niter <- 100000
+nburn <- 60000
+nthin <- 20
 
 ## Source all functions in "R" folder
 sourceDir <- function(path, trace = TRUE, ...) {
@@ -54,7 +57,7 @@ fitRodentCov <- TRUE
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- TRUE
+testRun <- FALSE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -96,9 +99,8 @@ LT_data <- wrangleData_DwCPtar(#localities = localities,
 #-----------------------------#
 
 ## Read in and reformat CMR data
-d_cmr <- wrangleData_CMR(minYear = minYear)
-## Cheat: change the area_name to one of the areas of our data
-#d_cmr$area_names <- "Hardangervidda"
+## No CMR data available for the TOV data, so we ignore this for now
+#d_cmr <- wrangleData_CMR(minYear = minYear)
 
 
 # WRANGLE RODENT DATA #
@@ -117,7 +119,7 @@ d_rodent <- wrangleData_RodentGyr(#localities = localities,
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputDataGyr(d_trans = LT_data$d_trans, 
                                   d_obs = LT_data$d_obs,
-                                  d_cmr = d_cmr,
+                                  #d_cmr = d_cmr,
                                   d_rodent = d_rodent,
                                   #localities = localities, 
                                   areas = areas,
@@ -134,23 +136,26 @@ input_data <- prepareInputDataGyr(d_trans = LT_data$d_trans,
 #-------------#
 
 ## Write model code
-modelCode <- writeModelCode(survVarT = survVarT,
-                            telemetryData = telemetryData)
+modelCode <- writeModelCode_Gyr(survVarT = survVarT,
+                                telemetryData = telemetryData)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
                               nchains = nchains)
 
 ## Setup for model using nimbleDistance::dHN
-model_setup <- setupModel(modelCode = modelCode,
-                          R_perF = R_perF,
-                          survVarT = survVarT, 
-                          fitRodentCov = fitRodentCov,
-                          nim.data = input_data$nim.data,
-                          nim.constants = input_data$nim.constants,
-                          testRun = testRun, 
-                          nchains = nchains,
-                          initVals.seed = MCMC.seeds)
+model_setup <- setupModel_Gyr(modelCode = modelCode,
+                              R_perF = R_perF,
+                              survVarT = survVarT, 
+                              fitRodentCov = fitRodentCov,
+                              nim.data = input_data$nim.data,
+                              nim.constants = input_data$nim.constants,
+                              testRun = testRun, 
+                              nchains = nchains,
+                              niter = niter,
+                              nburn = nburn,
+                              nthin = nthin,
+                              initVals.seed = MCMC.seeds)
 
 
 # MODEL (TEST) RUN #
@@ -206,7 +211,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_realData_allAreas.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_rodentCov.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #
@@ -214,7 +219,7 @@ saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_realData_allAreas.rds")
 
 IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
                              save = TRUE,
-                             fileName = "rypeIDSM_dHN_multiArea_realData_allAreas_tidy.rds")
+                             fileName = "rypeIDSM_dHN_multiArea_gyrData_rodentCov_tidy.rds")
 
 
 
@@ -255,13 +260,13 @@ plotTimeSeries(mcmc.out = IDSM.out.tidy,
 
 # OPTIONAL: PLOT VITAL RATE POSTERIORS #
 #--------------------------------------#
-
-plotPosteriorDens_VR(mcmc.out = IDSM.out.tidy,
+# Needs to be adjusted to work without providing telemetry data
+plotPosteriorDens_VR_Gyr(mcmc.out = IDSM.out.tidy,
                      N_areas = input_data$nim.constant$N_areas, 
                      area_names = input_data$nim.constant$area_names, 
                      N_years = input_data$nim.constant$N_years,
                      minYear = minYear,
-                     survAreaIdx = input_data$nim.constants$SurvAreaIdx,
+                     #survAreaIdx = input_data$nim.constants$SurvAreaIdx,
                      survVarT = survVarT,
                      fitRodentCov = fitRodentCov) 
 
