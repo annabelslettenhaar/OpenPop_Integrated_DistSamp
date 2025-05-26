@@ -48,16 +48,16 @@ R_parent_drop0 <- TRUE
 sumR.Level <- "line" # Summing at the line level
 
 # Time variation in survival
-survVarT <- TRUE
+survVarT <- FALSE
 
 # Rodent covariate on reproduction
-fitRodentCov <- TRUE
+fitRodentCov <- FALSE
 
 # Use of telemetry data from Lierne
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- FALSE
+testRun <- TRUE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -144,7 +144,7 @@ MCMC.seeds <- expandSeed_MCMC(seed = mySeed,
                               nchains = nchains)
 
 ## Setup for model using nimbleDistance::dHN
-model_setup <- setupModel_Gyr(modelCode = modelCode,
+model_setup <- setupModel_Gyr_noCov(modelCode = modelCode,
                               R_perF = R_perF,
                               survVarT = survVarT, 
                               fitRodentCov = fitRodentCov,

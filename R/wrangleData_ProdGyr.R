@@ -77,7 +77,7 @@ wrangleData_ProdGyr <- function(localities = NULL, areas = NULL, areaAggregation
   ## Summarise observation by spatial unit and year
   gyr_obs <- gyr_data %>% 
     dplyr::group_by(spatialUnit, Year) %>%
-    dplyr::summarise(gyrProdAvg = mean(chicks, na.rm = TRUE), .groups = "keep")
+    dplyr::summarise(gyrProdAvg = sum(chicks, na.rm = TRUE), .groups = "keep")
   
   ## Add year index
   gyr_obs$YearIdx <- gyr_obs$Year - minYear + 1
@@ -107,7 +107,7 @@ wrangleData_ProdGyr <- function(localities = NULL, areas = NULL, areaAggregation
   ## Z-standardize covariate values
   meanCov <- mean(gyrProdAvg, na.rm = TRUE)
   sdCov <- sd(gyrProdAvg, na.rm = TRUE)
-  gyrOccAvg <- (gyrProdAvg - meanCov) / sdCov
+  #gyrOccAvg <- (gyrProdAvg - meanCov) / sdCov
   
   ## Return data
   return(list(gyrProdAvg = gyrProdAvg,

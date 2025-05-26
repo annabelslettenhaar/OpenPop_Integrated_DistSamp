@@ -11,7 +11,7 @@
 #'
 #' @examples
 
-writeModelCode_Gyr <- function(survVarT, telemetryData){
+writeModelCode_GyrCov <- function(survVarT, telemetryData){
   
   IDSM.code <- nimble::nimbleCode({
     
@@ -188,12 +188,14 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsT.S[1:(N_years-1)] + epsR.S[x, 1:(N_years-1)]
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)])
         ## Either make different versions here, or make that call in the prepare data stage
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1) + betaGyr.S[x]*GyrDataR[x, 1:(N_years-1)]])
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrDataRec[x, 1:(N_years-1)])
         
             }else{
         S[x, 1:(N_years-1)] <- Mu.S[x]
       }
     } # x
+    
+    
     
     ###########
     # PRIORS  #
@@ -213,7 +215,7 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
       Mu.D1[x] ~ dunif(0, 10)
 
       ## Recruitment
-      epsA.R[x]  ~ dnorm(0, sd = h.sigma.R)
+      #epsA.R[x]  ~ dnorm(0, sd = h.sigma.R)
       
       ## Fixed effects mean recruitment
       Mu.R[x] <- dunif(0, 10)
