@@ -40,10 +40,10 @@ setupModel_GyrCov <- function(modelCode, customDist,
               "sigma", "mu.dd", "sigmaR.dd",
               "meanDens", 
               "Mu.D1", "sigma.D",
-              "S", "Mu.S")
+              "S", "Mu.S", "betaGyr.S")
   
   if(survVarT){
-    params <- c(params, "sigmaR.S", "betaGyr.S")
+    params <- c(params, "sigmaR.S")
   }
   
   if(fitRodentCov){
