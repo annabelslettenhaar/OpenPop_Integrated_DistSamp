@@ -30,10 +30,6 @@ sourceDir('R')
 
 ## Set and store switches/toggles 
 
-# (Re-)downloading data
-downloadData <- FALSE
-# downloadData <- TRUE
-
 # Aggregation to area level
 areaAggregation <- TRUE 
 
@@ -63,26 +59,13 @@ testRun <- TRUE
 parallelMCMC <- FALSE
 
 
-# DOWNLOAD/FETCH DATA #
-#---------------------#
-
-if(downloadData){
-  #Rype_arkiv <- downloadLN(datasets = "Fjellstyrene", versions = 1.6, save = TRUE)
-  Rype_arkiv <- downloadLN(datasets = c("Fjellstyrene", "Statskog", "FeFo"), versions = c(1.7, 1.8, 1.12), save = TRUE)
-}else{
-  stop("downloadData = FALSE not supported yet. There is an issue with encoding when using LivingNorwayR::initializeDwCArchive() that needs to be resolved first.")
-  #Rype_arkiv <- initializeDwCArchive("data/Rype_arkiv.zip")
-}
-
-
 # WRANGLE LINE TRANSECT DATA #
 #----------------------------#
 
 ## Set localities/areas and time period of interest
 localities <- listLocations()
 areas <- c("Hardangervidda", "Dovrefjell", "Børgefjell")
-#areas <- listAreas()[c(5, 17, 34)]
-minYear <- 1990
+minYear <- 1991
 maxYear <- 2020
 
 ## List duplicate transects to remove
@@ -93,14 +76,6 @@ LT_data <- wrangleData_DwCPtar(#localities = localities,
                                areas = areas,
                                areaAggregation = areaAggregation,
                                minYear = minYear, maxYear = maxYear)
-
-
-# WRANGLE KNOWN FATE CMR DATA #
-#-----------------------------#
-
-## Read in and reformat CMR data
-## No CMR data available for the TOV data, so we ignore this for now
-#d_cmr <- wrangleData_CMR(minYear = minYear)
 
 
 # WRANGLE RODENT DATA #
@@ -145,17 +120,17 @@ MCMC.seeds <- expandSeed_MCMC(seed = mySeed,
 
 ## Setup for model using nimbleDistance::dHN
 model_setup <- setupModel_Gyr_noCov(modelCode = modelCode,
-                              R_perF = R_perF,
-                              survVarT = survVarT, 
-                              fitRodentCov = fitRodentCov,
-                              nim.data = input_data$nim.data,
-                              nim.constants = input_data$nim.constants,
-                              testRun = testRun, 
-                              nchains = nchains,
-                              niter = niter,
-                              nburn = nburn,
-                              nthin = nthin,
-                              initVals.seed = MCMC.seeds)
+                                    R_perF = R_perF,
+                                    survVarT = survVarT, 
+                                    fitRodentCov = fitRodentCov,
+                                    nim.data = input_data$nim.data,
+                                    nim.constants = input_data$nim.constants,
+                                    testRun = testRun, 
+                                    nchains = nchains,
+                                    niter = niter,
+                                    nburn = nburn,
+                                    nthin = nthin,
+                                    initVals.seed = MCMC.seeds)
 
 
 # MODEL (TEST) RUN #
