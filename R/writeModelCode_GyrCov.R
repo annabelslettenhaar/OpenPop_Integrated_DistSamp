@@ -188,11 +188,11 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsT.S[1:(N_years-1)] + epsR.S[x, 1:(N_years-1)]
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)])
         ## Either make different versions here, or make that call in the prepare data stage
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrDataRec[x, 1:(N_years-1)])
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrDataRec[x, 1:(N_years-1)]
         
             }else{
-        S[x, 1:(N_years-1)] <- Mu.S[x]
-      }
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrDataRec[x, 1:(N_years-1)]
+        }
     } # x
     
     
@@ -218,16 +218,16 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
       #epsA.R[x]  ~ dnorm(0, sd = h.sigma.R)
       
       ## Fixed effects mean recruitment
-      Mu.R[x] <- dunif(0, 10)
+      Mu.R[x] ~ dunif(0, 10)
       
       ## Survival
       #epsA.S[x]  ~ dnorm(0, sd = h.sigma.S)
       #mu.S[x] <- logit(h.Mu.S) + epsA.S[x]
-      mu.S[x] <- dunif(0, 1) 
+      mu.S[x] ~ dunif(0, 1) 
       
       ## Detection
       #epsA.dd[x] ~ dnorm(0, sd = h.sigma.dd)
-      mu.dd[x] <- dunif(-10, 100)
+      mu.dd[x] ~ dunif(-10, 100)
     }
     
     
@@ -315,13 +315,13 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
       for(x in 1:N_areas){
         #epsA.betaR.R[x] ~ dnorm(0, sd = h.sigma.betaR.R)
         #betaR.R[x] <- h.Mu.betaR.R + epsA.betaR.R[x]
-        betaR.R[x] <- dunif(-5, 10)
+        betaR.R[x] ~ dunif(-5, 10)
       }
     }
 
     
     for(x in 1:N_areas){
-      betaGyr.S[x] <- dunif(-10, 10)
+      betaGyr.S[x] ~ dunif(-10, 10)
             }
     
     
