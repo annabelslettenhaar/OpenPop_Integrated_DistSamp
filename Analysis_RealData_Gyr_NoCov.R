@@ -13,8 +13,8 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 100000
-nburn <- 60000
+niter <- 10000
+nburn <- 6000
 nthin <- 20
 
 ## Source all functions in "R" folder
@@ -53,7 +53,7 @@ fitRodentCov <- FALSE
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- TRUE
+testRun <- FALSE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -186,7 +186,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_rodentCov.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_rodentCov_without_area_random_factor.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #
@@ -194,7 +194,7 @@ saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_rodentCov.rds")
 
 IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
                              save = TRUE,
-                             fileName = "rypeIDSM_dHN_multiArea_gyrData_rodentCov_tidy.rds")
+                             fileName = "rypeIDSM_dHN_multiArea_gyrData_rodentCov_without_area_random_factor_tidy.rds")
 
 
 

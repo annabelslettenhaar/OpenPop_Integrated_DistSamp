@@ -182,16 +182,16 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
       
       ## Annual survival probabilities
       
-      logit(Mu.S[x]) <- mu.S[x]
+      #logit(Mu.S[x]) <- mu.S[x] # this was not commented out before...
       
       if(survVarT){
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsT.S[1:(N_years-1)] + epsR.S[x, 1:(N_years-1)]
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)])
         ## Either make different versions here, or make that call in the prepare data stage
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrDataRec[x, 1:(N_years-1)]
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
         
             }else{
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrDataRec[x, 1:(N_years-1)]
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
         }
     } # x
     
@@ -205,29 +205,25 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
     # Intercepts / averages #
     #-----------------------#
     
-    # h.Mu.R  ~ dunif(0, 20) # Recruitment
-    # h.Mu.S ~ dunif(0, 1) # Survival
-    # h.mu.dd ~ dunif(-10, 100) # Detection
-    
     for(x in 1:N_areas){
       
       ## Initial density
-      Mu.D1[x] ~ dunif(0, 10)
-
-      ## Recruitment
-      #epsA.R[x]  ~ dnorm(0, sd = h.sigma.R)
+      #Mu.D1[x] ~ dunif(0, 10)
+      Mu.D1[x] ~ dunif(0, 5)
       
-      ## Fixed effects mean recruitment
-      Mu.R[x] ~ dunif(0, 10)
+      ## Recruitment fixed effects
+      #Mu.R[x] ~ dunif(0, 10)
+      Mu.R[x] ~ dunif(0, 5)
       
-      ## Survival
-      #epsA.S[x]  ~ dnorm(0, sd = h.sigma.S)
-      #mu.S[x] <- logit(h.Mu.S) + epsA.S[x]
-      mu.S[x] ~ dunif(0, 1) 
+      ## Survival fixed effects
+      #mu.S[x] ~ dunif(0, 1) 
+      #logit.Mu.S[x] ~ dnorm(0, 1)
+      logit.Mu.S[x] ~ dnorm(0, 0.5)
+      Mu.S[x] <- ilogit(logit.Mu.S[x])
       
-      ## Detection
-      #epsA.dd[x] ~ dnorm(0, sd = h.sigma.dd)
-      mu.dd[x] ~ dunif(-10, 100)
+      ## Detection fixed effects
+      #mu.dd[x] ~ dunif(-10, 100)
+      mu.dd[x] ~ dnorm(0, 2)
     }
     
     
@@ -238,21 +234,16 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
     ## Standard deviations
     
     # Recruitment
-    #h.sigma.R ~ dunif(0, 5)    
-    #sigmaT.R ~ dunif(0, 5)
     sigmaR.R ~ dunif(0, 5)
     
     # Survival 
-    #h.sigma.S ~ dunif(0, 5)
-    
     if(survVarT){
       #sigmaT.S ~ dunif(0, 5)
-      sigmaR.S ~ dunif(0, 5)
+      #sigmaR.S ~ dunif(0, 5)
+      sigmaR.S ~ dunif(0, 1)
     }
     
     # Detection
-    #h.sigma.dd ~ dunif(0, 5)
-    #sigmaT.dd ~ dunif(0, 20)
     sigmaR.dd ~ dunif(0, 20)
     
     # Initial density
@@ -262,20 +253,6 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
     
     
     ## Random effect levels
-    
-    # Shared year variation
-    # for(t in 1:N_years){
-    #   
-    #  #epsT.R[t] ~ dnorm(0, sd = sigmaT.R) # Recruitment
-    #   epsT.dd[t] ~ dnorm(0, sd = sigmaT.dd) # Detection
-    # }
-    
-    # for(t in 1:(N_years-1)){
-    # 
-    #   if(survVarT){
-    #     epsT.S[t] ~ dnorm(0, sd = sigmaT.S) # Survival
-    #   }
-    # }
     
     # Residual variation
     for(x in 1:N_areas){
@@ -309,12 +286,7 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
     ## Rodent effect on reproduction
     if(fitRodentCov){
       
-      #h.Mu.betaR.R ~ dunif(-5, 5)
-      #h.sigma.betaR.R ~ dunif(0, 5)
-      
       for(x in 1:N_areas){
-        #epsA.betaR.R[x] ~ dnorm(0, sd = h.sigma.betaR.R)
-        #betaR.R[x] <- h.Mu.betaR.R + epsA.betaR.R[x]
         betaR.R[x] ~ dunif(-5, 10)
       }
     }
