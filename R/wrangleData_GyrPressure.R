@@ -115,7 +115,7 @@ wrangleData_GyrPressure <- function(localities = NULL, areas = NULL, areaAggrega
   ## Z-standardize covariate values
   meanCov <- mean(gyrPressure, na.rm = TRUE)
   sdCov <- sd(gyrPressure, na.rm = TRUE)
-  #gyrOccAvg <- (gyrProdAvg - meanCov) / sdCov
+  gyrPressure <- (gyrPressure - meanCov) / sdCov
   
   ## Return data
   return(list(gyrPressure = gyrPressure,

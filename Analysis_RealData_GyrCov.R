@@ -198,7 +198,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_gyrCov2.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #
@@ -206,7 +206,7 @@ saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_gyrCov2.rds")
 
 IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
                              save = TRUE,
-                             fileName = "rypeIDSM_dHN_multiArea_gyrData_gyrCov2_tidy.rds")
+                             fileName = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3_tidy.rds")
 
 
 
