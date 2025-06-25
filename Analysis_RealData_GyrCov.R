@@ -30,10 +30,6 @@ sourceDir('R')
 
 ## Set and store switches/toggles 
 
-# (Re-)downloading data
-downloadData <- FALSE
-# downloadData <- TRUE
-
 # Aggregation to area level
 areaAggregation <- TRUE 
 
@@ -63,25 +59,12 @@ testRun <- FALSE
 parallelMCMC <- FALSE
 
 
-# DOWNLOAD/FETCH DATA #
-#---------------------#
-
-if(downloadData){
-  #Rype_arkiv <- downloadLN(datasets = "Fjellstyrene", versions = 1.6, save = TRUE)
-  Rype_arkiv <- downloadLN(datasets = c("Fjellstyrene", "Statskog", "FeFo"), versions = c(1.7, 1.8, 1.12), save = TRUE)
-}else{
-  stop("downloadData = FALSE not supported yet. There is an issue with encoding when using LivingNorwayR::initializeDwCArchive() that needs to be resolved first.")
-  #Rype_arkiv <- initializeDwCArchive("data/Rype_arkiv.zip")
-}
-
-
 # WRANGLE LINE TRANSECT DATA #
 #----------------------------#
 
 ## Set localities/areas and time period of interest
 localities <- listLocations()
 areas <- c("Hardangervidda", "Dovrefjell", "Børgefjell")
-#areas <- listAreas()[c(5, 17, 34)]
 minYear <- 1991
 maxYear <- 2020
 
@@ -95,13 +78,6 @@ LT_data <- wrangleData_DwCPtar(#localities = localities,
                                minYear = minYear, maxYear = maxYear)
 
 
-# WRANGLE KNOWN FATE CMR DATA #
-#-----------------------------#
-
-## Read in and reformat CMR data
-## No CMR data available for the TOV data, so we ignore this for now
-#d_cmr <- wrangleData_CMR(minYear = minYear)
-
 
 # WRANGLE RODENT DATA #
 #---------------------#
@@ -112,11 +88,15 @@ d_rodent <- wrangleData_RodentGyr(#localities = localities,
                                   areaAggregation = areaAggregation,
                                   minYear = minYear, maxYear = maxYear)
 
+
+# WRANGLE GYRFALCON DATA #
+#------------------------#
+
 ## Load gyr data
-d_gyr <- wrangleData_ProdGyr(#localities = localities,
-  areas = areas,
-  areaAggregation = areaAggregation,
-  minYear = minYear, maxYear = maxYear)
+d_gyr <- wrangleData_GyrPressure(#localities = localities,
+                                 areas = areas,
+                                 areaAggregation = areaAggregation,
+                                 minYear = minYear, maxYear = maxYear)
 
 
 # PREPARE INPUT DATA FOR INTEGRATED MODEL #
@@ -124,19 +104,19 @@ d_gyr <- wrangleData_ProdGyr(#localities = localities,
 
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputDataGyrCov(d_trans = LT_data$d_trans, 
-                                  d_obs = LT_data$d_obs,
-                                  #d_cmr = d_cmr,
-                                  d_rodent = d_rodent,
-                                  d_gyr = d_gyr,
-                                  #localities = localities, 
-                                  areas = areas,
-                                  areaAggregation = areaAggregation,
-                                  excl_neverObs = TRUE,
-                                  R_perF = R_perF,
-                                  R_parent_drop0 = R_parent_drop0,
-                                  sumR.Level = "line",
-                                  dataVSconstants = TRUE,
-                                  save = TRUE)
+                                     d_obs = LT_data$d_obs,
+                                     #d_cmr = d_cmr,
+                                     d_rodent = d_rodent,
+                                     d_gyr = d_gyr,
+                                     #localities = localities, 
+                                     areas = areas,
+                                     areaAggregation = areaAggregation,
+                                     excl_neverObs = TRUE,
+                                     R_perF = R_perF,
+                                     R_parent_drop0 = R_parent_drop0,
+                                     sumR.Level = "line",
+                                     dataVSconstants = TRUE,
+                                     save = TRUE)
 
 
 # MODEL SETUP #
@@ -144,7 +124,7 @@ input_data <- prepareInputDataGyrCov(d_trans = LT_data$d_trans,
 
 ## Write model code
 modelCode <- writeModelCode_GyrCov(survVarT = survVarT,
-                                telemetryData = telemetryData)
+                                   telemetryData = telemetryData)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
@@ -152,17 +132,17 @@ MCMC.seeds <- expandSeed_MCMC(seed = mySeed,
 
 ## Setup for model using nimbleDistance::dHN
 model_setup <- setupModel_GyrCov(modelCode = modelCode,
-                              R_perF = R_perF,
-                              survVarT = survVarT, 
-                              fitRodentCov = fitRodentCov,
-                              nim.data = input_data$nim.data,
-                              nim.constants = input_data$nim.constants,
-                              testRun = testRun, 
-                              nchains = nchains,
-                              niter = niter,
-                              nburn = nburn,
-                              nthin = nthin,
-                              initVals.seed = MCMC.seeds)
+                                 R_perF = R_perF,
+                                 survVarT = survVarT, 
+                                 fitRodentCov = fitRodentCov,
+                                 nim.data = input_data$nim.data,
+                                 nim.constants = input_data$nim.constants,
+                                 testRun = testRun, 
+                                 nchains = nchains,
+                                 niter = niter,
+                                 nburn = nburn,
+                                 nthin = nthin,
+                                 initVals.seed = MCMC.seeds)
 
 
 # MODEL (TEST) RUN #
@@ -218,7 +198,11 @@ if(!parallelMCMC){
   
 }
 
+<<<<<<< HEAD
 saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData.rds")
+=======
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3.rds")
+>>>>>>> 6283bebbd65c1633ea22fa952b6d37017d392b2b
 
 
 # TIDY UP POSTERIOR SAMPLES #
@@ -226,7 +210,11 @@ saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData.rds")
 
 IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
                              save = TRUE,
+<<<<<<< HEAD
                              fileName = "rypeIDSM_dHN_multiArea_gyrData_tidy.rds")
+=======
+                             fileName = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3_tidy.rds")
+>>>>>>> 6283bebbd65c1633ea22fa952b6d37017d392b2b
 
 
 
@@ -269,13 +257,13 @@ plotTimeSeries(mcmc.out = IDSM.out.tidy,
 #--------------------------------------#
 # Needs to be adjusted to work without providing telemetry data
 plotPosteriorDens_VR_Gyr(mcmc.out = IDSM.out.tidy,
-                     N_areas = input_data$nim.constant$N_areas, 
-                     area_names = input_data$nim.constant$area_names, 
-                     N_years = input_data$nim.constant$N_years,
-                     minYear = minYear,
-                     #survAreaIdx = input_data$nim.constants$SurvAreaIdx,
-                     survVarT = survVarT,
-                     fitRodentCov = fitRodentCov) 
+                         N_areas = input_data$nim.constant$N_areas, 
+                         area_names = input_data$nim.constant$area_names, 
+                         N_years = input_data$nim.constant$N_years,
+                         minYear = minYear,
+                         #survAreaIdx = input_data$nim.constants$SurvAreaIdx,
+                         survVarT = survVarT,
+                         fitRodentCov = fitRodentCov) 
 
 
 # OPTIONAL: PLOT COVARIATE PREDICTIONS #

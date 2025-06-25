@@ -203,9 +203,13 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
 
       ## Recruitment fixed effects
       Mu.R[x] ~ dunif(0, 10)
+      #log(Mu.R[x]) ~ dnorm(log(2), 2)
       
       ## Survival fixed effects
-      mu.S[x] ~ dunif(0, 1) 
+      #mu.S[x] ~ dunif(0, 1) 
+      #logit.Mu.S[x] ~ dnorm(0, 1)
+      logit.Mu.S[x] ~ dnorm(0, 0.5)
+      Mu.S[x] <- ilogit(logit.Mu.S[x]) 
       
       ## Detection fixed effects
       mu.dd[x] ~ dunif(-10, 100)
@@ -224,7 +228,8 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
     # Survival 
     if(survVarT){
       #sigmaT.S ~ dunif(0, 5)
-      sigmaR.S ~ dunif(0, 5)
+      #sigmaR.S ~ dunif(0, 5)
+      sigmaR.S ~ dunif(0, 1)
     }
     
     # Detection

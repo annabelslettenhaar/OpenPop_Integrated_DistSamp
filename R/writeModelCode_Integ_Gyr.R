@@ -27,7 +27,7 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
     # W = truncation distance for line transect surveys
     
     # Mu.D1[x] = average initial density in area x
-
+    
     # S[x, t] = annual survival from year t to t+1 in area x
     # R_year[x, t] = recruitment rate in year t in area x
     # p[x, t] = average distance sampling detection rate in area x in year t
@@ -35,7 +35,12 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
     
     # eps.D1[x, j] = random site effect on initial density area x (site j)
     
-
+    ## ADDITIONS
+    
+    # G_RS[x, t] = number of gyrfalcon chicks produced in area x, year t
+    # N_gyr[x, t] = number of occupied gyrfalcon territories in area x, year t
+    # Ptar_Ad_Dens[x, t] = Ptarmigan adult density in the fall of year t-1
+    
     
     ####################
     # POPULATION MODEL #
@@ -140,8 +145,26 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
         
         y[x, i] ~ dHN(sigma = sigma[x, Year_obs[x, i]], Xmax = W, point = 0)
       }
+    
+      ## New likelihood here, which models the number of chicks per area per year
+      # G_RS[x, t] = number of gyrfalcon chicks produced in area x, year t
+      # N_gyr[x, t] = number of occupied gyrfalcon territories in area x, year t
+      # Ptar_Ad_Dens[x, t-1] = Ptarmigan adult density in the fall of year t-1
+      for (t in 1:N_years){
+        # Productivity per area
+        # gyrprod[x, t] <- intercept + betaPtar.R * meanDens[x, 2, t-1] #ptar densities from previous autumn  
+        
+        # Total expected chicks = productivity * nr of breeding attempts
+        # mu.G.RS[x, t] <- gyrprod[x, t] * N_gyr[x, t]
+        
+        # Likelihood for observed chicks
+        # G.RS <- dpois(mu.G.RS[x, t])
+        
+      } # t
+      
     } # x
-
+    
+    
     
     ################################
     # PARAMETER MODELS/CONSTRAINTS #
@@ -172,10 +195,10 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
       
       if(fitRodentCov){
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
-       # R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
-        }else{
+        # R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+      }else{
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsR.R[x, 1:N_years])
-      #R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+        #R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
       }
       
       
@@ -190,9 +213,9 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
         ## Either make different versions here, or make that call in the prepare data stage
         logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
         
-            }else{
+      }else{
         logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
-        }
+      }
     } # x
     
     
@@ -292,18 +315,18 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
         betaR.R[x] ~ dunif(-5, 10)
       }
     }
-
+    
     
     for(x in 1:N_areas){
       betaGyr.S[x] ~ dunif(-10, 10)
-            }
+    }
     
     
     
     #------------------#
     # Other parameters #
     #------------------#
-
+    
     pi <- 3.141593
     
     

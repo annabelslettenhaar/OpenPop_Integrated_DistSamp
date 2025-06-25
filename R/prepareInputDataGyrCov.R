@@ -367,7 +367,7 @@ prepareInputDataGyrCov <- function(d_trans, d_obs, d_rodent, d_gyr, localities =
     RodentOcc_meanCov = d_rodent$meanCov,
     RodentOcc_sdCov = d_rodent$sdCov,
     
-    GyrDataRec = d_gyr$gyrProdAvg,
+    GyrPressure = d_gyr$gyrPressure,
     
     N_areas = N_sUnits,
     area_names = sUnits
@@ -391,7 +391,7 @@ prepareInputDataGyrCov <- function(d_trans, d_obs, d_rodent, d_gyr, localities =
                    A = input.data$A,
                    #Survs1 = input.data$Survs1, Survs2 = input.data$Survs2,
                    RodentOcc = input.data$RodentOcc, 
-                   GyrDataRec = input.data$GyrDataRec)
+                   GyrPressure = input.data$GyrPressure)
   
   ## Assembling Nimble constants
   nim.constants <- list(N_years = input.data$N_years, min_years = input.data$min_years, max_years = input.data$max_years,
