@@ -11,7 +11,7 @@
 #'
 #' @examples
 
-writeModelCode_GyrCov <- function(survVarT, telemetryData){
+writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
   
   IDSM.code <- nimble::nimbleCode({
     
@@ -65,8 +65,9 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
         }
         
         ## Adult and juvenile numbers
-        N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, j, 1]*L[x, j, 1]*W*2      
-      }
+        N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, j, 1]*L[x, j, 1]*W*2 
+        
+      } # j
       
       #-------------------------------#
       # Population dynamics for t > 1 #
@@ -87,8 +88,10 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
           
           ## Adult and juvenile numbers
           N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, j, t]*L[x, j, t]*W*2
-        }
-      }
+          
+        } # t
+      } # j
+    
       
       #--------------------#
       # Derived parameters #
@@ -97,7 +100,7 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
       ## Area- and year-specific total densities
       for (t in 1:N_years){
         N_tot_exp[x, t] <- sum(N_exp[x, 1, 1:N_sites[x], t] + N_exp[x, 2, 1:N_sites[x], t])
-      }
+      } # t
       
       ## Area-, year-, and age-class specific density (for monitoring)
       for(a in 1:N_ageC){
@@ -107,6 +110,31 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
       } # a
     } # x
     
+    ## Area and year specific total densities
+    for (x in 1:N_areas){
+      for(t in 1:N_years){
+        totDens[x, t] <- sum(meanDens[x, 1:N_ageC, t])
+      } # t
+    } # x
+    
+    
+      #--------------------#
+      # Gyrfalcon model    #
+      #--------------------#
+    
+    for (x in 1:N_areas){
+      for (t in 2:N_years){
+        for (k in 1:N_territory) {
+          # Productivity per area
+          gyrprod[x, t, k] <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1] #ptar densities from previous autumn
+
+          } # k
+
+       } # t
+
+    } # x
+
+
     
     ####################
     # DATA LIKELIHOODS #
@@ -146,19 +174,14 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
         y[x, i] ~ dHN(sigma = sigma[x, Year_obs[x, i]], Xmax = W, point = 0)
       }
     
-      ## New likelihood here, which models the number of chicks per area per year
-      # G_RS[x, t] = number of gyrfalcon chicks produced in area x, year t
-      # N_gyr[x, t] = number of occupied gyrfalcon territories in area x, year t
-      # Ptar_Ad_Dens[x, t-1] = Ptarmigan adult density in the fall of year t-1
-      for (t in 1:N_years){
-        # Productivity per area
-        # gyrprod[x, t] <- intercept + betaPtar.R * meanDens[x, 2, t-1] #ptar densities from previous autumn  
-        
-        # Total expected chicks = productivity * nr of breeding attempts
-        # mu.G.RS[x, t] <- gyrprod[x, t] * N_gyr[x, t]
-        
-        # Likelihood for observed chicks
-        # G.RS <- dpois(mu.G.RS[x, t])
+      
+      ## New likelihood here, which models the number of gyrfalcon chicks per area per year
+      
+      for (t in 2:N_years){
+        for (k in 1:N_territory) {
+          # Productivity per territory
+          RS.G[x, t, k] ~ dpois(gyrprod[x, t, k])
+         } # k
         
       } # t
       
@@ -321,7 +344,14 @@ writeModelCode_GyrCov <- function(survVarT, telemetryData){
       betaGyr.S[x] ~ dunif(-10, 10)
     }
     
+    #-----------------#
+    # Gyrfalcon model #
+    #-----------------#
     
+    for(x in 1:N_areas){
+      alphaPtar.R[x] ~ dunif(-10, 10)
+      betaPtar.R[x] ~ dunif(-2, 2)
+    }
     
     #------------------#
     # Other parameters #
