@@ -44,7 +44,7 @@ R_parent_drop0 <- TRUE
 sumR.Level <- "line" # Summing at the line level
 
 # Time variation in survival
-survVarT <- FALSE
+survVarT <- TRUE
 
 # Rodent covariate on reproduction
 fitRodentCov <- FALSE
@@ -198,7 +198,11 @@ if(!parallelMCMC){
   
 }
 
+<<<<<<< HEAD
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData.rds")
+=======
 saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3.rds")
+>>>>>>> 6283bebbd65c1633ea22fa952b6d37017d392b2b
 
 
 # TIDY UP POSTERIOR SAMPLES #
@@ -206,7 +210,11 @@ saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3.rds")
 
 IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
                              save = TRUE,
+<<<<<<< HEAD
+                             fileName = "rypeIDSM_dHN_multiArea_gyrData_tidy.rds")
+=======
                              fileName = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3_tidy.rds")
+>>>>>>> 6283bebbd65c1633ea22fa952b6d37017d392b2b
 
 
 
