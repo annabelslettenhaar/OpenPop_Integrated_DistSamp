@@ -11,7 +11,7 @@
 #'
 #' @examples
 
-writeModelCode_Gyr <- function(survVarT, telemetryData){
+writeModelCode_GyrCov <- function(survVarT, telemetryData){
   
   IDSM.code <- nimble::nimbleCode({
     
@@ -155,6 +155,8 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
         
         # Detection decay
         log(sigma[x, t]) <- mu.dd[x]  + epsR.dd[x, t]
+        #log(sigma[x, t]) <- mu.dd[x] + epsT.dd[t] + epsR.dd[x, t]
+        
         sigma2[x, t] <- sigma[x, t] * sigma[x, t]
         
         # Effective strip width
@@ -170,23 +172,30 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
       
       if(fitRodentCov){
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
+       # R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }else{
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsR.R[x, 1:N_years])
+      #R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
       }
       
       
       
       ## Annual survival probabilities
       
-      #logit(Mu.S[x]) <- mu.S[x]
+      #logit(Mu.S[x]) <- mu.S[x] # this was not commented out before...
       
       if(survVarT){
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsT.S[1:(N_years-1)] + epsR.S[x, 1:(N_years-1)]
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] # Try to fix -Inf values for Mu.S[x]
-        }else{
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x])
-      }
+        #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)])
+        ## Either make different versions here, or make that call in the prepare data stage
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+        
+            }else{
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+        }
     } # x
+    
+    
     
     ###########
     # PRIORS  #
@@ -199,20 +208,24 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
     for(x in 1:N_areas){
       
       ## Initial density
-      Mu.D1[x] ~ dunif(0, 10)
-
+      #Mu.D1[x] ~ dunif(0, 10)
+      Mu.D1[x] ~ dunif(0, 5)
+      
       ## Recruitment fixed effects
-      Mu.R[x] ~ dunif(0, 10)
-      #log(Mu.R[x]) ~ dnorm(log(2), 2)
+      #Mu.R[x] ~ dunif(0, 10)
+      logMu.R[x] ~ dnorm(0.5, 4)   # SD = 1 / sqrt(4) = 0.5
+      Mu.R[x] <- exp(logMu.R[x])
+      #Mu.R[x] ~ dunif(0, 5) # This works medium well, try the above for next full run
       
       ## Survival fixed effects
       #mu.S[x] ~ dunif(0, 1) 
       #logit.Mu.S[x] ~ dnorm(0, 1)
       logit.Mu.S[x] ~ dnorm(0, 0.5)
-      Mu.S[x] <- ilogit(logit.Mu.S[x]) 
+      Mu.S[x] <- ilogit(logit.Mu.S[x])
       
       ## Detection fixed effects
-      mu.dd[x] ~ dunif(-10, 100)
+      #mu.dd[x] ~ dunif(-10, 100)
+      mu.dd[x] ~ dnorm(0, 2)
     }
     
     
@@ -279,6 +292,13 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
         betaR.R[x] ~ dunif(-5, 10)
       }
     }
+
+    
+    for(x in 1:N_areas){
+      betaGyr.S[x] ~ dunif(-10, 10)
+            }
+    
+    
     
     #------------------#
     # Other parameters #

@@ -11,7 +11,7 @@
 #'
 #' @examples
 
-writeModelCode_Gyr <- function(survVarT, telemetryData){
+writeModelCode_GyrCov_workingVersion <- function(survVarT, telemetryData){
   
   IDSM.code <- nimble::nimbleCode({
     
@@ -155,6 +155,8 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
         
         # Detection decay
         log(sigma[x, t]) <- mu.dd[x]  + epsR.dd[x, t]
+        #log(sigma[x, t]) <- mu.dd[x] + epsT.dd[t] + epsR.dd[x, t]
+        
         sigma2[x, t] <- sigma[x, t] * sigma[x, t]
         
         # Effective strip width
@@ -170,23 +172,30 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
       
       if(fitRodentCov){
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
+       # R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }else{
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsR.R[x, 1:N_years])
+      #R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
       }
       
       
       
       ## Annual survival probabilities
       
-      #logit(Mu.S[x]) <- mu.S[x]
+      logit(Mu.S[x]) <- mu.S[x]
       
       if(survVarT){
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsT.S[1:(N_years-1)] + epsR.S[x, 1:(N_years-1)]
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] # Try to fix -Inf values for Mu.S[x]
-        }else{
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x])
-      }
+        #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)])
+        ## Either make different versions here, or make that call in the prepare data stage
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrDataRec[x, 1:(N_years-1)]
+        
+            }else{
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrDataRec[x, 1:(N_years-1)]
+        }
     } # x
+    
+    
     
     ###########
     # PRIORS  #
@@ -196,22 +205,28 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
     # Intercepts / averages #
     #-----------------------#
     
+    # h.Mu.R  ~ dunif(0, 20) # Recruitment
+    # h.Mu.S ~ dunif(0, 1) # Survival
+    # h.mu.dd ~ dunif(-10, 100) # Detection
+    
     for(x in 1:N_areas){
       
       ## Initial density
       Mu.D1[x] ~ dunif(0, 10)
 
-      ## Recruitment fixed effects
+      ## Recruitment
+      #epsA.R[x]  ~ dnorm(0, sd = h.sigma.R)
+      
+      ## Fixed effects mean recruitment
       Mu.R[x] ~ dunif(0, 10)
-      #log(Mu.R[x]) ~ dnorm(log(2), 2)
       
-      ## Survival fixed effects
-      #mu.S[x] ~ dunif(0, 1) 
-      #logit.Mu.S[x] ~ dnorm(0, 1)
-      logit.Mu.S[x] ~ dnorm(0, 0.5)
-      Mu.S[x] <- ilogit(logit.Mu.S[x]) 
+      ## Survival
+      #epsA.S[x]  ~ dnorm(0, sd = h.sigma.S)
+      #mu.S[x] <- logit(h.Mu.S) + epsA.S[x]
+      mu.S[x] ~ dunif(0, 1) 
       
-      ## Detection fixed effects
+      ## Detection
+      #epsA.dd[x] ~ dnorm(0, sd = h.sigma.dd)
       mu.dd[x] ~ dunif(-10, 100)
     }
     
@@ -223,16 +238,21 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
     ## Standard deviations
     
     # Recruitment
+    #h.sigma.R ~ dunif(0, 5)    
+    #sigmaT.R ~ dunif(0, 5)
     sigmaR.R ~ dunif(0, 5)
     
     # Survival 
+    #h.sigma.S ~ dunif(0, 5)
+    
     if(survVarT){
       #sigmaT.S ~ dunif(0, 5)
-      #sigmaR.S ~ dunif(0, 5)
-      sigmaR.S ~ dunif(0, 1)
+      sigmaR.S ~ dunif(0, 5)
     }
     
     # Detection
+    #h.sigma.dd ~ dunif(0, 5)
+    #sigmaT.dd ~ dunif(0, 20)
     sigmaR.dd ~ dunif(0, 20)
     
     # Initial density
@@ -242,6 +262,20 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
     
     
     ## Random effect levels
+    
+    # Shared year variation
+    # for(t in 1:N_years){
+    #   
+    #  #epsT.R[t] ~ dnorm(0, sd = sigmaT.R) # Recruitment
+    #   epsT.dd[t] ~ dnorm(0, sd = sigmaT.dd) # Detection
+    # }
+    
+    # for(t in 1:(N_years-1)){
+    # 
+    #   if(survVarT){
+    #     epsT.S[t] ~ dnorm(0, sd = sigmaT.S) # Survival
+    #   }
+    # }
     
     # Residual variation
     for(x in 1:N_areas){
@@ -275,10 +309,22 @@ writeModelCode_Gyr <- function(survVarT, telemetryData){
     ## Rodent effect on reproduction
     if(fitRodentCov){
       
+      #h.Mu.betaR.R ~ dunif(-5, 5)
+      #h.sigma.betaR.R ~ dunif(0, 5)
+      
       for(x in 1:N_areas){
+        #epsA.betaR.R[x] ~ dnorm(0, sd = h.sigma.betaR.R)
+        #betaR.R[x] <- h.Mu.betaR.R + epsA.betaR.R[x]
         betaR.R[x] ~ dunif(-5, 10)
       }
     }
+
+    
+    for(x in 1:N_areas){
+      betaGyr.S[x] ~ dunif(-10, 10)
+            }
+    
+    
     
     #------------------#
     # Other parameters #

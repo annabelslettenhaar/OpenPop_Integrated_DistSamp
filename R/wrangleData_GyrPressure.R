@@ -13,14 +13,13 @@
 #'
 #' @examples
 
-## For testing purposes
-#areaAggregation <- TRUE
-#areas <- c(1, 2, 3)
-#localities <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-#minYear <- 1991
-#maxYear <- 2020
+# # For testing purposes
+# localities <- listLocations()
+# areas <- c("Hardangervidda", "Dovrefjell", "Børgefjell")
+# minYear <- 1991
+# maxYear <- 2020
 
-wrangleData_ProdGyr <- function(localities = NULL, areas = NULL, areaAggregation, minYear, maxYear){
+wrangleData_GyrPressure <- function(localities = NULL, areas = NULL, areaAggregation, minYear, maxYear){
   
   ## Check if .csv file is available
   if(!file.exists("data/Gyr_data.csv")){
@@ -74,16 +73,25 @@ wrangleData_ProdGyr <- function(localities = NULL, areas = NULL, areaAggregation
     colnames(gyr_data)[which(colnames(gyr_data) == "TerritoryID")] <- "spatialUnit"
   }
   
-  ## Summarise observation by spatial unit and year
+  ## Calculate a measure of 'pressure' from the gyrfalcons that acts on ptarmigan survival
+  gyr_data <- gyr_data %>%
+    arrange(spatialUnit, TerritoryID, Year) %>%
+    group_by(spatialUnit, TerritoryID) %>%
+    mutate(breeding_attempt_minusone = lag(breeding_attempt)) # Occupancy previous year
+  
+  gyr_data <- gyr_data %>%
+    mutate(pred_pressure = 0.5 *(2 * breeding_attempt_minusone) + 0.5 * (2 * breeding_attempt) + chicks)
+  
+  ## Summarise the pressure measure by spatial unit and year
   gyr_obs <- gyr_data %>% 
     dplyr::group_by(spatialUnit, Year) %>%
-    dplyr::summarise(gyrProdAvg = sum(chicks, na.rm = TRUE), .groups = "keep")
+    dplyr::summarise(gyrPressure = sum(pred_pressure, na.rm = TRUE), .groups = "keep")
   
   ## Add year index
   gyr_obs$YearIdx <- gyr_obs$Year - minYear + 1
   
   ## Set up matrix for area-specific data
-  gyrProdAvg <- matrix(NA, nrow = N_sUnits, ncol = length(minYear:maxYear))
+  gyrPressure <- matrix(NA, nrow = N_sUnits, ncol = length(minYear:maxYear))
   
   
   for(x in 1:N_sUnits){
@@ -99,24 +107,25 @@ wrangleData_ProdGyr <- function(localities = NULL, areas = NULL, areaAggregation
     for(t in 1:length(minYear:maxYear)){
       
       if(t %in% gyr_obs_sub$YearIdx){
-        gyrProdAvg[x, t] <- gyr_obs_sub$gyrProdAvg[which(gyr_obs_sub$YearIdx == t)]
+        gyrPressure[x, t] <- gyr_obs_sub$gyrPressure[which(gyr_obs_sub$YearIdx == t)]
       }
     }
   }
   
   ## Z-standardize covariate values
-  meanCov <- mean(gyrProdAvg, na.rm = TRUE)
-  sdCov <- sd(gyrProdAvg, na.rm = TRUE)
-  #gyrOccAvg <- (gyrProdAvg - meanCov) / sdCov
+  meanCov <- mean(gyrPressure, na.rm = TRUE)
+  sdCov <- sd(gyrPressure, na.rm = TRUE)
+  gyrPressure <- (gyrPressure - meanCov) / sdCov
   
   ## Return data
-  return(list(gyrProdAvg = gyrProdAvg,
+  return(list(gyrPressure = gyrPressure,
               meanCov = meanCov, 
               sdCov = sdCov))
   
 }
 
-#d_gyr_prod <- wrangleData_ProdGyr(#localities = localities,
+# d_gyr_prod <- wrangleData_ProdGyr(#localities = localities,
 #                             areas = areas,
 #                             areaAggregation = areaAggregation,
 #                             minYear = minYear, maxYear = maxYear)
+
