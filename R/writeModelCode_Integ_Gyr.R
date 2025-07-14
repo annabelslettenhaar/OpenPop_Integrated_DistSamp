@@ -39,8 +39,7 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
     
     # G_RS[x, t] = number of gyrfalcon chicks produced in area x, year t
     # N_gyr[x, t] = number of occupied gyrfalcon territories in area x, year t
-    # Ptar_Ad_Dens[x, t] = Ptarmigan adult density in the fall of year t-1
-    
+   
     
     ####################
     # POPULATION MODEL #
@@ -97,7 +96,7 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
       # Derived parameters #
       #--------------------#
       
-      ## Area- and year-specific total densities
+      ## Area- and year-specific total densities (numbers)
       for (t in 1:N_years){
         N_tot_exp[x, t] <- sum(N_exp[x, 1, 1:N_sites[x], t] + N_exp[x, 2, 1:N_sites[x], t])
       } # t
@@ -110,7 +109,7 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
       } # a
     } # x
     
-    ## Area and year specific total densities
+    ## Area and year specific total densities (latent variable)
     for (x in 1:N_areas){
       for(t in 1:N_years){
         totDens[x, t] <- sum(meanDens[x, 1:N_ageC, t])
@@ -126,7 +125,9 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
       for (t in 2:N_years){
         for (k in 1:N_territory) {
           # Productivity per area
-          gyrprod[x, t, k] <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1] #ptar densities from previous autumn
+          # gyrprod[x, t, k] <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1] #ptar densities from previous autumn
+          gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1])
+          # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test
 
           } # k
 
@@ -149,6 +150,7 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
           for(a in 1:N_ageC){
             
             N_a_line_year[x, a, j, t] ~ dpois(p[x, t]*N_exp[x, a, j, t])
+            
           }
         }
       }
@@ -175,12 +177,14 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
       }
     
       
-      ## New likelihood here, which models the number of gyrfalcon chicks per area per year
+      ## Area, year and territory specific numbers of gyrfalcon chicks
       
       for (t in 2:N_years){
         for (k in 1:N_territory) {
           # Productivity per territory
           RS.G[x, t, k] ~ dpois(gyrprod[x, t, k])
+          # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test
+        
          } # k
         
       } # t
@@ -218,24 +222,18 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
       
       if(fitRodentCov){
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
-        # R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
       }else{
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsR.R[x, 1:N_years])
-        #R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
       }
       
       
       
       ## Annual survival probabilities
       
-      #logit(Mu.S[x]) <- mu.S[x] # this was not commented out before...
-      
       if(survVarT){
-        #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsT.S[1:(N_years-1)] + epsR.S[x, 1:(N_years-1)]
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)])
         ## Either make different versions here, or make that call in the prepare data stage
         logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
-        
       }else{
         logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
       }
@@ -349,8 +347,9 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
     #-----------------#
     
     for(x in 1:N_areas){
-      alphaPtar.R[x] ~ dunif(-10, 10)
-      betaPtar.R[x] ~ dunif(-2, 2)
+      alphaPtar.R[x] ~ dunif(-5, 5)
+      betaPtar.R[x] ~ dunif(-1, 1)
+      # rGyr[x] ~ dunif(0.1, 20) # test
     }
     
     #------------------#

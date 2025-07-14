@@ -64,7 +64,9 @@ parallelMCMC <- FALSE
 
 ## Set localities/areas and time period of interest
 localities <- listLocations()
-areas <- c("Hardangervidda", "Dovrefjell", "Børgefjell")
+areas <- c("Hardangervidda", 
+           "Dovrefjell", 
+           "Børgefjell")
 minYear <- 1991
 maxYear <- 2020
 
@@ -203,7 +205,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_testround.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_testround2.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #

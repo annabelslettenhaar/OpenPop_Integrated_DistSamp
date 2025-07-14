@@ -18,9 +18,16 @@ wrangleData_GyrRS <- function(minYear, maxYear) {
   
   gyr_data_raw <- subset(read.csv("data/Gyr_data.csv"), select = -1)
   
+  gyr_data_raw <- gyr_data_raw %>%
+    mutate(gyrArea = recode(Area,
+                            "1" = "Hardangervidda",
+                            "2" = "Dovrefjell",
+                            "3" = "Børgefjell"))
+  
   gyr_data <- gyr_data_raw %>%
-    dplyr::select(Area, Year, TerritoryID, chicks) %>%
+    dplyr::select(Area, gyrArea, Year, TerritoryID, chicks) %>%
     dplyr::filter(Year >= minYear, Year <= maxYear) %>%
+    dplyr::filter(gyrArea %in% areas) %>%
     dplyr::mutate(YearIdx = Year - minYear + 1)
   
   # Define dimensions
