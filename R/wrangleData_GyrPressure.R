@@ -80,7 +80,7 @@ wrangleData_GyrPressure <- function(localities = NULL, areas = NULL, areaAggrega
     mutate(breeding_attempt_minusone = lag(breeding_attempt)) # Occupancy previous year
   
   gyr_data <- gyr_data %>%
-    mutate(pred_pressure = 0.5 *(2 * breeding_attempt_minusone) + 0.5 * (2 * breeding_attempt) + chicks)
+    mutate(pred_pressure = 0.5 *(2 * breeding_attempt_minusone) + 0.5 * ((2 * breeding_attempt) + (chicks)))
   
   ## Summarise the pressure measure by spatial unit and year
   gyr_obs <- gyr_data %>% 

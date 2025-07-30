@@ -38,7 +38,7 @@ setupModel_Integ_GyrRS <- function(modelCode, customDist,
   params <- c("esw", "p", #"D",
               "R_year", "Mu.R",  "sigmaR.R",
               "sigma", "mu.dd", "sigmaR.dd",
-              "meanDens", 
+              "meanDens", "probOcc",
               "Mu.D1", "sigma.D",
               "S", "Mu.S", "betaGyr.S", "betaPtar.R", "alphaPtar.R")
   

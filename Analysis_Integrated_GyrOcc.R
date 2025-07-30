@@ -13,8 +13,8 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 10000
-nburn <- 6000
+niter <- 100000
+nburn <- 60000
 nthin <- 20
 
 ## Source all functions in "R" folder
@@ -53,7 +53,7 @@ fitRodentCov <- FALSE
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- TRUE
+testRun <- FALSE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -100,38 +100,41 @@ d_gyr <- wrangleData_GyrPressure(#localities = localities,
   areaAggregation = areaAggregation,
   minYear = minYear, maxYear = maxYear)
 
-## Load gyr productivity data
-d_gyrprod <- wrangleData_GyrRS(minYear, 
-                               maxYear)
+# ## Load gyr productivity data
+# d_gyrprod <- wrangleData_GyrRS(minYear, 
+#                                maxYear)
 
+## Load gyr occupancy data
+d_gyrocc <- wrangleData_GyrOcc(minYear,
+                               maxYear)
 
 # PREPARE INPUT DATA FOR INTEGRATED MODEL #
 #-----------------------------------------#
 
 ## Reformat data into vector/array list for analysis with Nimble
-input_data <- prepareInputData_Integ_GyrRS(d_trans = LT_data$d_trans, 
-                                           d_obs = LT_data$d_obs,
-                                           #d_cmr = d_cmr,
-                                           d_rodent = d_rodent,
-                                           d_gyr = d_gyr,
-                                           #d_gyrprod = d_gyrprod,
-                                           #localities = localities, 
-                                           areas = areas,
-                                           areaAggregation = areaAggregation,
-                                           excl_neverObs = TRUE,
-                                           R_perF = R_perF,
-                                           R_parent_drop0 = R_parent_drop0,
-                                           sumR.Level = "line",
-                                           dataVSconstants = TRUE,
-                                           save = TRUE)
+input_data <- prepareInputData_Integ_GyrOcc(d_trans = LT_data$d_trans, 
+                                            d_obs = LT_data$d_obs,
+                                            #d_cmr = d_cmr,
+                                            d_rodent = d_rodent,
+                                            d_gyr = d_gyr,
+                                            #d_gyrprod = d_gyrprod,
+                                            #localities = localities, 
+                                            areas = areas,
+                                            areaAggregation = areaAggregation,
+                                            excl_neverObs = TRUE,
+                                            R_perF = R_perF,
+                                            R_parent_drop0 = R_parent_drop0,
+                                            sumR.Level = "line",
+                                            dataVSconstants = TRUE,
+                                            save = TRUE)
 
 
 # MODEL SETUP #
 #-------------#
 
 ## Write model code
-modelCode <- writeModelCode_Integ_GyrRS(survVarT = survVarT,
-                                        telemetryData = telemetryData)
+modelCode <- writeModelCode_Integ_GyrOcc(survVarT = survVarT,
+                                         telemetryData = telemetryData)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
@@ -205,7 +208,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_testround2.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_Occ_fullrun1.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #
