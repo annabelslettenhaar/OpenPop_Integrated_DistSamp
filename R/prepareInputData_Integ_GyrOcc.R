@@ -317,6 +317,9 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
   
   d_gyrocc <- wrangleData_GyrOcc(minYear, maxYear)
   
+  totDens_mean <- c(13.65, 20.98, 24.09)
+  totDens_sd <- c(9.84, 5.43, 16.32)
+  
   # Data assembly #
   #---------------#
   
@@ -380,6 +383,8 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
     GyrPressure = d_gyr$gyrPressure,
     
     GyrOcc = d_gyrocc,
+    totDens_meanCov = totDens_mean,
+    totDens_sdCov = totDens_sd,
     
     N_areas = N_sUnits,
     area_names = sUnits,
@@ -423,7 +428,9 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
                         N_territory = N_territory,
                         telemetryData = telemetryData,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
-                        RodentOcc_sdCov = input.data$RodentOcc_sdCov)
+                        RodentOcc_sdCov = input.data$RodentOcc_sdCov,
+                        totDens_meanCov = input.data$totDens_meanCov,
+                        totDens_sdCov = input.data$totDens_sdCov)
   
   ## Make final data list to return
   if(dataVSconstants){
