@@ -102,19 +102,21 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       } # t
       
       ## Area-, year-, and age-class specific density (for monitoring)
-      for(a in 1:N_ageC){
-        for(t in 1:N_years){
-          meanDens[x, a, t] <- mean(Density[x, a, 1:N_sites[x], t])
+      for (a in 1:N_ageC) {
+        for (t in 1:N_years) {
+          meanDens[x, a, t] <- sum(Density[x, a, 1:N_sites[x], t]) / N_sites[x]
+          meanDens_std[x, a, t] <- (meanDens[x, a, t] - totDens_meanCov[x]) / totDens_sdCov[x]
         } # t
       } # a
     } # x
     
-    ## Area and year specific total densities (latent variable)
-    for (x in 1:N_areas){
-      for(t in 1:N_years){
-        totDens[x, t] <- sum(meanDens[x, 1:N_ageC, t])
-      } # t
-    } # x
+    # ## Area and year specific total densities (latent variable)
+    # for (x in 1:N_areas){
+    #   for(t in 1:N_years){
+    #     totDens[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
+    #     totDens_std[x, t] <- (totDens[x, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
+    #   } # t
+    # } # x
     
     
     #--------------------#
@@ -130,7 +132,7 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
           # # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test
           
           # Probability that a gyr territory is occupied
-          logit(probOcc[x, t, k]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]
+          logit(probOcc[x, t, k]) <- alphaPtar.R[x] + betaPtar.R[x] * meanDens_std[x, 2, t-1]
         } # k
         
       } # t
