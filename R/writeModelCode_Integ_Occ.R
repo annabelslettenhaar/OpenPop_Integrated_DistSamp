@@ -11,7 +11,7 @@
 #'
 #' @examples
 
-writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
+writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
   
   IDSM.code <- nimble::nimbleCode({
     
@@ -39,7 +39,7 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
     
     # G_RS[x, t] = number of gyrfalcon chicks produced in area x, year t
     # N_gyr[x, t] = number of occupied gyrfalcon territories in area x, year t
-   
+    
     
     ####################
     # POPULATION MODEL #
@@ -90,7 +90,7 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
           
         } # t
       } # j
-    
+      
       
       #--------------------#
       # Derived parameters #
@@ -117,25 +117,27 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
     } # x
     
     
-      #--------------------#
-      # Gyrfalcon model    #
-      #--------------------#
+    #--------------------#
+    # Gyrfalcon model    #
+    #--------------------#
     
     for (x in 1:N_areas){
       for (t in 2:N_years){
         for (k in 1:N_territory) {
-          # Productivity per area
-          # gyrprod[x, t, k] <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1] #ptar densities from previous autumn
-          gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1])
-          # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test
-
-          } # k
-
-       } # t
-
+          # # Productivity per area
+          # # gyrprod[x, t, k] <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1] #ptar densities from previous autumn
+          # gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1])
+          # # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test
+          
+          # Probability that a gyr territory is occupied
+          logit(probOcc[x, t, k]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]
+        } # k
+        
+      } # t
+      
     } # x
-
-
+    
+    
     
     ####################
     # DATA LIKELIHOODS #
@@ -175,17 +177,20 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
         
         y[x, i] ~ dHN(sigma = sigma[x, Year_obs[x, i]], Xmax = W, point = 0)
       }
-    
+      
       
       ## Area, year and territory specific numbers of gyrfalcon chicks
       
       for (t in 2:N_years){
         for (k in 1:N_territory) {
-          # Productivity per territory
-          RS.G[x, t, k] ~ dpois(gyrprod[x, t, k])
-          # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test
-        
-         } # k
+          # # Productivity per territory
+          # RS.G[x, t, k] ~ dpois(gyrprod[x, t, k])
+          # # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test
+          
+          # Occupancy per territory
+          Occ.G[x, t, k] ~ dbern(probOcc[x, t, k])
+          
+        } # k
         
       } # t
       
@@ -349,8 +354,7 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
     for(x in 1:N_areas){
       alphaPtar.R[x] ~ dunif(-5, 5)
       betaPtar.R[x] ~ dunif(-1, 1)
-      # rGyr[x] ~ dunif(0.1, 20) # test
-    }
+      }
     
     #------------------#
     # Other parameters #

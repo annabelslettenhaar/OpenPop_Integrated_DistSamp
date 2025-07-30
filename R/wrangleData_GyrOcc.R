@@ -10,7 +10,7 @@
 #'         Dimension names are area names, years, and territory IDs.
 #' @export
 
-wrangleData_GyrRS <- function(minYear, maxYear) {
+wrangleData_GyrOcc <- function(minYear, maxYear) {
   
   if (!file.exists("data/Gyr_data.csv")) {
     stop("Data file (data/Gyr_data.csv) not found. This workflow requires this file.")
@@ -25,7 +25,7 @@ wrangleData_GyrRS <- function(minYear, maxYear) {
                             "3" = "Børgefjell"))
   
   gyr_data <- gyr_data_raw %>%
-    dplyr::select(Area, gyrArea, Year, TerritoryID, chicks) %>%
+    dplyr::select(Area, gyrArea, Year, TerritoryID, breeding_attempt) %>%
     dplyr::filter(Year >= minYear, Year <= maxYear) %>%
     dplyr::filter(gyrArea %in% areas) %>%
     dplyr::mutate(YearIdx = Year - minYear + 1)
@@ -49,7 +49,7 @@ wrangleData_GyrRS <- function(minYear, maxYear) {
       row <- area_df[i, ]
       t_idx <- match(row$TerritoryID, territories)
       y_idx <- row$YearIdx
-      array_out[a, y_idx, t_idx] <- row$chicks
+      array_out[a, y_idx, t_idx] <- row$breeding_attempt
     }
   }
   

@@ -75,9 +75,9 @@ duplTransects <- listDuplTransects()
 
 ## Extract transect and observational data from DwC archive
 LT_data <- wrangleData_DwCPtar(#localities = localities,
-                               areas = areas,
-                               areaAggregation = areaAggregation,
-                               minYear = minYear, maxYear = maxYear)
+  areas = areas,
+  areaAggregation = areaAggregation,
+  minYear = minYear, maxYear = maxYear)
 
 
 
@@ -86,9 +86,9 @@ LT_data <- wrangleData_DwCPtar(#localities = localities,
 
 ## Load and reformat rodent data
 d_rodent <- wrangleData_RodentGyr(#localities = localities,
-                                  areas = areas,
-                                  areaAggregation = areaAggregation,
-                                  minYear = minYear, maxYear = maxYear)
+  areas = areas,
+  areaAggregation = areaAggregation,
+  minYear = minYear, maxYear = maxYear)
 
 
 # WRANGLE GYRFALCON DATA #
@@ -96,9 +96,9 @@ d_rodent <- wrangleData_RodentGyr(#localities = localities,
 
 ## Load gyr pressure data
 d_gyr <- wrangleData_GyrPressure(#localities = localities,
-                                 areas = areas,
-                                 areaAggregation = areaAggregation,
-                                 minYear = minYear, maxYear = maxYear)
+  areas = areas,
+  areaAggregation = areaAggregation,
+  minYear = minYear, maxYear = maxYear)
 
 ## Load gyr productivity data
 d_gyrprod <- wrangleData_GyrRS(minYear, 
