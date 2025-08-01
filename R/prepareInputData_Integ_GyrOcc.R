@@ -36,7 +36,7 @@
 #' @examples
 
 
-prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrocc, 
+prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrocc, d_SD, 
                                           localities = NULL, areas = NULL, areaAggregation, 
                                           excl_neverObs = TRUE, R_perF, R_parent_drop0, 
                                           sumR.Level = "group", dataVSconstants = TRUE, 
@@ -381,6 +381,7 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
     RodentOcc_sdCov = d_rodent$sdCov,
     
     GyrPressure = d_gyr$gyrPressure,
+    SDPreBrood = weather_data$d_SD$data,
     
     GyrOcc = d_gyrocc,
     totDens_meanCov = totDens_mean,
@@ -412,6 +413,7 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
                    #Survs1 = input.data$Survs1, Survs2 = input.data$Survs2,
                    RodentOcc = input.data$RodentOcc, 
                    GyrPressure = input.data$GyrPressure,
+                   SDPreBrood = input.data$SDPreBrood,
                    GyrOcc = input.data$GyrOcc)
   
   ## Assembling Nimble constants

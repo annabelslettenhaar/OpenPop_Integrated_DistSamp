@@ -40,7 +40,7 @@ setupModel_Integ_GyrRS <- function(modelCode, customDist,
               "sigma", "mu.dd", "sigmaR.dd",
               "meanDens", "probOcc",
               "Mu.D1", "sigma.D",
-              "S", "Mu.S", "betaGyr.S", "betaPtar.R", "alphaPtar.R")
+              "S", "Mu.S", "betaGyr.S", "betaPtar.R", "alphaPtar.R", "betaSD.S")
   
   if(survVarT){
     params <- c(params, "sigmaR.S")

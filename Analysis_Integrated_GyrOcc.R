@@ -13,8 +13,8 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 100000
-nburn <- 60000
+niter <- 10000
+nburn <- 6000
 nthin <- 20
 
 ## Source all functions in "R" folder
@@ -75,9 +75,9 @@ duplTransects <- listDuplTransects()
 
 ## Extract transect and observational data from DwC archive
 LT_data <- wrangleData_DwCPtar(#localities = localities,
-  areas = areas,
-  areaAggregation = areaAggregation,
-  minYear = minYear, maxYear = maxYear)
+                               areas = areas,
+                               areaAggregation = areaAggregation,
+                               minYear = minYear, maxYear = maxYear)
 
 
 
@@ -86,9 +86,15 @@ LT_data <- wrangleData_DwCPtar(#localities = localities,
 
 ## Load and reformat rodent data
 d_rodent <- wrangleData_RodentGyr(#localities = localities,
-  areas = areas,
-  areaAggregation = areaAggregation,
-  minYear = minYear, maxYear = maxYear)
+                                  areas = areas,
+                                  areaAggregation = areaAggregation,
+                                  minYear = minYear, maxYear = maxYear)
+
+# WRANGLE WEATHER DATA #
+#----------------------#
+weather_data <- wrangleData_Weather(areas = areas,
+                                    areaAggregation = areaAggregation,
+                                    minYear = minYear, maxYear = maxYear)
 
 
 # WRANGLE GYRFALCON DATA #
@@ -96,9 +102,9 @@ d_rodent <- wrangleData_RodentGyr(#localities = localities,
 
 ## Load gyr pressure data
 d_gyr <- wrangleData_GyrPressure(#localities = localities,
-  areas = areas,
-  areaAggregation = areaAggregation,
-  minYear = minYear, maxYear = maxYear)
+                                 areas = areas,
+                                 areaAggregation = areaAggregation,
+                                 minYear = minYear, maxYear = maxYear)
 
 # ## Load gyr productivity data
 # d_gyrprod <- wrangleData_GyrRS(minYear, 
@@ -117,7 +123,9 @@ input_data <- prepareInputData_Integ_GyrOcc(d_trans = LT_data$d_trans,
                                             #d_cmr = d_cmr,
                                             d_rodent = d_rodent,
                                             d_gyr = d_gyr,
+                                            #d_gyrocc = d_gyrocc,
                                             #d_gyrprod = d_gyrprod,
+                                            d_SD = weather_data$d_SD,
                                             #localities = localities, 
                                             areas = areas,
                                             areaAggregation = areaAggregation,
@@ -208,7 +216,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_Occ_fullrun1.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_Occ_SDcov.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #

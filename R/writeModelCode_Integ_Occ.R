@@ -240,10 +240,16 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       if(survVarT){
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)])
         ## Either make different versions here, or make that call in the prepare data stage
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
-      }else{
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
-      }
+      #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)] 
+      # }else{
+      #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+      # }
+      
+      logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)] + betaSD.S[x] * SDPreBrood[x, 1:(N_years-1)]
+    }else{
+      logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)] + betaSD.S[x] * SDPreBrood[x, 1:(N_years-1)]
+    }
+      
     } # x
     
     
@@ -347,6 +353,10 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     
     for(x in 1:N_areas){
       betaGyr.S[x] ~ dunif(-10, 10)
+    }
+    
+    for(x in 1:N_areas){
+      betaSD.S[x] ~ dunif(-10, 10)
     }
     
     #-----------------#
