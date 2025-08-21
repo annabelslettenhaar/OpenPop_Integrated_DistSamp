@@ -35,11 +35,6 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     
     # eps.D1[x, j] = random site effect on initial density area x (site j)
     
-    ## ADDITIONS
-    
-    # G_RS[x, t] = number of gyrfalcon chicks produced in area x, year t
-    # N_gyr[x, t] = number of occupied gyrfalcon territories in area x, year t
-    
     
     ####################
     # POPULATION MODEL #
@@ -105,18 +100,18 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       for (a in 1:N_ageC) {
         for (t in 1:N_years) {
           meanDens[x, a, t] <- sum(Density[x, a, 1:N_sites[x], t]) / N_sites[x]
-          meanDens_std[x, a, t] <- (meanDens[x, a, t] - totDens_meanCov[x]) / totDens_sdCov[x]
+          #meanDens_std[x, a, t] <- (meanDens[x, a, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
         } # t
       } # a
     } # x
     
-    # ## Area and year specific total densities (latent variable)
-    # for (x in 1:N_areas){
-    #   for(t in 1:N_years){
-    #     totDens[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
-    #     totDens_std[x, t] <- (totDens[x, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
-    #   } # t
-    # } # x
+    ## Area and year specific total densities (latent variable)
+    for (x in 1:N_areas){
+      for(t in 1:N_years){
+        totDens[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
+        # totDens_std[x, t] <- (totDens[x, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
+      } # t
+    } # x
     
     
     #--------------------#
@@ -127,12 +122,11 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       for (t in 2:N_years){
         for (k in 1:N_territory) {
           # # Productivity per area
-          # # gyrprod[x, t, k] <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1] #ptar densities from previous autumn
-          # gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1])
-          # # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test
+          # gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]) 
+          # # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test with negative binomial instead of Poisson
           
           # Probability that a gyr territory is occupied
-          logit(probOcc[x, t, k]) <- alphaPtar.R[x] + betaPtar.R[x] * meanDens_std[x, 2, t-1]
+          logit(probOcc[x, t, k]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]
         } # k
         
       } # t
@@ -187,7 +181,7 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
         for (k in 1:N_territory) {
           # # Productivity per territory
           # RS.G[x, t, k] ~ dpois(gyrprod[x, t, k])
-          # # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test
+          # # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test with negative binomial distribution
           
           # Occupancy per territory
           Occ.G[x, t, k] ~ dbern(probOcc[x, t, k])
@@ -212,7 +206,6 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
         
         # Detection decay
         log(sigma[x, t]) <- mu.dd[x]  + epsR.dd[x, t]
-        #log(sigma[x, t]) <- mu.dd[x] + epsT.dd[t] + epsR.dd[x, t]
         
         sigma2[x, t] <- sigma[x, t] * sigma[x, t]
         
@@ -238,17 +231,17 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       ## Annual survival probabilities
       
       if(survVarT){
-        #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)])
-        ## Either make different versions here, or make that call in the prepare data stage
-      #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)] 
-      # }else{
-      #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
-      # }
-      
-      logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)] + betaSD.S[x] * SDPreBrood[x, 1:(N_years-1)]
-    }else{
-      logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)] + betaSD.S[x] * SDPreBrood[x, 1:(N_years-1)]
-    }
+        #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)]) # Old version
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+      }else{
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+      }
+    
+      # Experimenting with including snowdepth in survival estimates  
+    #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)] + betaSD.S[x] * SDPreBrood[x, 1:(N_years-1)]
+    # }else{
+    #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)] + betaSD.S[x] * SDPreBrood[x, 1:(N_years-1)]
+    # }
       
     } # x
     
@@ -265,18 +258,19 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     for(x in 1:N_areas){
       
       ## Initial density
-      #Mu.D1[x] ~ dunif(0, 10)
+      #Mu.D1[x] ~ dunif(0, 10) # Original prior
       Mu.D1[x] ~ dunif(0, 5)
       
       ## Recruitment fixed effects
-      #Mu.R[x] ~ dunif(0, 10)
+      #Mu.R[x] ~ dunif(0, 10) # Original prior
+      #Mu.R[x] ~ dunif(0, 5) # Test
       logMu.R[x] ~ dnorm(0.5, 4)   # SD = 1 / sqrt(4) = 0.5
       Mu.R[x] <- exp(logMu.R[x])
-      #Mu.R[x] ~ dunif(0, 5) # This works medium well, try the above for next full run
+      
       
       ## Survival fixed effects
-      #mu.S[x] ~ dunif(0, 1) 
-      #logit.Mu.S[x] ~ dnorm(0, 1)
+      #mu.S[x] ~ dunif(0, 1) # Original prior
+      #logit.Mu.S[x] ~ dnorm(0, 1) # Test
       logit.Mu.S[x] ~ dnorm(0, 0.5)
       Mu.S[x] <- ilogit(logit.Mu.S[x])
       
@@ -297,8 +291,7 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     
     # Survival 
     if(survVarT){
-      #sigmaT.S ~ dunif(0, 5)
-      #sigmaR.S ~ dunif(0, 5)
+      #sigmaR.S ~ dunif(0, 5) # Original prior
       sigmaR.S ~ dunif(0, 1)
     }
     
