@@ -37,8 +37,8 @@ setupModel_Integ_GyrRS <- function(modelCode, customDist,
   ## Set parameters to monitor
   params <- c("esw", "p", #"D",
               "R_year", "Mu.R",  "sigmaR.R",
-              "sigma", "mu.dd", "sigmaR.dd",
-              "meanDens", "probOcc", "totDens_raw",
+              "sigma", "mu.dd", "sigmaR.dd", #"sigmaR.Occ",
+              "meanDens", "probOcc", "totDens_std",
               "Mu.D1", "sigma.D",
               "S", "Mu.S", "betaGyr.S", "betaPtar.R", "alphaPtar.R", "betaSD.S")
   

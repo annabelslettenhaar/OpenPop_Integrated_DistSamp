@@ -317,8 +317,8 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
   
   d_gyrocc <- wrangleData_GyrOcc(minYear, maxYear)
   
-  totDens_mean <- c(13.65, 20.98, 24.09)
-  totDens_sd <- c(9.84, 5.43, 16.32)
+  totDens_mean <- c(0.0000136, 0.0000178, 0.0000251)
+  totDens_sd <- c(0.00000212, 0.00000802, 0.00000504)
   
   # Data assembly #
   #---------------#

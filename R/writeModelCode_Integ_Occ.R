@@ -109,8 +109,7 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     for (x in 1:N_areas){
       for(t in 1:N_years){
         totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
-        # totDens_std[x, t] <- (totDens[x, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
-        totDens_std[x, t] <- totDens_raw[x, t] - totDens_meanCov[x] # Standardized (without sd)
+        totDens_std[x, t] <- (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
       } # t
     } # x
     
@@ -306,6 +305,9 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       sigma.D[x] ~ dunif(0, 20)
     }
     
+    # Gyrfalcon occupancy 
+    # sigmaT.Occ ~ dunif(0, 5)
+    
     ## Random effect levels
     
     # Residual variation
@@ -314,6 +316,7 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
         
         epsR.R[x, t] ~ dnorm(0, sd = sigmaR.R)
         epsR.dd[x, t] ~ dnorm(0, sd = sigmaR.dd)
+
       }
     }
     
@@ -360,7 +363,7 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     
     for(x in 1:N_areas){
       alphaPtar.R[x] ~ dunif(-5, 5)
-      betaPtar.R[x] ~ dunif(-1, 1)
+      betaPtar.R[x] ~ dunif(-5, 5)
       }
     
     #------------------#
