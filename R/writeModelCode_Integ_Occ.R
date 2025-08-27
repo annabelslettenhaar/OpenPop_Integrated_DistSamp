@@ -108,8 +108,9 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     ## Area and year specific total densities (latent variable)
     for (x in 1:N_areas){
       for(t in 1:N_years){
-        totDens[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
+        totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
         # totDens_std[x, t] <- (totDens[x, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
+        totDens_std[x, t] <- totDens_raw[x, t] - totDens_meanCov[x] # Standardized (without sd)
       } # t
     } # x
     
@@ -120,14 +121,16 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     
     for (x in 1:N_areas){
       for (t in 2:N_years){
-        for (k in 1:N_territory) {
-          # # Productivity per area
+        # # Productivity per area
           # gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]) 
           # # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test with negative binomial instead of Poisson
           
           # Probability that a gyr territory is occupied
-          logit(probOcc[x, t, k]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]
-        } # k
+          logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1]
+          # 1. Standardize total density
+          # 2. Inspect totDens parameter estimates
+          # 3. Add a random year effect
+          # 4. Simplify covariate slopes to overall effect.
         
       } # t
       
@@ -184,7 +187,7 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
           # # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test with negative binomial distribution
           
           # Occupancy per territory
-          Occ.G[x, t, k] ~ dbern(probOcc[x, t, k])
+          Occ.G[x, t, k] ~ dbern(probOcc[x, t])
           
         } # k
         
@@ -302,7 +305,6 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     for(x in 1:N_areas){
       sigma.D[x] ~ dunif(0, 20)
     }
-    
     
     ## Random effect levels
     
