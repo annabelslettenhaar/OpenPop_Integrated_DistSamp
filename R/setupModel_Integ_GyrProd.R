@@ -37,10 +37,14 @@ setupModel_Integ_GyrRS <- function(modelCode, customDist,
   ## Set parameters to monitor
   params <- c("esw", "p", #"D",
               "R_year", "Mu.R",  "sigmaR.R",
-              "sigma", "mu.dd", "sigmaR.dd", #"sigmaR.Occ",
-              "meanDens", "probOcc", "totDens_std",
+              "sigma", "mu.dd", "sigmaR.dd", 
+              "sigmaT.Occ", #"sigmaT.Prod",
+              "meanDens", "totDens_std",
+              "probOcc", 
               "Mu.D1", "sigma.D",
-              "S", "Mu.S", "betaGyr.S", "betaPtar.R", "alphaPtar.R", "betaSD.S")
+              "S", "Mu.S", "betaGyr.S", "betaPtar.R" 
+              #"betaSD.S",
+              )
   
   if(survVarT){
     params <- c(params, "sigmaR.S")

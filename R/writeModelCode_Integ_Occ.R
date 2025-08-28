@@ -100,7 +100,6 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       for (a in 1:N_ageC) {
         for (t in 1:N_years) {
           meanDens[x, a, t] <- sum(Density[x, a, 1:N_sites[x], t]) / N_sites[x]
-          #meanDens_std[x, a, t] <- (meanDens[x, a, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
         } # t
       } # a
     } # x
@@ -120,17 +119,17 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     
     for (x in 1:N_areas){
       for (t in 2:N_years){
-        # # Productivity per area
-          # gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]) 
-          # # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test with negative binomial instead of Poisson
-          
-          # Probability that a gyr territory is occupied
-          logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1]
+        # Probability that a gyr territory is occupied
+          logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1] + epsT.Occ[t]
           # 1. Standardize total density
           # 2. Inspect totDens parameter estimates
           # 3. Add a random year effect
           # 4. Simplify covariate slopes to overall effect.
-        
+          
+          # # Productivity per area
+          # gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]) 
+          # # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test with negative binomial instead of Poisson
+          
       } # t
       
     } # x
@@ -305,17 +304,25 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       sigma.D[x] ~ dunif(0, 20)
     }
     
-    # Gyrfalcon occupancy 
-    # sigmaT.Occ ~ dunif(0, 5)
+    # Gyrfalcon model
+    sigmaT.Occ ~ dunif(0, 15)
+    # sigmaT.Prod ~ dunif(0,20)
+    
     
     ## Random effect levels
+    
+    # Shared year variation
+    for (t in 1:N_years){
+      epsT.Occ[t] ~ dnorm(0, sd = sigmaT.Occ) # Occupancy
+      # epsT.Prod[t] ~ dnorm(0, sd = sigmaT.Prod) # Productivity
+    }
     
     # Residual variation
     for(x in 1:N_areas){
       for (t in 1:N_years){
         
-        epsR.R[x, t] ~ dnorm(0, sd = sigmaR.R)
-        epsR.dd[x, t] ~ dnorm(0, sd = sigmaR.dd)
+        epsR.R[x, t] ~ dnorm(0, sd = sigmaR.R) # Recruitment
+        epsR.dd[x, t] ~ dnorm(0, sd = sigmaR.dd) # Detection
 
       }
     }
@@ -324,7 +331,7 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       for (t in 1:(N_years-1)){
         
         if(survVarT){
-          epsR.S[x, t] ~ dnorm(0, sd = sigmaR.S)
+          epsR.S[x, t] ~ dnorm(0, sd = sigmaR.S) # Survival
         }
       }
     }
