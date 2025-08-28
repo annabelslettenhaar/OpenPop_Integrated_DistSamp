@@ -36,7 +36,8 @@
 #' @examples
 
 
-prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrocc, d_SD, 
+prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, #d_gyrocc, 
+                                          d_SD, 
                                           localities = NULL, areas = NULL, areaAggregation, 
                                           excl_neverObs = TRUE, R_perF, R_parent_drop0, 
                                           sumR.Level = "group", dataVSconstants = TRUE, 
@@ -315,10 +316,15 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
   
   ###########
   
-  d_gyrocc <- wrangleData_GyrOcc(minYear, maxYear)
+  d_gyrocc <- wrangleData_GyrOcc_agg(minYear, maxYear)
   
   totDens_mean <- c(0.0000136, 0.0000178, 0.0000251)
   totDens_sd <- c(0.00000212, 0.00000802, 0.00000504)
+  
+  terrMonitored <- d_gyrocc$array_out[, , "n_monitored"]
+  dimnames(terrMonitored) <- NULL
+  terrOcc <- d_gyrocc$array_out[, , "Occ_count"]
+  dimnames(terrOcc) <- NULL
   
   # Data assembly #
   #---------------#
@@ -383,7 +389,9 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
     GyrPressure = d_gyr$gyrPressure,
     SDPreBrood = weather_data$d_SD$data,
     
-    GyrOcc = d_gyrocc,
+    #GyrOcc = d_gyrocc,
+    terrMonitored = terrMonitored,
+    terrOcc = terrOcc,
     totDens_meanCov = totDens_mean,
     totDens_sdCov = totDens_sd,
     
@@ -414,7 +422,9 @@ prepareInputData_Integ_GyrOcc <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyr
                    RodentOcc = input.data$RodentOcc, 
                    GyrPressure = input.data$GyrPressure,
                    SDPreBrood = input.data$SDPreBrood,
-                   GyrOcc = input.data$GyrOcc)
+                   #GyrOcc = input.data$GyrOcc,
+                   terrMonitored = input.data$terrMonitored,
+                   terrOcc = input.data$terrOcc)
   
   ## Assembling Nimble constants
   nim.constants <- list(N_years = input.data$N_years, min_years = input.data$min_years, max_years = input.data$max_years,

@@ -119,12 +119,9 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     
     for (x in 1:N_areas){
       for (t in 2:N_years){
-        # Probability that a gyr territory is occupied
-          logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1] + epsT.Occ[t]
-          # 1. Standardize total density
-          # 2. Inspect totDens parameter estimates
-          # 3. Add a random year effect
-          # 4. Simplify covariate slopes to overall effect.
+        # Probability that a territory is occupied
+        logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1] + epsT.Occ[t] 
+        # Maybe to do: Simplify covariate slopes to overall effect.
           
           # # Productivity per area
           # gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]) 
@@ -179,15 +176,14 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       ## Area, year and territory specific numbers of gyrfalcon chicks
       
       for (t in 2:N_years){
-        for (k in 1:N_territory) {
+        #for (k in 1:N_territory) {
           # # Productivity per territory
           # RS.G[x, t, k] ~ dpois(gyrprod[x, t, k])
           # # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test with negative binomial distribution
           
-          # Occupancy per territory
-          Occ.G[x, t, k] ~ dbern(probOcc[x, t])
-          
-        } # k
+          # Territory occupancy: number of occupied territories out of number of territories monitored
+          terrOcc[x, t] ~ dbinom(probOcc[x, t], terrMonitored[x, t]) 
+        #} # k
         
       } # t
       
