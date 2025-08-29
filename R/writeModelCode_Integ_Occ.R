@@ -123,10 +123,6 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
         logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1] + epsT.Occ[t] 
         # Maybe to do: Simplify covariate slopes to overall effect.
           
-          # # Productivity per area
-          # gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1]) 
-          # # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test with negative binomial instead of Poisson
-          
       } # t
       
     } # x
@@ -176,14 +172,8 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       ## Area, year and territory specific numbers of gyrfalcon chicks
       
       for (t in 2:N_years){
-        #for (k in 1:N_territory) {
-          # # Productivity per territory
-          # RS.G[x, t, k] ~ dpois(gyrprod[x, t, k])
-          # # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test with negative binomial distribution
-          
-          # Territory occupancy: number of occupied territories out of number of territories monitored
-          terrOcc[x, t] ~ dbinom(probOcc[x, t], terrMonitored[x, t]) 
-        #} # k
+      # Territory occupancy: number of occupied territories out of number of territories monitored
+      terrOcc[x, t] ~ dbinom(probOcc[x, t], terrMonitored[x, t]) 
         
       } # t
       
