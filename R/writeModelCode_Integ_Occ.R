@@ -220,10 +220,9 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       if(fitRodentCov){
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
       }else{
-        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsR.R[x, 1:N_years])
+        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsR.R[x, 1:N_years]) 
       }
-      
-      
+
       
       ## Annual survival probabilities
       
@@ -261,9 +260,9 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       ## Recruitment fixed effects
       #Mu.R[x] ~ dunif(0, 10) # Original prior
       #Mu.R[x] ~ dunif(0, 5) # Test
-      logMu.R[x] ~ dnorm(0.5, 4)   # SD = 1 / sqrt(4) = 0.5
+      logMu.R[x] ~ dnorm(0.5, 1)
       Mu.R[x] <- exp(logMu.R[x])
-      
+     
       
       ## Survival fixed effects
       #mu.S[x] ~ dunif(0, 1) # Original prior
@@ -284,7 +283,8 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     ## Standard deviations
     
     # Recruitment
-    sigmaR.R ~ dunif(0, 5)
+    #sigmaR.R ~ dunif(0, 5)
+    sigmaR.R ~ T(dnorm(0, 1), 0, )
     
     # Survival 
     if(survVarT){
