@@ -36,7 +36,11 @@
 #' @examples
 
 
-prepareInputData_Integ_GyrRS <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrprod, localities = NULL, areas = NULL, areaAggregation, excl_neverObs = TRUE, R_perF, R_parent_drop0, sumR.Level = "group", dataVSconstants = TRUE, addDummyDim = TRUE, save = TRUE){
+prepareInputData_Integ_GyrProd <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrprod, 
+                                         localities = NULL, areas = NULL, areaAggregation, 
+                                         excl_neverObs = TRUE, R_perF, R_parent_drop0, 
+                                         sumR.Level = "group", dataVSconstants = TRUE, 
+                                         addDummyDim = TRUE, save = TRUE){
   
   
   # Multi-area setup #
@@ -311,7 +315,10 @@ prepareInputData_Integ_GyrRS <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrp
   
   ###########
   
-  d_gyrprod <- wrangleData_GyrRS(minYear, maxYear)
+  #d_gyrprod <- wrangleData_GyrRS(minYear, maxYear)
+  
+  totDens_mean <- c(0.0000136, 0.0000178, 0.0000251)
+  totDens_sd <- c(0.00000212, 0.00000802, 0.00000504)
   
   # Data assembly #
   #---------------#
@@ -376,6 +383,10 @@ prepareInputData_Integ_GyrRS <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrp
     GyrPressure = d_gyr$gyrPressure,
     
     GyrProd = d_gyrprod,
+    terrMonitored = d_gyrprod$n_monitored,
+    chicksTot = d_gyrprod$chicksTot,
+    totDens_meanCov = totDens_mean,
+    totDens_sdCov = totDens_sd,
     
     N_areas = N_sUnits,
     area_names = sUnits,
@@ -403,7 +414,9 @@ prepareInputData_Integ_GyrRS <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrp
                    #Survs1 = input.data$Survs1, Survs2 = input.data$Survs2,
                    RodentOcc = input.data$RodentOcc, 
                    GyrPressure = input.data$GyrPressure,
-                   GyrProd = input.data$GyrProd)
+                   #GyrProd = input.data$GyrProd,
+                   terrMonitored = input.data$terrMonitored,
+                   chicksTot = input.data$chicksTot)
   
   ## Assembling Nimble constants
   nim.constants <- list(N_years = input.data$N_years, min_years = input.data$min_years, max_years = input.data$max_years,
@@ -419,7 +432,9 @@ prepareInputData_Integ_GyrRS <- function(d_trans, d_obs, d_rodent, d_gyr, d_gyrp
                         N_territory = N_territory,
                         telemetryData = telemetryData,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
-                        RodentOcc_sdCov = input.data$RodentOcc_sdCov)
+                        RodentOcc_sdCov = input.data$RodentOcc_sdCov,
+                        totDens_meanCov = input.data$totDens_meanCov,
+                        totDens_sdCov = input.data$totDens_sdCov)
   
   ## Make final data list to return
   if(dataVSconstants){

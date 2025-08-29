@@ -47,7 +47,7 @@ sumR.Level <- "line" # Summing at the line level
 survVarT <- FALSE
 
 # Rodent covariate on reproduction
-fitRodentCov <- FALSE
+fitRodentCov <- TRUE
 
 # Use of telemetry data from Lierne
 telemetryData <- FALSE
@@ -111,7 +111,7 @@ d_gyr <- wrangleData_GyrPressure(#localities = localities,
 #                                maxYear)
 
 ## Load gyr occupancy data
-d_gyrocc <- wrangleData_GyrOcc(minYear,
+d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
                                maxYear)
 
 # PREPARE INPUT DATA FOR INTEGRATED MODEL #
@@ -123,7 +123,7 @@ input_data <- prepareInputData_Integ_GyrOcc(d_trans = LT_data$d_trans,
                                             #d_cmr = d_cmr,
                                             d_rodent = d_rodent,
                                             d_gyr = d_gyr,
-                                            d_gyrocc = d_gyrocc,
+                                            #d_gyrocc = d_gyrocc,
                                             #d_gyrprod = d_gyrprod, # For productivity analysis
                                             d_SD = weather_data$d_SD, # For analysis including weather
                                             #localities = localities, 
@@ -216,7 +216,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_Occ_SDcov.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_Occ_29-08_Rodents.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #

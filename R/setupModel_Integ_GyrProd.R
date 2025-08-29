@@ -25,11 +25,11 @@
 #'
 #' @examples
 
-setupModel_Integ_GyrRS <- function(modelCode, customDist,
-                       nim.data, nim.constants,
-                       R_perF, survVarT, fitRodentCov, addDummyDim = TRUE,
-                       niter = 200000, nthin = 30, nburn = 111000, nchains = 3,
-                       testRun = FALSE, initVals.seed){
+setupModel_Integ_GyrProd <- function(modelCode, customDist,
+                                    nim.data, nim.constants,
+                                    R_perF, survVarT, fitRodentCov, addDummyDim = TRUE,
+                                    niter = 200000, nthin = 30, nburn = 111000, nchains = 3,
+                                    testRun = FALSE, initVals.seed){
   
   require('nimble')
   require('nimbleDistance')
@@ -38,13 +38,14 @@ setupModel_Integ_GyrRS <- function(modelCode, customDist,
   params <- c("esw", "p", #"D",
               "R_year", "Mu.R",  "sigmaR.R",
               "sigma", "mu.dd", "sigmaR.dd", 
-              "sigmaT.Occ", #"sigmaT.Prod",
+              #"sigmaT.Occ", 
+              "sigmaT.Prod",
               "meanDens", "totDens_std",
-              "probOcc", 
+              "terrProd", 
               "Mu.D1", "sigma.D",
               "S", "Mu.S", "betaGyr.S", "betaPtar.R" 
               #"betaSD.S",
-              )
+  )
   
   if(survVarT){
     params <- c(params, "sigmaR.S")
@@ -81,7 +82,7 @@ setupModel_Integ_GyrRS <- function(modelCode, customDist,
                                          fitRodentCov = fitRodentCov,
                                          initVals.seed = initVals.seed[c])
     }
-
+    
   }
   
   ## Adjust MCMC parameters if doing a test run
@@ -99,6 +100,6 @@ setupModel_Integ_GyrRS <- function(modelCode, customDist,
     mcmcParams = list(niter = niter, nthin = nthin, 
                       nburn = nburn, nchains = nchains)
   )
-   
+  
   return(setup) 
 }

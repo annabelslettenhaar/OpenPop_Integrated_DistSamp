@@ -11,7 +11,7 @@
 #'
 #' @examples
 
-writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
+writeModelCode_Integ_GyrProd <- function(survVarT, telemetryData){
   
   IDSM.code <- nimble::nimbleCode({
     
@@ -112,7 +112,8 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
     ## Area and year specific total densities (latent variable)
     for (x in 1:N_areas){
       for(t in 1:N_years){
-        totDens[x, t] <- sum(meanDens[x, 1:N_ageC, t])
+        totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
+        totDens_std[x, t] <- (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
       } # t
     } # x
     
@@ -123,17 +124,14 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
     
     for (x in 1:N_areas){
       for (t in 2:N_years){
-        for (k in 1:N_territory) {
-          # Productivity per area
-          # gyrprod[x, t, k] <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1] #ptar densities from previous autumn
-          gyrprod[x, t, k] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1])
-          # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test
-
-          } # k
+        # Chick production numbers
+        terrProd[x, t] <- exp(alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1] + epsT.Prod[t])
+        # gyrprod[x, t, k] <- alphaPtar.R[x] + betaPtar.R[x] * totDens[x, t-1] #ptar densities from previous autumn
+        # probGyr[x, t, k] <- rGyr[x] / (rGyr[x] + gyrprod[x, t, k]) # Test
 
        } # t
-
-    } # x
+      
+      } # x
 
 
     
@@ -177,15 +175,13 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
       }
     
       
-      ## Area, year and territory specific numbers of gyrfalcon chicks
+      ## Area and year  specific numbers of gyrfalcon chicks, compared to monitoring effort
       
       for (t in 2:N_years){
-        for (k in 1:N_territory) {
-          # Productivity per territory
-          RS.G[x, t, k] ~ dpois(gyrprod[x, t, k])
-          # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test
-        
-         } # k
+      # Total productivity 
+      chicksTot[x, t] ~ dpois(terrProd[x, t] * terrMonitored[x, t])
+      
+        # RS.G[x, t, k] ~ dnbinom(size = rGyr[x], prob = probGyr[x, t, k]) # Test
         
       } # t
       
@@ -297,8 +293,17 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
       sigma.D[x] ~ dunif(0, 20)
     }
     
+    # Gyrfalcon model
+    # sigmaT.Occ ~ dunif(0, 15)
+    sigmaT.Prod ~ dunif(0, 15)
     
     ## Random effect levels
+    
+    # Shared year variation
+    for (t in 1:N_years){
+      # epsT.Occ[t] ~ dnorm(0, sd = sigmaT.Occ) # Occupancy
+      epsT.Prod[t] ~ dnorm(0, sd = sigmaT.Prod) # Productivity
+    }
     
     # Residual variation
     for(x in 1:N_areas){
@@ -348,7 +353,7 @@ writeModelCode_Integ_GyrRS <- function(survVarT, telemetryData){
     
     for(x in 1:N_areas){
       alphaPtar.R[x] ~ dunif(-5, 5)
-      betaPtar.R[x] ~ dunif(-1, 1)
+      betaPtar.R[x] ~ dunif(-5, 5)
       # rGyr[x] ~ dunif(0.1, 20) # test
     }
     
