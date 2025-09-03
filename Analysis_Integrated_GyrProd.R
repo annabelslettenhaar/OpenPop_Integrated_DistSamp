@@ -53,7 +53,7 @@ fitRodentCov <- FALSE
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- TRUE
+testRun <- FALSE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -101,20 +101,20 @@ d_gyr <- wrangleData_GyrPressure(#localities = localities,
                                  minYear = minYear, maxYear = maxYear)
 
 ## Load gyr productivity data
-d_gyrprod <- wrangleData_GyrRS(minYear, 
-                               maxYear)
+d_gyrprod <- wrangleData_GyrProd_agg(minYear, 
+                                   maxYear)
 
 
 # PREPARE INPUT DATA FOR INTEGRATED MODEL #
 #-----------------------------------------#
 
 ## Reformat data into vector/array list for analysis with Nimble
-input_data <- prepareInputData_Integ_GyrRS(d_trans = LT_data$d_trans, 
+input_data <- prepareInputData_Integ_GyrProd(d_trans = LT_data$d_trans, 
                                            d_obs = LT_data$d_obs,
                                            #d_cmr = d_cmr,
                                            d_rodent = d_rodent,
                                            d_gyr = d_gyr,
-                                           #d_gyrprod = d_gyrprod,
+                                           d_gyrprod = d_gyrprod,
                                            #localities = localities, 
                                            areas = areas,
                                            areaAggregation = areaAggregation,
@@ -130,15 +130,15 @@ input_data <- prepareInputData_Integ_GyrRS(d_trans = LT_data$d_trans,
 #-------------#
 
 ## Write model code
-modelCode <- writeModelCode_Integ_GyrRS(survVarT = survVarT,
-                                        telemetryData = telemetryData)
+modelCode <- writeModelCode_Integ_GyrProd(survVarT = survVarT,
+                                          telemetryData = telemetryData)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
                               nchains = nchains)
 
 ## Setup for model using nimbleDistance::dHN
-model_setup <- setupModel_Integ_GyrRS(modelCode = modelCode,
+model_setup <- setupModel_Integ_GyrProd(modelCode = modelCode,
                                       R_perF = R_perF,
                                       survVarT = survVarT, 
                                       fitRodentCov = fitRodentCov,
