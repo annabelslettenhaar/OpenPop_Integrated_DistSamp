@@ -120,7 +120,8 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     for (x in 1:N_areas){
       for (t in 2:N_years){
         # Probability that a territory is occupied
-        logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1] + epsT.Occ[t] 
+        # logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R[x] * totDens_std[x, t-1] + epsT.Occ[t] # Area specific slopes
+        logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.R * totDens_std[x, t-1] + epsT.Occ[t] 
         # Maybe to do: Simplify covariate slopes to overall effect.
           
       } # t
@@ -208,7 +209,8 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       ## Annual recruitment rates
       
       if(fitRodentCov){
-        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
+        # R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years]) # Area specific slopes
+        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
       }else{
         R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsR.R[x, 1:N_years]) 
       }
@@ -216,11 +218,18 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
       
       ## Annual survival probabilities
       
+      # if(survVarT){
+      #   #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)]) # Old version
+      #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+      # }else{
+      #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+      # } # Area specific effect of gyrpressure
+      
       if(survVarT){
         #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)]) # Old version
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S*GyrPressure[x, 1:(N_years-1)]
       }else{
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
+        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, 1:(N_years-1)]
       }
     
       # Experimenting with including snowdepth in survival estimates  
@@ -336,19 +345,23 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     ## Rodent effect on reproduction
     if(fitRodentCov){
       
-      for(x in 1:N_areas){
-        betaR.R[x] ~ dunif(-5, 10)
-      }
+      # for(x in 1:N_areas){
+      #   betaR.R[x] ~ dunif(-5, 10) # Area specific slopes
+      # }
+      betaR.R ~ dunif(-5,5)
     }
     
     
-    for(x in 1:N_areas){
-      betaGyr.S[x] ~ dunif(-10, 10)
-    }
+    # for(x in 1:N_areas){
+    #   betaGyr.S[x] ~ dunif(-10, 10) # Area specific slopes
+    # } 
     
-    for(x in 1:N_areas){
-      betaSD.S[x] ~ dunif(-10, 10)
-    }
+    betaGyr.S ~ dunif(-5, 5)
+    
+    
+    # for(x in 1:N_areas){
+    #   betaSD.S[x] ~ dunif(-10, 10)
+    # }
     
     #-----------------#
     # Gyrfalcon model #
@@ -356,8 +369,10 @@ writeModelCode_Integ_GyrOcc <- function(survVarT, telemetryData){
     
     for(x in 1:N_areas){
       alphaPtar.R[x] ~ dunif(-5, 5)
-      betaPtar.R[x] ~ dunif(-5, 5)
+      # betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
       }
+    
+    betaPtar.R ~ dunif(-5,5)
     
     #------------------#
     # Other parameters #

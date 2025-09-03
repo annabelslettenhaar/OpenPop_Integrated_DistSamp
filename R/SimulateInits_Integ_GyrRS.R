@@ -106,11 +106,18 @@ simulateInits_Integ_GyrRS <- function(nim.data, nim.constants, R_perF, survVarT,
   
   Mu.R <- rlnorm(N_areas, meanlog = log(h.Mu.R), sdlog =  h.sigma.R)
   
+  # if(fitRodentCov){
+  #   betaR.R <- rnorm(N_areas, mean = h.Mu.betaR.R, sd = h.sigma.betaR.R)
+  # }else{
+  #   betaR.R <- rep(0, N_areas) # FOr area specific estimates
+  # }
+  
   if(fitRodentCov){
-    betaR.R <- rnorm(N_areas, mean = h.Mu.betaR.R, sd = h.sigma.betaR.R)
+    betaR.R <- rnorm(1, mean = h.Mu.betaR.R, sd = h.sigma.betaR.R)  # single slope
   }else{
-    betaR.R <- rep(0, N_areas)
+    betaR.R <- 0
   }
+  
   
   sigmaT.R <- runif(1, 0.05, 0.2)
   sigmaR.R <- runif(1, 0.05, 0.2)
@@ -123,7 +130,7 @@ simulateInits_Integ_GyrRS <- function(nim.data, nim.constants, R_perF, survVarT,
   #epsR.R <- matrix(rnorm(N_areas*N_years, 0, sigmaR.R), nrow = N_areas, ncol = N_years)
   
   for(x in 1:N_areas){
-    R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+    R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years]) # Area specific estimates
   }
   
   

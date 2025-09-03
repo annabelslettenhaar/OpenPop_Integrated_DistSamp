@@ -74,12 +74,12 @@ setupModel_Integ_GyrOcc <- function(modelCode, customDist,
                                                 initVals.seed = initVals.seed[c])
     }else{
       
-      initVals[[c]] <- simulateInits_Gyr(nim.data = nim.data, 
-                                         nim.constants = nim.constants, 
-                                         R_perF = R_perF, 
-                                         survVarT = survVarT,
-                                         fitRodentCov = fitRodentCov,
-                                         initVals.seed = initVals.seed[c])
+      initVals[[c]] <- simulateInits_Integ_GyrRS(nim.data = nim.data, 
+                                                 nim.constants = nim.constants, 
+                                                 R_perF = R_perF, 
+                                                 survVarT = survVarT,
+                                                 fitRodentCov = fitRodentCov,
+                                                 initVals.seed = initVals.seed[c])
     }
 
   }
