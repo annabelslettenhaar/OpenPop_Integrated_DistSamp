@@ -1,3 +1,18 @@
+#' Prepare Gyrfalcon Occupancy Data for Modeling
+#'
+#' Loads and reshapes breeding attempt (occupancy) data from a local CSV file 
+#' into 2D arrays with dimensions [area, year]: 
+#' one for the number of occupied territories, 
+#' and one for the number of territories monitored.
+#'
+#' @param minYear Integer. The first year to include, used to index rows.
+#' @param maxYear Integer. The last year to include, used to determine matrix size.
+#'
+#' @return A list with two 2D numeric arrays [area, year]:
+#'   - Occ_count: number of occupied territories
+#'   - n_monitored: number of monitored territories
+#' @export
+
 
 wrangleData_GyrOcc_agg <- function(minYear, maxYear) {
   
@@ -5,6 +20,7 @@ wrangleData_GyrOcc_agg <- function(minYear, maxYear) {
     stop("Data file (data/Gyr_data.csv) not found. This workflow requires this file.")
   }
   
+  # Read and clean
   gyr_data_raw <- subset(read.csv("data/Gyr_data.csv"), select = -1)
   
   gyr_data_raw <- gyr_data_raw %>%
@@ -13,42 +29,42 @@ wrangleData_GyrOcc_agg <- function(minYear, maxYear) {
                             "2" = "Dovrefjell",
                             "3" = "Børgefjell"))
   
-  # Subset and clean data
   gyr_data <- gyr_data_raw %>%
-    dplyr::select(Area, gyrArea, Year, TerritoryID, breeding_attempt) %>%
-    dplyr::filter(Year >= minYear, Year <= maxYear)
+    dplyr::select(Area, gyrArea, Year, TerritoryID, breeding_attempt) %>% 
+    dplyr::filter(Year >= minYear, Year <= maxYear) %>%
+    dplyr::mutate(
+      YearIdx   = Year - minYear + 1,
+      monitored = ifelse(is.na(breeding_attempt), 0, 1)  # monitored if attempt was recorded
+    )
   
-  areas <- sort(unique(gyr_data$Area))
+  # Define dimensions
+  areas   <- sort(unique(gyr_data$Area))
   n_areas <- length(areas)
   n_years <- maxYear - minYear + 1
   
-  # Aggregate to area x year
-  agg_df <- gyr_data %>%
-    dplyr::group_by(Area, Year) %>%
-    summarise(
-      Occ_count = sum(breeding_attempt, na.rm = TRUE),         # number of territories occupied
-      n_monitored = sum(!is.na(breeding_attempt)),             # number of territories monitored
-      .groups = "drop"
-    ) %>%
-    dplyr::mutate(
-      YearIdx = Year - minYear + 1
-    )
+  # Initialize arrays
+  Occ_count    <- array(NA, dim = c(n_areas, n_years))
+  n_monitored  <- array(NA, dim = c(n_areas, n_years))
   
-  # Optionally: reshape to wide array [area, year] if needed for nimble
-  array_out <- array(NA, dim = c(n_areas, n_years, 2), 
-                     dimnames = list(areas, 1:n_years, c("Occ_count", "n_monitored")))
-  
+  # Fill arrays by aggregating per area × year
   for (a in seq_along(areas)) {
-    area_name <- areas[a]
-    area_df <- agg_df %>% dplyr::filter(Area == area_name)
+    area_df <- gyr_data %>% filter(Area == areas[a])
     
-    for (i in seq_len(nrow(area_df))) {
-      y_idx <- area_df$YearIdx[i]
-      array_out[a, y_idx, "Occ_count"] <- area_df$Occ_count[i]
-      array_out[a, y_idx, "n_monitored"] <- area_df$n_monitored[i]
+    for (t in 1:n_years) {
+      year_df <- area_df %>% filter(YearIdx == t)
+      
+      Occ_count[a, t]   <- sum(year_df$breeding_attempt, na.rm = TRUE)
+      n_monitored[a, t] <- sum(year_df$monitored, na.rm = TRUE)
     }
   }
   
-  return(list(agg_df = agg_df, array_out = array_out))
+  # Drop dimension names (to match productivity function)
+  dimnames(Occ_count)   <- NULL
+  dimnames(n_monitored) <- NULL
+  
+  return(list(
+    Occ_count   = Occ_count,
+    n_monitored = n_monitored
+  ))
 }
 
