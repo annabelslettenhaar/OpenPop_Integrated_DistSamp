@@ -184,7 +184,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
         # chicksTot[x, t] = chicks produced per area
         # terrProd[x, t] = expected nr of chicks per territory
         # terrMonitoredProd[x, t] = number of monitored territories for productivity
-        chicksTot[x, t] ~ dpois(terrProd[x, t] * terrMonitoredProd[x, t])
+        chicksTot[x, t] ~ dpois(terrProd[x, t] * terrOcc[x, t])
         
       } # t
       
