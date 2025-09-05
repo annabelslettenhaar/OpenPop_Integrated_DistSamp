@@ -13,8 +13,8 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 100000
-nburn <- 60000
+niter <- 10000
+nburn <- 6000
 nthin <- 20
 
 ## Source all functions in "R" folder
@@ -106,9 +106,9 @@ d_gyr <- wrangleData_GyrPressure(#localities = localities,
   areaAggregation = areaAggregation,
   minYear = minYear, maxYear = maxYear)
 
-# ## Load gyr productivity data
-# d_gyrprod <- wrangleData_GyrRS(minYear, 
-#                                maxYear)
+## Load gyr productivity data
+d_gyrprod <- wrangleData_GyrProd_agg(minYear, 
+                                     maxYear)
 
 ## Load gyr occupancy data
 d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
@@ -118,49 +118,49 @@ d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
 #-----------------------------------------#
 
 ## Reformat data into vector/array list for analysis with Nimble
-input_data <- prepareInputData_Integ_GyrOcc(d_trans = LT_data$d_trans, 
-                                            d_obs = LT_data$d_obs,
-                                            #d_cmr = d_cmr,
-                                            d_rodent = d_rodent,
-                                            d_gyr = d_gyr,
-                                            #d_gyrocc = d_gyrocc,
-                                            #d_gyrprod = d_gyrprod, # For productivity analysis
-                                            d_SD = weather_data$d_SD, # For analysis including weather
-                                            #localities = localities, 
-                                            areas = areas,
-                                            areaAggregation = areaAggregation,
-                                            excl_neverObs = TRUE,
-                                            R_perF = R_perF,
-                                            R_parent_drop0 = R_parent_drop0,
-                                            sumR.Level = "line",
-                                            dataVSconstants = TRUE,
-                                            save = TRUE)
+input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans, 
+                                     d_obs = LT_data$d_obs,
+                                    #d_cmr = d_cmr,
+                                     d_rodent = d_rodent,
+                                     d_gyr = d_gyr, # GyrPressure covariate
+                                     d_gyrocc = d_gyrocc, # Occupancy data
+                                     d_gyrprod = d_gyrprod, # Productivity data
+                                     d_SD = weather_data$d_SD, # For analysis including weather
+                                    #localities = localities, 
+                                     areas = areas,
+                                     areaAggregation = areaAggregation,
+                                     excl_neverObs = TRUE,
+                                     R_perF = R_perF,
+                                     R_parent_drop0 = R_parent_drop0,
+                                     sumR.Level = "line",
+                                     dataVSconstants = TRUE,
+                                     save = TRUE)
 
 
 # MODEL SETUP #
 #-------------#
 
 ## Write model code
-modelCode <- writeModelCode_Integ_GyrOcc(survVarT = survVarT,
-                                         telemetryData = telemetryData)
+modelCode <- writeModelCode_Integ(survVarT = survVarT,
+                                  telemetryData = telemetryData)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
                               nchains = nchains)
 
 ## Setup for model using nimbleDistance::dHN
-model_setup <- setupModel_Integ_GyrOcc(modelCode = modelCode,
-                                       R_perF = R_perF,
-                                       survVarT = survVarT, 
-                                       fitRodentCov = fitRodentCov,
-                                       nim.data = input_data$nim.data,
-                                       nim.constants = input_data$nim.constants,
-                                       testRun = testRun, 
-                                       nchains = nchains,
-                                       niter = niter,
-                                       nburn = nburn,
-                                       nthin = nthin,
-                                       initVals.seed = MCMC.seeds)
+model_setup <- setupModel_Integ(modelCode = modelCode,
+                                R_perF = R_perF,
+                                survVarT = survVarT, 
+                                fitRodentCov = fitRodentCov,
+                                nim.data = input_data$nim.data,
+                                nim.constants = input_data$nim.constants,
+                                testRun = testRun, 
+                                nchains = nchains,
+                                niter = niter,
+                                nburn = nburn,
+                                nthin = nthin,
+                                initVals.seed = MCMC.seeds)
 
 
 # MODEL (TEST) RUN #

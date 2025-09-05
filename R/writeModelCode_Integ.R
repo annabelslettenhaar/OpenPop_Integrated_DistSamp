@@ -120,10 +120,12 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     for (x in 1:N_areas){
       for (t in 2:N_years){
         # Occupancy
-        logit(probOcc[x, t]) <- alphaPtar.R[x] + betaPtar.Occ * totDens_std[x, t-1] + epsT.Gyr[t]
+        logit(probOcc[x, t]) <- alphaPtar.Occ[x] + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t]
+        # logit(probOcc[x, t]) <- alphaPtar.Occ[x] + betaPtar.Occ * totDens_std[x, t-1]
         
         # Productivity
-        terrProd[x, t] <- exp(alphaPtar.R[x] + betaPtar.Prod * totDens_std[x, t-1] + epsT.Gyr[t])
+        terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t])
+        # terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1])
         
       } # t
       
@@ -310,14 +312,16 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     }
     
     # Gyrfalcon model
-    sigmaT.Gyr ~ dunif(0, 15)
-    
+    sigmaT.Occ ~ dunif(0, 15)
+    sigmaT.Prod ~ dunif(0, 15)
     
     ## Random effect levels
     
     # Shared year variation
     for (t in 1:N_years){
-      epsT.Gyr[t] ~ dnorm(0, sd = sigmaT.Gyr) # Shared random effect for gyr occ and prod
+      # epsT.Gyr[t] ~ dnorm(0, sd = sigmaT.Gyr) # Shared random effect for gyr occ and prod
+      epsT.Occ[t] ~ dnorm(0, sd = sigmaT.Occ)
+      epsT.Prod[t] ~ dnorm(0, sd = sigmaT.Prod)
       }
     
     # Residual variation
@@ -376,7 +380,8 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     #-----------------#
     
     for(x in 1:N_areas){
-      alphaPtar.R[x] ~ dunif(-5, 5)
+      alphaPtar.Occ[x] ~ dunif(-2, 2)
+      alphaPtar.Prod[x] ~ dunif(-2, 2)
       # betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
     }
     

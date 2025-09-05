@@ -38,7 +38,7 @@ setupModel_Integ <- function(modelCode, customDist,
   params <- c("esw", "p", #"D",
               "R_year", "Mu.R",  "sigmaR.R",
               "sigma", "mu.dd", "sigmaR.dd", 
-              "sigmaT.Gyr", 
+              #"sigmaT.Occ", "sigmaT.Prod", 
               "meanDens", "totDens_std",
               "probOcc", "terrProd",
               "Mu.D1", "sigma.D",
@@ -75,7 +75,7 @@ setupModel_Integ <- function(modelCode, customDist,
                                                 initVals.seed = initVals.seed[c])
     }else{
       
-      initVals[[c]] <- simulateInits_Integ_GyrRS(nim.data = nim.data, 
+      initVals[[c]] <- simulateInits_Integ(nim.data = nim.data, 
                                                  nim.constants = nim.constants, 
                                                  R_perF = R_perF, 
                                                  survVarT = survVarT,
