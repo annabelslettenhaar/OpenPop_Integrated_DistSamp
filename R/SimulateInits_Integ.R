@@ -259,6 +259,7 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
   terrOcc <- nim.data$terrOcc
   terrMonitoredOcc <- nim.data$terrMonitoredOcc
   chicksTot <- nim.data$chicksTot
+  terrMonitoredProd <- nim.data$terrMonitoredProd
   
   # Ptarmigan covariate slopes
   betaPtar.Occ <- rnorm(1, 0, 1)
@@ -269,31 +270,33 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
   alphaPtar.Prod <- rnorm(N_areas, 0, 1)
   
   # Productivity
-  terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
-  
-  for (x in 1:N_areas) {
-    for (t in 2:N_years) {
-      if (!is.na(chicksTot[x, t]) && terrOcc[x, t] > 0) {
-        terrProd[x, t] <- chicksTot[x, t] / terrOcc[x, t]
-      } else {
-        terrProd[x, t] <- runif(1, 1, 3)  # fallback to a reasonable range
-      }
-    }
-  }
+  # Set this up if terrprod is used as a latent variable in the ptarmigan model
+  # terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
+  # 
+  # for (x in 1:N_areas) {
+  #   for (t in 2:N_years) {
+  #     if (!is.na(chicksTot[x, t]) && terrMonitoredProd[x, t] > 0) {
+  #       terrProd[x, t] <- chicksTot[x, t] / terrMonitoredProd[x, t]
+  #     } else {
+  #       terrProd[x, t] <- runif(1, 1, 3)  # fallback to a reasonable range
+  #     }
+  #   }
+  # }
   
   # Occupancy
-  probOcc <- matrix(NA, nrow = N_areas, ncol = N_years)
-  
-  for (x in 1:N_areas) {
-    for (t in 2:N_years) {
-      # Use observed occupancy proportion if available
-      if (!is.na(terrOcc[x, t]) && terrMonitoredOcc[x, t] > 0) {
-        probOcc[x, t] <- terrOcc[x, t] / terrMonitoredOcc[x, t]
-      } else {
-        probOcc[x, t] <- runif(1, 0.3, 0.7)  # fallback to a reasonable range
-      }
-    }
-  }
+  # Set this up when probOcc is used as a latent variable elsewhere, using the model formula to define probOcc and calculate starting values
+  # probOcc <- matrix(NA, nrow = N_areas, ncol = N_years)
+  # 
+  # for (x in 1:N_areas) {
+  #   for (t in 2:N_years) {
+  #     # Use observed occupancy proportion if available
+  #     if (!is.na(terrOcc[x, t]) && terrMonitoredOcc[x, t] > 0) {
+  #       probOcc[x, t] <- terrOcc[x, t] / terrMonitoredOcc[x, t]
+  #     } else {
+  #       probOcc[x, t] <- runif(1, 0.3, 0.7)  # fallback to a reasonable range
+  #     }
+  #   }
+  # }
   
   
   # Random effects
@@ -359,8 +362,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
     alphaPtar.Occ = alphaPtar.Occ,
     alphaPtar.Prod = alphaPtar.Prod,
     
-    terrProd = terrProd,
-    probOcc = probOcc,
+    #terrProd = terrProd, # add later
+    #probOcc = probOcc, # add later
     
     epsT.Occ = epsT.Occ,
     epsT.Prod = epsT.Prod,

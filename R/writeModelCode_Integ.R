@@ -186,7 +186,8 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
         # chicksTot[x, t] = chicks produced per area
         # terrProd[x, t] = expected nr of chicks per territory
         # terrMonitoredProd[x, t] = number of monitored territories for productivity
-        chicksTot[x, t] ~ dpois(terrProd[x, t] * terrOcc[x, t])
+        # Use terrOcc instead of terrMonitoredProd?
+        chicksTot[x, t] ~ dpois(terrProd[x, t] * terrMonitoredProd[x, t])
         
       } # t
       
@@ -385,7 +386,8 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       # betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
     }
     
-    betaPtar.R ~ dunif(-5,5)
+    betaPtar.Occ ~ dunif(-5,5)
+    betaPtar.Prod ~ dunif(-5,5)
     
     #------------------#
     # Other parameters #
