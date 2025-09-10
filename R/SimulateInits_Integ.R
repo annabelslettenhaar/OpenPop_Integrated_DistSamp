@@ -267,7 +267,7 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
   
   # Intercepts
   alphaPtar.Occ <- runif(N_areas, 0, 1)
-  alphaPtar.Prod <- rnorm(N_areas, 0, 1)
+  alphaPtar.Prod <- runif(N_areas, 1, 4)
   
   # Productivity
   # Set this up if terrprod is used as a latent variable in the ptarmigan model

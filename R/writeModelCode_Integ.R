@@ -123,7 +123,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
         logit(probOcc[x, t]) <- logit(alphaPtar.Occ[x]) + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t]
         
         # Productivity
-        terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t])
+        log(terrProd[x, t]) <- log(alphaPtar.Prod[x]) + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t]
         
       } # t
       
@@ -383,7 +383,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     
     for(x in 1:N_areas){
       alphaPtar.Occ[x] ~ dunif(0, 1)
-      alphaPtar.Prod[x] ~ dunif(-2, 2)
+      alphaPtar.Prod[x] ~ dunif(0, 8)
       # betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
     }
     
