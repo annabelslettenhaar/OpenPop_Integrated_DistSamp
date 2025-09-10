@@ -300,8 +300,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
   
   
   # Random effects
-  epsT.Occ <- rnorm(N_years, 0, 0.5)
-  epsT.Prod <- rnorm(N_years, 0, 0.5)
+  epsT.Occ <- rep(0, N_years)
+  epsT.Prod <- rep(0, N_years)
   
   sigmaT.Occ <- runif(1, 0.1, 1)
   sigmaT.Prod <- runif(1, 0.1, 1)
