@@ -267,25 +267,25 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     for(x in 1:N_areas){
       
       ## Initial density
-      #Mu.D1[x] ~ dunif(0, 10) # Original prior
-      Mu.D1[x] ~ dunif(0, 5)
+      Mu.D1[x] ~ dunif(0, 10) # Original prior
+      #Mu.D1[x] ~ dunif(0, 5)
       
       ## Recruitment fixed effects
-      #Mu.R[x] ~ dunif(0, 10) # Original prior
+      Mu.R[x] ~ dunif(0, 10) # Original prior
       #Mu.R[x] ~ dunif(0, 5) # Test
-      logMu.R[x] ~ dnorm(0.5, 1)
-      Mu.R[x] <- exp(logMu.R[x])
+      #logMu.R[x] ~ dnorm(0.5, 1)
+      #Mu.R[x] <- exp(logMu.R[x])
       
       
       ## Survival fixed effects
-      #mu.S[x] ~ dunif(0, 1) # Original prior
+      mu.S[x] ~ dunif(0, 1) # Original prior
       #logit.Mu.S[x] ~ dnorm(0, 1) # Test
-      logit.Mu.S[x] ~ dnorm(0, 0.5)
-      Mu.S[x] <- ilogit(logit.Mu.S[x])
+      #logit.Mu.S[x] ~ dnorm(0, 0.5)
+      #Mu.S[x] <- ilogit(logit.Mu.S[x])
       
       ## Detection fixed effects
-      #mu.dd[x] ~ dunif(-10, 100)
-      mu.dd[x] ~ dnorm(0, 2)
+      mu.dd[x] ~ dunif(-10, 100)
+      #mu.dd[x] ~ dnorm(0, 2)
     }
     
     
@@ -296,13 +296,13 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     ## Standard deviations
     
     # Recruitment
-    #sigmaR.R ~ dunif(0, 5)
-    sigmaR.R ~ T(dnorm(0, 1), 0, )
+    sigmaR.R ~ dunif(0, 5)
+    #sigmaR.R ~ T(dnorm(0, 1), 0, )
     
     # Survival 
     if(survVarT){
-      #sigmaR.S ~ dunif(0, 5) # Original prior
-      sigmaR.S ~ dunif(0, 1)
+      sigmaR.S ~ dunif(0, 5) # Original prior
+      #sigmaR.S ~ dunif(0, 1)
     }
     
     # Detection
