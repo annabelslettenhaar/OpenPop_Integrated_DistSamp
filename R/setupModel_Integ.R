@@ -73,7 +73,10 @@ setupModel_Integ <- function(modelCode, customDist,
                                                 survVarT = survVarT,
                                                 fitRodentCov = fitRodentCov,
                                                 initVals.seed = initVals.seed[c])
-    }else{
+      #* CRN: Be aware that this is currently not functional
+      stop("The single-area setup is not currently functional (in combination with the integrated ptarmigan-gyrfalcon model).")
+    
+      }else{
       
       initVals[[c]] <- simulateInits_Integ(nim.data = nim.data, 
                                                  nim.constants = nim.constants, 
