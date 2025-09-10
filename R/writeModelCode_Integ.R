@@ -121,11 +121,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       for (t in 2:N_years){
         # Occupancy
         logit(probOcc[x, t]) <- alphaPtar.Occ[x] + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t]
-        # logit(probOcc[x, t]) <- alphaPtar.Occ[x] + betaPtar.Occ * totDens_std[x, t-1]
         
         # Productivity
         terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t])
-        # terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1])
         
       } # t
       
@@ -176,22 +174,25 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       ## Gyrfalcon models
       
       for (t in 2:N_years){
-        # Gyrfalcon occupancy
+        # Gyrfalcon occupancy (per area)
         # terrOcc[x, t] = number of territories occupied per area
         # probOcc[x, t] = probability of occupancy
         # terrMonitoredOcc[x, t] = number of monitored territories for occupancy
         terrOcc[x, t] ~ dbinom(probOcc[x, t], terrMonitoredOcc[x, t]) 
         
-        # Gyrfalcon productivity
-        # chicksTot[x, t] = chicks produced per area
-        # terrProd[x, t] = expected nr of chicks per territory
-        # terrMonitoredProd[x, t] = number of monitored territories for productivity
-        # Use terrOcc instead of terrMonitoredProd?
-        chicksTot[x, t] ~ dpois(terrProd[x, t] * terrMonitoredProd[x, t])
-        
       } # t
       
     } # x
+    
+    # Gyrfalcon productivity (per territory)
+    # chicksObs[i] = chicks produced per territory
+    # terrProd[x, t] = expected nr of chicks per territory
+    # chickObs_area[i] = i'th entry of area index for a territory
+    # chickObs_year[i] = i'th entry of year index for a territory
+    
+    for (i in 1:N_terr){
+      chicksObs[i] ~ dpois(terrProd[chicksObs_area[i], chicksObs_year[i]])
+      }
     
     
     

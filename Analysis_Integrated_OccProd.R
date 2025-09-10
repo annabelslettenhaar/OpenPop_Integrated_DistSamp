@@ -86,9 +86,9 @@ LT_data <- wrangleData_DwCPtar(#localities = localities,
 
 ## Load and reformat rodent data
 d_rodent <- wrangleData_RodentGyr(#localities = localities,
-  areas = areas,
-  areaAggregation = areaAggregation,
-  minYear = minYear, maxYear = maxYear)
+                                  areas = areas,
+                                  areaAggregation = areaAggregation,
+                                  minYear = minYear, maxYear = maxYear)
 
 # WRANGLE WEATHER DATA #
 #----------------------#
@@ -107,8 +107,8 @@ d_gyr <- wrangleData_GyrPressure(#localities = localities,
   minYear = minYear, maxYear = maxYear)
 
 ## Load gyr productivity data
-d_gyrprod <- wrangleData_GyrProd_agg(minYear, 
-                                     maxYear)
+d_gyrprod <- wrangleData_GyrProd_nested(minYear, 
+                                        maxYear)
 
 ## Load gyr occupancy data
 d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
@@ -216,7 +216,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_Occ_03-09_allcov_oneslope.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_occprod_08-09_allcov_oneslope.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #

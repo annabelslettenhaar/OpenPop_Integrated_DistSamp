@@ -401,17 +401,18 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
     
     # Gyrfalcon productivity response variable
     #GyrProd = d_gyrprod,
-    terrMonitoredProd = d_gyrprod$n_monitored,
-    chicksTot = d_gyrprod$chicksTot,
+    chicksObs = d_gyrprod$chicksObs,
+    chicksObs_area = as.integer(d_gyrprod$chicksObs_area),
+    chicksObs_year = as.integer(d_gyrprod$chicksObs_year),
+    N_terr = length(d_gyrprod$chicksObs),
     
     # Standardization ptarmigan covariate
     totDens_meanCov = totDens_mean,
     totDens_sdCov = totDens_sd,
     
     N_areas = N_sUnits,
-    area_names = sUnits,
-    N_territory = N_territory # Number of territories per area
-  )
+    area_names = sUnits
+    )
   
   ## Drop dummy dimension when only one area is included
   if(N_sUnits == 1 & !addDummyDim){
@@ -436,10 +437,10 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                    GyrPressure = input.data$GyrPressure,
                    SDPreBrood = input.data$SDPreBrood,
                    #GyrOcc = input.data$GyrOcc,
-                   terrMonitoredProd = input.data$terrMonitoredProd,
+                   #terrMonitoredProd = input.data$terrMonitoredProd,
                    terrOcc = input.data$terrOcc,
                    terrMonitoredOcc = input.data$terrMonitoredOcc,
-                   chicksTot = input.data$chicksTot)
+                   chicksObs = input.data$chicksObs)
   
   ## Assembling Nimble constants
   nim.constants <- list(N_years = input.data$N_years, min_years = input.data$min_years, max_years = input.data$max_years,
@@ -448,16 +449,18 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                         N_sites = input.data$N_sites, 
                         N_ageC = N_ageC,
                         N_areas = input.data$N_areas, area_names = input.data$area_names,
+                        N_terr = input.data$N_terr,
                         #SurvAreaIdx = input.data$SurvAreaIdx,
                         #year_Survs = input.data$year_Survs, N_years_RT = input.data$N_years_RT,
                         sumR_obs_year = input.data$sumR_obs_year, N_sumR_obs = input.data$N_sumR_obs,
                         N_ageC = N_ageC,
-                        N_territory = N_territory,
                         telemetryData = telemetryData,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
                         totDens_meanCov = input.data$totDens_meanCov,
-                        totDens_sdCov = input.data$totDens_sdCov)
+                        totDens_sdCov = input.data$totDens_sdCov,
+                        chicksObs_year = input.data$chicksObs_year,
+                        chicksObs_area = input.data$chicksObs_area)
   
   ## Make final data list to return
   if(dataVSconstants){
