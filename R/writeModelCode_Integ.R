@@ -278,7 +278,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       
       
       ## Survival fixed effects
-      mu.S[x] ~ dunif(0, 1) # Original prior
+      Mu.S[x] ~ dunif(0, 1) # Original prior
       #logit.Mu.S[x] ~ dnorm(0, 1) # Test
       #logit.Mu.S[x] ~ dnorm(0, 0.5)
       #Mu.S[x] <- ilogit(logit.Mu.S[x])
