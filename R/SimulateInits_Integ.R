@@ -379,5 +379,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
     InitVals$RodentOcc <- Inits_RodentOcc
   }
   
+  InitVals$betaGyr.S <- 0
+  #* CRN: Initialized at 0 for now, but this may need changing before full integration. 
+  
   return(InitVals)
 }
