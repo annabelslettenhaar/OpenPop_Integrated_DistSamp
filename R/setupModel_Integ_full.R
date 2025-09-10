@@ -38,13 +38,13 @@ setupModel_Integ_full <- function(modelCode, customDist,
   params <- c("esw", "p", #"D",
               "R_year", "Mu.R",  "sigmaR.R",
               "sigma", "mu.dd", "sigmaR.dd", 
-              #"sigmaT.Occ", "sigmaT.Prod", 
+              "sigmaT.Occ", "sigmaT.Prod", 
               "meanDens", "totDens_std",
               "probOcc", "terrProd",
               "Mu.D1", "sigma.D",
               "S", "Mu.S", "betaGyr.S", 
               "betaPtar.Occ", "betaPtar.Prod",
-              "GyrPressure_std"
+              "GyrPressure_raw"
               #"betaSD.S",
   )
   
