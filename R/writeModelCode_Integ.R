@@ -132,12 +132,12 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       for (t in 2:N_years){
         # Occupancy
         logit(probOcc[x, t]) <- logit(alphaPtar.Occ[x]) + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t]
-        
+
         # Productivity
         log(terrProd[x, t]) <- log(alphaPtar.Prod[x]) + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t]
-        
+
       } # t
-      
+
     } # x
     
     
@@ -202,9 +202,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     # chickObs_area[i] = i'th entry of area index for a territory
     # chickObs_year[i] = i'th entry of year index for a territory
     
-    for (i in 1:N_terr){
-      chicksObs[i] ~ dpois(terrProd[chicksObs_area[i], chicksObs_year[i]])
-      }
+    # for (i in 1:N_terr){
+    #   chicksObs[i] ~ dpois(terrProd[chicksObs_area[i], chicksObs_year[i]])
+    #   }
     
     
     
@@ -336,7 +336,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       # epsT.Gyr[t] ~ dnorm(0, sd = sigmaT.Gyr) # Shared random effect for gyr occ and prod
       epsT.Occ[t] ~ dnorm(0, sd = sigmaT.Occ)
       epsT.Prod[t] ~ dnorm(0, sd = sigmaT.Prod)
-      }
+    }
     
     # Residual variation
     for(x in 1:N_areas){
@@ -374,7 +374,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       # for(x in 1:N_areas){
       #   betaR.R[x] ~ dunif(-5, 10) # Area specific slopes
       # }
-      betaR.R ~ dunif(-5,5)
+      betaR.R ~ dunif(-5, 5)
     }
     
     
@@ -383,8 +383,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     # } 
     
     betaGyr.S ~ dunif(-5, 5)
-    
-    
+
     # for(x in 1:N_areas){
     #   betaSD.S[x] ~ dunif(-10, 10)
     # }
@@ -396,12 +395,10 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     for(x in 1:N_areas){
       alphaPtar.Occ[x] ~ dunif(0, 1)
       alphaPtar.Prod[x] ~ dunif(0, 8)
-      # betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
+      #betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
     }
-    
-    betaPtar.Occ ~ dunif(-5,5)
-    betaPtar.Prod ~ dunif(-5,5)
-    
+
+
     #------------------#
     # Other parameters #
     #------------------#

@@ -41,9 +41,11 @@ setupModel_Integ <- function(modelCode, customDist,
               "sigmaT.Occ", "sigmaT.Prod", 
               "meanDens", "totDens_std",
               "probOcc", "terrProd",
+              "alphaPtar.Occ", "alphaPtar.Prod",
+              "betaPtar.Occ", "betaPtar.Prod", 
+              "sigmaT.Occ", "sigmaT.Prod",
               "Mu.D1", "sigma.D",
-              "S", "Mu.S", "betaGyr.S", 
-              "betaPtar.Occ", "betaPtar.Prod" 
+              "S", "Mu.S", "betaGyr.S"
               #"betaSD.S",
   )
   
@@ -90,7 +92,7 @@ setupModel_Integ <- function(modelCode, customDist,
   
   ## Adjust MCMC parameters if doing a test run
   if(testRun){
-    niter <- 50
+    niter <- 10
     nthin <- 1
     nburn <- 0
   }
