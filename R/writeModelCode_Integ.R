@@ -150,9 +150,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
         for(t in 1:N_years){
           
           #GyrPressure[x, t] <- probOcc[x, t]
-          #GyrPressure[x, t] <- terrProd[x, t]
+          GyrPressure[x, t] <- terrProd[x, t]
           #GyrPressure[x, t] <- alphaPtar.Occ[x]
-          GyrPressure[x, t] <- alphaPtar.Prod[x]
+          #GyrPressure[x, t] <- alphaPtar.Prod[x]
           
         }
       }
@@ -266,11 +266,13 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
       # } # Area specific effect of gyrpressure
       
-      if(survVarT){
-        #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)]) # Old version
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S*GyrPressure[x, 1:(N_years-1)]
-      }else{
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, 1:(N_years-1)]
+      for(t in 1:(N_years-1)){
+        if(survVarT){
+          #logit(S[x, t]) <- logit(Mu.S[x] + epsR.S[x, t]) # Old version
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t] + epsR.S[x, t] 
+        }else{
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t]
+        }
       }
       
       # Experimenting with including snowdepth in survival estimates  

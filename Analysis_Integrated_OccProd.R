@@ -8,7 +8,7 @@ library(nimble)
 #-------#
 
 ## Set seed
-mySeed <- 32
+mySeed <- 83
 set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
