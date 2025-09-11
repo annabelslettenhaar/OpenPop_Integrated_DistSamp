@@ -12,12 +12,13 @@ dummy.code <- nimble::nimbleCode({
   
   ## Species A population model
   for(t in 2:N_years){
-    density_A[t] <- density_A[t-1] * lambda_A[t-1]
+    density_A[t] <- density_A[t-1] * S[t-1] * R[t-1]
   }
   
-  ## Species A population growth rate
+  ## Species A vital rate models
   for(t in 1:(N_years-1)){
-    log(lambda_A[t]) <- log(Mu.lambda) + beta.vrB*VR_B[t]
+    log(R[t]) <- log(Mu.R)
+    logit(S[t]) <- logit(Mu.S) + beta.vrB*VR_B[t]
   }
   
   ## Species B vital rate models
@@ -30,7 +31,9 @@ dummy.code <- nimble::nimbleCode({
   ## Priors
   density_A[1] ~ dpois(3)
 
-  Mu.lambda ~ dlnorm(meanlog = 0, sdlog = 1)
+  Mu.R ~ dpois(4)
+  Mu.S ~ dbeta(7, 3)
+  
   beta.vrB ~ dnorm(mean = -0.1, sd = 0.02)
   
   Mu.VR ~ dpois(2)
@@ -47,10 +50,11 @@ dummy.initSim <- function(N_years){
   
   # Set up vectors
   density_A <- VR_B <- rep(NA, N_years)
-  lambda_A <- rep(NA, N_years-1)
+  R_A <- S_A <- rep(NA, N_years-1)
     
   # Set constant/first-year values
-  Mu.lambda <- rlnorm(1, meanlog = 0, sdlog = 0.1)
+  Mu.S <- runif(1, 0.6, 0.8)
+  Mu.R <- rpois(1, 4)
   Mu.VR <- rpois(1, 2)
   
   density_A[1] <- round(runif(1, 2, 4))
@@ -63,7 +67,10 @@ dummy.initSim <- function(N_years){
   for(t in 2:N_years){
     
     VR_B[t] <- exp(log(Mu.VR) + beta.densA*density_A[t-1])
-    lambda_A[t-1] <- exp(log(Mu.lambda) + beta.vrB*VR_B[t-1])
+    
+    S[t-1] <- plogis(qlogis(Mu.S) + beta.vrB*VR_B[t-1])
+    
+    R[t-1] <- Mu.R
     
     density_A[t] <- density_A[t-1] * lambda_A[t-1]
   }
