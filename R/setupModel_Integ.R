@@ -92,7 +92,7 @@ setupModel_Integ <- function(modelCode, customDist,
   
   ## Adjust MCMC parameters if doing a test run
   if(testRun){
-    niter <- 10
+    niter <- 50
     nthin <- 1
     nburn <- 0
   }
