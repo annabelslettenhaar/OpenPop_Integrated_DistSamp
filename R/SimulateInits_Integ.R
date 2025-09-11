@@ -39,6 +39,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF,
   pi <- 3.141593
   A <- nim.data$A
   
+  totDens_meanCov <- nim.constants$totDens_meanCov
+  totDens_sdCov <- nim.constants$totDens_sdCov
   
   # Missing covariate values #
   #--------------------------#
@@ -286,6 +288,15 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF,
     } 
   }
   
+  ## Density covariate
+  totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
+  
+  for (x in 1:N_areas){
+    for(t in 1:N_years){
+      totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
+      totDens_std[x, t] <- max(min(-10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), 10) # Standardized
+    }
+  }
   
   # Assembly #
   #----------#
@@ -333,6 +344,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF,
     
     Density = Density,
     meanDens = meanDens,
+    totDens_raw = totDens_raw,
+    totDens_std = totDens_std,
     N_exp = N_exp,
     N_tot_exp = N_tot_exp,
     
