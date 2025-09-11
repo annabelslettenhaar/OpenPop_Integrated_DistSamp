@@ -118,6 +118,17 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     #---------------------#
     
     for (x in 1:N_areas){
+      
+      ## Year 1 (no ptarmigan density estimate available)
+      # Occupancy
+      logit(probOcc[x, 1]) <- logit(alphaPtar.Occ[x]) + epsT.Occ[1]
+      
+      # Productivity
+      log(terrProd[x, 1]) <- log(alphaPtar.Prod[x]) + epsT.Prod[1]
+      
+      
+      ## Years 2+ (ptarmigan density estimate available)
+      
       for (t in 2:N_years){
         # Occupancy
         logit(probOcc[x, t]) <- logit(alphaPtar.Occ[x]) + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t]
