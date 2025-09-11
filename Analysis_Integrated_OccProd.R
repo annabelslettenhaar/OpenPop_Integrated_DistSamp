@@ -53,7 +53,7 @@ fitRodentCov <- TRUE
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- FALSE
+testRun <- TRUE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
