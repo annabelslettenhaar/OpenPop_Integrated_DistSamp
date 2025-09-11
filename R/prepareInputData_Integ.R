@@ -20,9 +20,9 @@
 #' @param sumR.Level character string. Default ("group") summarises reproduction/recruitment
 #' data at the group/observation level. Setting to "line" summarises data at the 
 #' transect line level instead. 
-#' @param totDens_mean numeric. Estimated average of density estimates used for
+#' @param totDens_meanCov numeric. Estimated average of density estimates used for
 #' standardizing ptarmigan density covariate in model. 
-#' @param totDens_sd numeric. Estimated standard deviation of density estimates used for
+#' @param totDens_sdCov numeric. Estimated standard deviation of density estimates used for
 #' standardizing ptarmigan density covariate in model. 
 #' @param fullLoopPP logical. If TRUE, does not return gyrfalcon pressure as an
 #' external covariate. If FALSE, returns gyrfalcon pressure as a covariate.
@@ -48,7 +48,7 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                                    localities = NULL, areas = NULL, areaAggregation, 
                                    excl_neverObs = TRUE, R_perF, R_parent_drop0, 
                                    sumR.Level = "group", 
-                                   totDens_mean = 0, totDens_sd = 1, 
+                                   totDens_meanCov = 0, totDens_sdCov = 1, 
                                    fullLoopPP, 
                                    dataVSconstants = TRUE, 
                                    addDummyDim = TRUE, save = TRUE){
@@ -413,8 +413,8 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
     N_terr = length(d_gyrprod$chicksObs),
     
     # Standardization ptarmigan covariate
-    totDens_meanCov = totDens_mean,
-    totDens_sdCov = totDens_sd,
+    totDens_meanCov = totDens_meanCov,
+    totDens_sdCov = totDens_sdCov,
     
     N_areas = N_sUnits,
     area_names = sUnits

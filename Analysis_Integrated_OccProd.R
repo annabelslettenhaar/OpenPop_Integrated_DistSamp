@@ -121,8 +121,8 @@ d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
 #-----------------------------------------#
 
 ## Define mean and sd for standardizing ptarmigan density in the model (per area)
-totDens_mean <- c(0.0000136, 0.0000178, 0.0000251)
-totDens_sd <- c(0.00000212, 0.00000802, 0.00000504)
+totDens_meanCov <- c(1.4e-05, 2.1e-05, 2.5e-05)
+totDens_sdCov <- c(8e-06, 8e-06, 1.7e-05)
 
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans, 
@@ -140,8 +140,8 @@ input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans,
                                      R_perF = R_perF,
                                      R_parent_drop0 = R_parent_drop0,
                                      sumR.Level = "line",
-                                     totDens_mean = totDens_mean,
-                                     totDens_sd = totDens_sd, 
+                                     totDens_meanCov = totDens_meanCov,
+                                     totDens_sdCov = totDens_sdCov, 
                                      fullLoopPP = fullLoopPP,
                                      dataVSconstants = TRUE,
                                      save = TRUE)
