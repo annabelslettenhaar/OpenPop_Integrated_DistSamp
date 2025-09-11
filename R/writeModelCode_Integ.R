@@ -172,13 +172,14 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       
       
       ## Gyrfalcon models
+
+      # Gyrfalcon occupancy (per area)
       
       for (t in 2:N_years){
-        # Gyrfalcon occupancy (per area)
         # terrOcc[x, t] = number of territories occupied per area
         # probOcc[x, t] = probability of occupancy
         # terrMonitoredOcc[x, t] = number of monitored territories for occupancy
-        terrOcc[x, t] ~ dbinom(probOcc[x, t], terrMonitoredOcc[x, t]) 
+        terrOcc[x, t] ~ dbin(prob = probOcc[x, t], size = terrMonitoredOcc[x, t]) 
         
       } # t
       
