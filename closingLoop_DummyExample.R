@@ -29,7 +29,7 @@ dummy.code <- nimble::nimbleCode({
   VR_B[1] <- Mu.VR_B
   
   for(t in 2:N_years){
-    log(VR_B[t]) <- log(Mu.VR_B) #+ beta.densA*density_A[t-1] 
+    log(VR_B[t]) <- log(Mu.VR_B) + beta.densA*totDens_A[t-1] 
   }
   
   ## Priors
@@ -74,7 +74,7 @@ dummy.initSim <- function(N_years){
   for(t in 1:N_years){
     
     if(t > 1){
-      VR_B[t] <- exp(log(Mu.VR_B))
+      VR_B[t] <- exp(log(Mu.VR_B) + beta.densA*totDens_A[t-1])
     }
     
     S_A[t] <- plogis(qlogis(Mu.S_A) + beta.vrB*VR_B[t])
