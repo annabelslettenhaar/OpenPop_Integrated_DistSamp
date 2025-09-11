@@ -13,16 +13,28 @@ dummy.code <- nimble::nimbleCode({
   ## Species A population model
   for(t in 2:N_years){
     density_A[1, t] <- density_A[2, t] * R_A[t]
+    # Original: Density[x, 1, j, t] <- Density[x, 2, j, t]*R_year[x, t]
+
     density_A[2, t] <- sum(density_A[1:2, t-1]) * S_A[t-1]
+    # Original: Density[x, 2, j, t] <- sum(Density[x, 1:N_ageC, j, t-1])*S[x, t-1] 
     
     totDens_A[t] <- density_A[1, t] + density_A[2, t]
+    # Original: 
+    # meanDens[x, a, t] <- sum(Density[x, a, 1:N_sites[x], t]) / N_sites[x]
+    # totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
+    # totDens_std[x, t] <- max(min(-10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), 10) 
   }
   
 
   ## Species A vital rate models
   for(t in 1:N_years){
     log(R_A[t]) <- log(Mu.R_A)
+    # Original:  R_year[x, t] <- exp(log(Mu.R[x]) + epsR.R[x, t])
+    
     logit(S_A[t]) <- logit(Mu.S_A) + beta.vrB*VR_B[t]
+    # Original:
+    # GyrPressure[x, t] <- terrProd[x, t]
+    # logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t]
   }
   
   ## Species B vital rate models
@@ -30,11 +42,15 @@ dummy.code <- nimble::nimbleCode({
   
   for(t in 2:N_years){
     log(VR_B[t]) <- log(Mu.VR_B) + beta.densA*totDens_A[t-1] 
+    # Original: log(terrProd[x, t]) <- log(alphaPtar.Prod[x]) + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t]
   }
   
   ## Priors
   density_A[1, 1] ~ dpois(2)
+  # Original: Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1]
+  
   density_A[2, 1] ~ dpois(1)
+  # Original: Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
   
   Mu.R_A ~ dpois(1.5)
   Mu.S_A ~ dbeta(7, 3)
