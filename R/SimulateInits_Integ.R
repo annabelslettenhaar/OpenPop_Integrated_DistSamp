@@ -7,13 +7,17 @@
 #' @param survVarT logical. If TRUE, survival is simulated including annual variation.
 #' @param fitRodentCov logical. If TRUE, initial values are generated for rodent 
 #' covariate (effect) and covariate is included in data simulation.
+#' @param fullLoopPP logical. If TRUE, two way interactions between ptarmigan and
+#' gyrfalcon are included.
 #' 
 #' @return A list containing one complete set of initial values for the model.
 #' @export
 #'
 #' @examples
 
-simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCov, initVals.seed){
+simulateInits_Integ <- function(nim.data, nim.constants, R_perF, 
+                                survVarT, fitRodentCov, ffullLoopPP,
+                                initVals.seed){
   
   set.seed(initVals.seed)
   

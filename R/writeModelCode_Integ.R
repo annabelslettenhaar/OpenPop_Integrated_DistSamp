@@ -7,11 +7,15 @@
 #' from Lierne. If FALSE, only line transect data is used. 
 #' @return an R call object specifying the model structure for integrated 
 #' distance sampling model. 
+#' @param fullLoopPP logical. If TRUE, two way interactions between ptarmigan and
+#' gyrfalcon are included.If FALSE, only effect of ptarmigan density on gyrfalcon
+#' is modelled explicitly while gyrfalcon effect on ptarmigan is included via 
+#' external covariate.
 #' @export
 #'
 #' @examples
 
-writeModelCode_Integ <- function(survVarT, telemetryData){
+writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
   
   IDSM.code <- nimble::nimbleCode({
     

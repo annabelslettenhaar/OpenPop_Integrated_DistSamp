@@ -20,6 +20,8 @@
 #' @param sumR.Level character string. Default ("group") summarises reproduction/recruitment
 #' data at the group/observation level. Setting to "line" summarises data at the 
 #' transect line level instead. 
+#' @param fullLoopPP logical. If TRUE, does not return gyrfalcon pressure as an
+#' external covariate. If FALSE, returns gyrfalcon pressure as a covariate.
 #' @param dataVSconstants logical. If TRUE (default) returns a list of 2 lists
 #' containing data and constants for analysis with Nimble. If FALSE, returns a
 #' list containing all data and constants. 
@@ -41,7 +43,8 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                                    d_SD, 
                                    localities = NULL, areas = NULL, areaAggregation, 
                                    excl_neverObs = TRUE, R_perF, R_parent_drop0, 
-                                   sumR.Level = "group", dataVSconstants = TRUE, 
+                                   sumR.Level = "group", fullLoopPP, 
+                                   dataVSconstants = TRUE, 
                                    addDummyDim = TRUE, save = TRUE){
   
   

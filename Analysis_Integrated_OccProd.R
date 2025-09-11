@@ -58,6 +58,9 @@ testRun <- TRUE
 # Run MCMC in parallel
 parallelMCMC <- FALSE
 
+# Fully closed loop in predator-prey model
+fullLoopPP <- TRUE
+
 
 # WRANGLE LINE TRANSECT DATA #
 #----------------------------#
@@ -133,6 +136,7 @@ input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans,
                                      R_perF = R_perF,
                                      R_parent_drop0 = R_parent_drop0,
                                      sumR.Level = "line",
+                                     fullLoopPP = fullLoopPP,
                                      dataVSconstants = TRUE,
                                      save = TRUE)
 
@@ -142,7 +146,8 @@ input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans,
 
 ## Write model code
 modelCode <- writeModelCode_Integ(survVarT = survVarT,
-                                  telemetryData = telemetryData)
+                                  telemetryData = telemetryData,
+                                  fullLoopPP = fullLoopPP)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
@@ -155,6 +160,7 @@ model_setup <- setupModel_Integ(modelCode = modelCode,
                                 R_perF = R_perF,
                                 survVarT = survVarT, 
                                 fitRodentCov = fitRodentCov,
+                                fullLoopPP = fullLoopPP,
                                 nim.data = input_data$nim.data,
                                 nim.constants = input_data$nim.constants,
                                 testRun = testRun, 

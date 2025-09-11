@@ -8,6 +8,8 @@
 #' If FALSE, treats recruitment rate as juvenile per adult (sum of both sexes).
 #' @param survVarT logical. If TRUE, survival is simulated including annual variation.
 #' @param fitRodentCov logical. If TRUE, rodent covariate on reproduction is included.
+#' @param fullLoopPP logical. If TRUE, two-way interactions between ptarmigan and
+#' gyrfalcon are included. 
 #' @param addDummyDim logical. If TRUE (default) adds a dummy "area" dimension when 
 #' simulating initial values for a single area implementation. This is necessary 
 #' for the multi-area setup/model to run with data from only one area. 
@@ -27,7 +29,8 @@
 
 setupModel_Integ <- function(modelCode, customDist,
                                     nim.data, nim.constants,
-                                    R_perF, survVarT, fitRodentCov, addDummyDim = TRUE,
+                                    R_perF, survVarT, fitRodentCov, 
+                                    fullLoopPP, addDummyDim = TRUE,
                                     niter = 200000, nthin = 30, nburn = 111000, nchains = 3,
                                     testRun = FALSE, initVals.seed){
   
@@ -85,6 +88,7 @@ setupModel_Integ <- function(modelCode, customDist,
                                                  R_perF = R_perF, 
                                                  survVarT = survVarT,
                                                  fitRodentCov = fitRodentCov,
+                                                 fullLoopPP = fullLoopPP,
                                                  initVals.seed = initVals.seed[c])
     }
     
