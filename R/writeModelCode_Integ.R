@@ -190,7 +190,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
         # terrOcc[x, t] = number of territories occupied per area
         # probOcc[x, t] = probability of occupancy
         # terrMonitoredOcc[x, t] = number of monitored territories for occupancy
-        terrOcc[x, t] ~ dbin(prob = min(probOcc[x, t], 0.999), size = terrMonitoredOcc[x, t]) 
+        terrOcc[x, t] ~ dbin(prob = probOcc[x, t], size = terrMonitoredOcc[x, t]) 
         
       } # t
       
