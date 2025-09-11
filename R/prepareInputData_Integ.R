@@ -465,6 +465,13 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                         chicksObs_year = input.data$chicksObs_year,
                         chicksObs_area = input.data$chicksObs_area)
   
+  
+  ## Remove gyrfalcon pressure covariate if necessary
+  if(fullLoopPP){
+    nim.data$GyrPressure <- NULL
+    input.data$GyrPressure <- NULL
+  }
+  
   ## Make final data list to return
   if(dataVSconstants){
     rype.data <- list(nim.data = nim.data,
