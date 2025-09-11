@@ -46,7 +46,7 @@ dummy.code <- nimble::nimbleCode({
   }
   
   ## Priors
-  density_A[1, 1] ~ dpois(2)
+  density_A[1, 1] <- density_A[2, 1] * R_A[1]
   # Original: Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1]
   
   density_A[2, 1] ~ dpois(1)
@@ -78,8 +78,8 @@ dummy.initSim <- function(N_years){
   Mu.R_A <- rpois(1, 1.5)
   Mu.VR_B <- rpois(1, 2)
   
-  density_A[1, 1] <- round(runif(1, 2, 4))
   density_A[2, 1] <- round(runif(1, 1, 3))
+  density_A[1, 1] <- density_A[2, 1] * Mu.R_A #(= R_A[1])
   
   VR_B[1] <- Mu.VR_B
   
