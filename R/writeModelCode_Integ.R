@@ -112,7 +112,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
     for (x in 1:N_areas){
       for(t in 1:N_years){
         totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
-        totDens_std[x, t] <- max(min(-10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), 10) # Standardized
+        totDens_std[x, t] <- max(min(10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), -10) # Standardized
       } # t
     } # x
     
