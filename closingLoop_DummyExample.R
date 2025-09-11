@@ -12,31 +12,36 @@ dummy.code <- nimble::nimbleCode({
   
   ## Species A population model
   for(t in 2:N_years){
-    density_A[t] <- density_A[t-1] * S[t-1] * R[t-1]
+    density_A[1, t] <- density_A[2, t] * R_A[t]
+    density_A[2, t] <- sum(density_A[1:2, t-1]) * S_A[t-1]
+    
+    totDens_A[t] <- density_A[1, t] + density_A[2, t]
   }
   
+
   ## Species A vital rate models
-  for(t in 1:(N_years-1)){
-    log(R[t]) <- log(Mu.R)
-    logit(S[t]) <- logit(Mu.S) + beta.vrB*VR_B[t]
+  for(t in 1:N_years){
+    log(R_A[t]) <- log(Mu.R_A)
+    logit(S_A[t]) <- logit(Mu.S_A) + beta.vrB*VR_B[t]
   }
   
   ## Species B vital rate models
-  VR_B[1] <- Mu.VR
+  VR_B[1] <- Mu.VR_B
   
   for(t in 2:N_years){
-    log(VR_B[t]) <- log(Mu.VR) + beta.densA*density_A[t-1] 
+    log(VR_B[t]) <- log(Mu.VR_B) #+ beta.densA*density_A[t-1] 
   }
   
   ## Priors
-  density_A[1] ~ dpois(3)
-
-  Mu.R ~ dpois(4)
-  Mu.S ~ dbeta(7, 3)
+  density_A[1, 1] ~ dpois(2)
+  density_A[2, 1] ~ dpois(1)
+  
+  Mu.R_A ~ dpois(1.5)
+  Mu.S_A ~ dbeta(7, 3)
   
   beta.vrB ~ dnorm(mean = -0.1, sd = 0.02)
   
-  Mu.VR ~ dpois(2)
+  Mu.VR_B ~ dpois(2)
   beta.densA ~ dnorm(mean = 0.1, sd = 0.02)
   
 })
@@ -49,43 +54,54 @@ dummy.code <- nimble::nimbleCode({
 dummy.initSim <- function(N_years){
   
   # Set up vectors
-  density_A <- VR_B <- rep(NA, N_years)
-  R_A <- S_A <- rep(NA, N_years-1)
+  density_A <- matrix(NA, nrow = 2, ncol = N_years)
+  R_A <- S_A <- VR_B <- totDens_A <- rep(NA, N_years)
     
   # Set constant/first-year values
-  Mu.S <- runif(1, 0.6, 0.8)
-  Mu.R <- rpois(1, 4)
-  Mu.VR <- rpois(1, 2)
+  Mu.S_A <- runif(1, 0.3, 0.7)
+  Mu.R_A <- rpois(1, 1.5)
+  Mu.VR_B <- rpois(1, 2)
   
-  density_A[1] <- round(runif(1, 2, 4))
-  VR_B[1] <- Mu.VR
+  density_A[1, 1] <- round(runif(1, 2, 4))
+  density_A[2, 1] <- round(runif(1, 1, 3))
+  
+  VR_B[1] <- Mu.VR_B
   
   beta.vrB <- runif(1, -0.08, -0.02)
   beta.densA <- runif(1, 0.01, 0.05)
   
   # Calculate year-specific values
-  for(t in 2:N_years){
+  for(t in 1:N_years){
     
-    VR_B[t] <- exp(log(Mu.VR) + beta.densA*density_A[t-1])
+    if(t > 1){
+      VR_B[t] <- exp(log(Mu.VR_B))
+    }
     
-    S[t-1] <- plogis(qlogis(Mu.S) + beta.vrB*VR_B[t-1])
+    S_A[t] <- plogis(qlogis(Mu.S_A) + beta.vrB*VR_B[t])
+    R_A[t] <- Mu.R_A
     
-    R[t-1] <- Mu.R
+    if(t > 1){
+      density_A[2, t] <- sum(density_A[1:2, t-1]) * S_A[t-1]
+      density_A[1, t] <- density_A[2, t] * R_A[t]
+    }
     
-    density_A[t] <- density_A[t-1] * lambda_A[t-1]
+    totDens_A[t] <- sum(density_A[1:2, t])
   }
   
   initList <- list(
     density_A = density_A,
+    totDens_A = totDens_A,
     
-    lambda_A = lambda_A,
-    Mu.lambda = Mu.lambda,
+    R_A = R_A,
+    S_A = S_A,
+    Mu.R_A = Mu.R_A,
+    Mu.S_A = Mu.S_A,
     
     beta.vrB = beta.vrB,
     beta.densA = beta.densA,
     
     VR_B = VR_B,
-    Mu.VR = Mu.VR
+    Mu.VR_B = Mu.VR_B
   )
 }
 
@@ -100,7 +116,10 @@ nburnin <- 0
 nthin <- 1
 
 ## Parameters to monitor
-params <- c("density_A", "lambda_A", "Mu.lambda", "VR_B", "Mu.VR")
+params <- c("density_A", "totDens_A",
+            "R_A", "Mu.R_A", "S_A", "Mu.S_A",
+            "VR_B", "Mu.VR_B",
+            "beta.vrB", "beta.densA")
 
 ## Sample initial values
 dummy.inits <- dummy.initSim(N_years = N_years)
