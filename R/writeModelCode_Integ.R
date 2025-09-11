@@ -202,10 +202,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     # chickObs_area[i] = i'th entry of area index for a territory
     # chickObs_year[i] = i'th entry of year index for a territory
     
-    # for (i in 1:N_terr){
-    #   chicksObs[i] ~ dpois(terrProd[chicksObs_area[i], chicksObs_year[i]])
-    #   }
-    
+    for (i in 1:N_terr){
+      chicksObs[i] ~ dpois(terrProd[chicksObs_area[i], chicksObs_year[i]])
+    }
     
     
     ################################
