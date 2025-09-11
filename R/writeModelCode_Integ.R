@@ -144,7 +144,17 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
 
     } # x
     
-    
+    ## Gyrfalcon pressure covariate
+    if(fullLoopPP){
+      for(x in 1:N_areas){
+        for(t in 1:N_years){
+          
+          #GyrPressure[x, t] <- probOcc[x, t]
+          GyrPressure[x, t] <- alphaPtar.Occ[x]
+          
+        }
+      }
+    }
     
     ####################
     # DATA LIKELIHOODS #

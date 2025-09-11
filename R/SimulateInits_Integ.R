@@ -16,7 +16,7 @@
 #' @examples
 
 simulateInits_Integ <- function(nim.data, nim.constants, R_perF, 
-                                survVarT, fitRodentCov, ffullLoopPP,
+                                survVarT, fitRodentCov, fullLoopPP,
                                 initVals.seed){
   
   set.seed(initVals.seed)
@@ -56,6 +56,35 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF,
   Inits_RodentOcc <- RodentOcc
   Inits_RodentOcc[which(!is.na(nim.data$RodentOcc))] <- NA
   
+  
+  # Gyrfalcon vital rates #
+  #-----------------------#
+  
+  # Intercepts
+  alphaPtar.Occ <- runif(N_areas, 0, 1)
+  alphaPtar.Prod <- runif(N_areas, 1, 4)
+  
+  # Ptarmigan covariate slopes (initialize at 0 to facilitate initial value simulation)
+  betaPtar.Occ <- 0
+  betaPtar.Prod <- 0
+  
+  # Random effects
+  sigmaT.Occ <- runif(1, 0.1, 1)
+  sigmaT.Prod <- runif(1, 0.1, 1)
+  
+  epsT.Occ <- rep(0, N_years)
+  epsT.Prod <- rep(0, N_years)
+  
+  # Area- and time dependent vital rates (assuming ptarmigan density effect = 0)
+  probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
+  
+  for(x in 1:N_areas){
+    for(t in 1:N_years){
+      probOcc[x, t] <- plogis(qlogis(alphaPtar.Occ[x]) + epsT.Occ[t])
+      terrProd[x, t] <- exp(log(alphaPtar.Prod[x]) + epsT.Prod[t])
+    }
+  }
+
   
   # Vital rates #
   #-------------#
@@ -257,60 +286,6 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF,
     } 
   }
   
-  # Gyrfalcon model #
-  #-----------------#
-  
-  terrOcc <- nim.data$terrOcc
-  terrMonitoredOcc <- nim.data$terrMonitoredOcc
-  chicksTot <- nim.data$chicksTot
-  terrMonitoredProd <- nim.data$terrMonitoredProd
-  
-  # Ptarmigan covariate slopes
-  betaPtar.Occ <- rnorm(1, 0, 1)
-  betaPtar.Prod <- rnorm(1, 0, 1)
-  
-  # Intercepts
-  alphaPtar.Occ <- runif(N_areas, 0, 1)
-  alphaPtar.Prod <- runif(N_areas, 1, 4)
-  
-  # Productivity
-  # Set this up if terrprod is used as a latent variable in the ptarmigan model
-  # terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
-  # 
-  # for (x in 1:N_areas) {
-  #   for (t in 2:N_years) {
-  #     if (!is.na(chicksTot[x, t]) && terrMonitoredProd[x, t] > 0) {
-  #       terrProd[x, t] <- chicksTot[x, t] / terrMonitoredProd[x, t]
-  #     } else {
-  #       terrProd[x, t] <- runif(1, 1, 3)  # fallback to a reasonable range
-  #     }
-  #   }
-  # }
-  
-  # Occupancy
-  # Set this up when probOcc is used as a latent variable elsewhere, using the model formula to define probOcc and calculate starting values
-  # probOcc <- matrix(NA, nrow = N_areas, ncol = N_years)
-  # 
-  # for (x in 1:N_areas) {
-  #   for (t in 2:N_years) {
-  #     # Use observed occupancy proportion if available
-  #     if (!is.na(terrOcc[x, t]) && terrMonitoredOcc[x, t] > 0) {
-  #       probOcc[x, t] <- terrOcc[x, t] / terrMonitoredOcc[x, t]
-  #     } else {
-  #       probOcc[x, t] <- runif(1, 0.3, 0.7)  # fallback to a reasonable range
-  #     }
-  #   }
-  # }
-  
-  
-  # Random effects
-  epsT.Occ <- rep(0, N_years)
-  epsT.Prod <- rep(0, N_years)
-  
-  sigmaT.Occ <- runif(1, 0.1, 1)
-  sigmaT.Prod <- runif(1, 0.1, 1)
-  
-  
   
   # Assembly #
   #----------#
@@ -366,8 +341,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF,
     alphaPtar.Occ = alphaPtar.Occ,
     alphaPtar.Prod = alphaPtar.Prod,
     
-    #terrProd = terrProd, # add later
-    #probOcc = probOcc, # add later
+    terrProd = terrProd, 
+    probOcc = probOcc, 
     
     epsT.Occ = epsT.Occ,
     epsT.Prod = epsT.Prod,
