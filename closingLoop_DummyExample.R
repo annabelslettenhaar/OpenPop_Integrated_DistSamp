@@ -2,8 +2,15 @@ mySeed <- 0
 set.seed(mySeed)
 
 N_years <- 5
+
 meanDens <- 28
 sdDens <- 17
+
+standardizeDens <- TRUE
+if(!standardizeDens){
+  meanDens <- 0
+  sdDens <- 1
+}
 
 #------------------#
 # DUMMY MODEL CODE #
