@@ -2,7 +2,8 @@ mySeed <- 0
 set.seed(mySeed)
 
 N_years <- 5
-
+meanDens <- 28
+sdDens <- 17
 
 #------------------#
 # DUMMY MODEL CODE #
@@ -17,14 +18,16 @@ dummy.code <- nimble::nimbleCode({
 
     density_A[2, t] <- sum(density_A[1:2, t-1]) * S_A[t-1]
     # Original: Density[x, 2, j, t] <- sum(Density[x, 1:N_ageC, j, t-1])*S[x, t-1] 
-    
+  }
+  
+  for(t in 1:N_years){
     totDens_A[t] <- density_A[1, t] + density_A[2, t]
+    totDens_A_std[t] <- (totDens_A[t] - meanDens)/sdDens
     # Original: 
     # meanDens[x, a, t] <- sum(Density[x, a, 1:N_sites[x], t]) / N_sites[x]
     # totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
     # totDens_std[x, t] <- max(min(-10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), 10) 
   }
-  
 
   ## Species A vital rate models
   for(t in 1:N_years){
@@ -41,7 +44,7 @@ dummy.code <- nimble::nimbleCode({
   VR_B[1] <- Mu.VR_B
   
   for(t in 2:N_years){
-    log(VR_B[t]) <- log(Mu.VR_B) + beta.densA*totDens_A[t-1] 
+    log(VR_B[t]) <- log(Mu.VR_B) + beta.densA*totDens_A_std[t-1] 
     # Original: log(terrProd[x, t]) <- log(alphaPtar.Prod[x]) + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t]
   }
   
@@ -71,7 +74,7 @@ dummy.initSim <- function(N_years){
   
   # Set up vectors
   density_A <- matrix(NA, nrow = 2, ncol = N_years)
-  R_A <- S_A <- VR_B <- totDens_A <- rep(NA, N_years)
+  R_A <- S_A <- VR_B <- totDens_A <- totDens_A_std <- rep(NA, N_years)
     
   # Set constant/first-year values
   Mu.S_A <- runif(1, 0.3, 0.7)
@@ -90,7 +93,7 @@ dummy.initSim <- function(N_years){
   for(t in 1:N_years){
     
     if(t > 1){
-      VR_B[t] <- exp(log(Mu.VR_B) + beta.densA*totDens_A[t-1])
+      VR_B[t] <- exp(log(Mu.VR_B) + beta.densA*totDens_A_std[t-1])
     }
     
     S_A[t] <- plogis(qlogis(Mu.S_A) + beta.vrB*VR_B[t])
@@ -102,6 +105,7 @@ dummy.initSim <- function(N_years){
     }
     
     totDens_A[t] <- sum(density_A[1:2, t])
+    totDens_A_std[t] <- (totDens_A[t] - meanDens)/sdDens
   }
   
   initList <- list(
@@ -127,12 +131,12 @@ dummy.initSim <- function(N_years){
 
 ## MCMC parameters
 nchains <- 1
-niter <- 10
-nburnin <- 0
+niter <- 1000
+nburnin <- 200
 nthin <- 1
 
 ## Parameters to monitor
-params <- c("density_A", "totDens_A",
+params <- c("density_A", "totDens_A", "totDens_A_std",
             "R_A", "Mu.R_A", "S_A", "Mu.S_A",
             "VR_B", "Mu.VR_B",
             "beta.vrB", "beta.densA")
@@ -140,9 +144,16 @@ params <- c("density_A", "totDens_A",
 ## Sample initial values
 dummy.inits <- dummy.initSim(N_years = N_years)
 
+#----------------#
+# DUMMY TEST RUN #
+#----------------#
+
+## Run model
 dummy.out <- nimbleMCMC(code = dummy.code,
                         data = list(), 
-                        constants = list(N_years = N_years),
+                        constants = list(N_years = N_years,
+                                         meanDens = meanDens,
+                                         sdDens = sdDens),
                         inits = dummy.inits, 
                         monitors = params,
                         nchains = nchains, 
@@ -152,3 +163,9 @@ dummy.out <- nimbleMCMC(code = dummy.code,
                         samplesAsCodaMCMC = TRUE, 
                         setSeed = mySeed)
 
+## Extract average and sd for total density
+meanDens <- median(apply(dummy.out[,c(paste0("totDens_A[", 1:N_years, "]"))], 1, mean))
+# --> ~ 28
+
+sdDens <- median(apply(dummy.out[,c(paste0("totDens_A[", 1:N_years, "]"))], 1, sd))
+# --> 17
