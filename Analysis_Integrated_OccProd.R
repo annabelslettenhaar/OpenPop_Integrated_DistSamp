@@ -159,7 +159,7 @@ modelCode <- writeModelCode_Integ(survVarT = survVarT,
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
                               nchains = nchains)
 
-MCMC.seeds <- MCMC.seeds[1]
+#MCMC.seeds <- MCMC.seeds[1]
 
 ## Setup for model using nimbleDistance::dHN
 model_setup <- setupModel_Integ(modelCode = modelCode,
@@ -170,8 +170,8 @@ model_setup <- setupModel_Integ(modelCode = modelCode,
                                 nim.data = input_data$nim.data,
                                 nim.constants = input_data$nim.constants,
                                 testRun = testRun, 
-                                #nchains = nchains,
-                                nchains = 1,
+                                nchains = nchains,
+                                #nchains = 1,
                                 niter = niter,
                                 nburn = nburn,
                                 nthin = nthin,
