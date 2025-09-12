@@ -7,13 +7,17 @@
 #' @param survVarT logical. If TRUE, survival is simulated including annual variation.
 #' @param fitRodentCov logical. If TRUE, initial values are generated for rodent 
 #' covariate (effect) and covariate is included in data simulation.
+#' @param fullLoopPP logical. If TRUE, two way interactions between ptarmigan and
+#' gyrfalcon are included.
 #' 
 #' @return A list containing one complete set of initial values for the model.
 #' @export
 #'
 #' @examples
 
-simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCov, initVals.seed){
+simulateInits_Integ <- function(nim.data, nim.constants, R_perF, 
+                                survVarT, fitRodentCov, fullLoopPP,
+                                initVals.seed){
   
   set.seed(initVals.seed)
   
@@ -35,6 +39,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
   pi <- 3.141593
   A <- nim.data$A
   
+  totDens_meanCov <- nim.constants$totDens_meanCov
+  totDens_sdCov <- nim.constants$totDens_sdCov
   
   # Missing covariate values #
   #--------------------------#
@@ -52,6 +58,35 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
   Inits_RodentOcc <- RodentOcc
   Inits_RodentOcc[which(!is.na(nim.data$RodentOcc))] <- NA
   
+  
+  # Gyrfalcon vital rates #
+  #-----------------------#
+  
+  # Intercepts
+  alphaPtar.Occ <- runif(N_areas, 0, 1)
+  alphaPtar.Prod <- runif(N_areas, 1, 4)
+  
+  # Ptarmigan covariate slopes (initialize at 0 to facilitate initial value simulation)
+  betaPtar.Occ <- 0
+  betaPtar.Prod <- 0
+  
+  # Random effects
+  sigmaT.Occ <- runif(1, 0.1, 1)
+  sigmaT.Prod <- runif(1, 0.1, 1)
+  
+  epsT.Occ <- rep(0, N_years)
+  epsT.Prod <- rep(0, N_years)
+  
+  # Area- and time dependent vital rates (assuming ptarmigan density effect = 0)
+  probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
+  
+  for(x in 1:N_areas){
+    for(t in 1:N_years){
+      probOcc[x, t] <- plogis(qlogis(alphaPtar.Occ[x]) + epsT.Occ[t])
+      terrProd[x, t] <- exp(log(alphaPtar.Prod[x]) + epsT.Prod[t])
+    }
+  }
+
   
   # Vital rates #
   #-------------#
@@ -253,60 +288,15 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
     } 
   }
   
-  # Gyrfalcon model #
-  #-----------------#
+  ## Density covariate
+  totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
   
-  terrOcc <- nim.data$terrOcc
-  terrMonitoredOcc <- nim.data$terrMonitoredOcc
-  chicksTot <- nim.data$chicksTot
-  terrMonitoredProd <- nim.data$terrMonitoredProd
-  
-  # Ptarmigan covariate slopes
-  betaPtar.Occ <- rnorm(1, 0, 1)
-  betaPtar.Prod <- rnorm(1, 0, 1)
-  
-  # Intercepts
-  alphaPtar.Occ <- rnorm(N_areas, 0, 1)
-  alphaPtar.Prod <- rnorm(N_areas, 0, 1)
-  
-  # Productivity
-  # Set this up if terrprod is used as a latent variable in the ptarmigan model
-  # terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
-  # 
-  # for (x in 1:N_areas) {
-  #   for (t in 2:N_years) {
-  #     if (!is.na(chicksTot[x, t]) && terrMonitoredProd[x, t] > 0) {
-  #       terrProd[x, t] <- chicksTot[x, t] / terrMonitoredProd[x, t]
-  #     } else {
-  #       terrProd[x, t] <- runif(1, 1, 3)  # fallback to a reasonable range
-  #     }
-  #   }
-  # }
-  
-  # Occupancy
-  # Set this up when probOcc is used as a latent variable elsewhere, using the model formula to define probOcc and calculate starting values
-  # probOcc <- matrix(NA, nrow = N_areas, ncol = N_years)
-  # 
-  # for (x in 1:N_areas) {
-  #   for (t in 2:N_years) {
-  #     # Use observed occupancy proportion if available
-  #     if (!is.na(terrOcc[x, t]) && terrMonitoredOcc[x, t] > 0) {
-  #       probOcc[x, t] <- terrOcc[x, t] / terrMonitoredOcc[x, t]
-  #     } else {
-  #       probOcc[x, t] <- runif(1, 0.3, 0.7)  # fallback to a reasonable range
-  #     }
-  #   }
-  # }
-  
-  
-  # Random effects
-  epsT.Occ <- rnorm(N_years, 0, 0.5)
-  epsT.Prod <- rnorm(N_years, 0, 0.5)
-  
-  sigmaT.Occ <- runif(1, 0.1, 1)
-  sigmaT.Prod <- runif(1, 0.1, 1)
-  
-  
+  for (x in 1:N_areas){
+    for(t in 1:N_years){
+      totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
+      totDens_std[x, t] <- max(min(-10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), 10) # Standardized
+    }
+  }
   
   # Assembly #
   #----------#
@@ -354,6 +344,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
     
     Density = Density,
     meanDens = meanDens,
+    totDens_raw = totDens_raw,
+    totDens_std = totDens_std,
     N_exp = N_exp,
     N_tot_exp = N_tot_exp,
     
@@ -362,8 +354,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
     alphaPtar.Occ = alphaPtar.Occ,
     alphaPtar.Prod = alphaPtar.Prod,
     
-    #terrProd = terrProd, # add later
-    #probOcc = probOcc, # add later
+    terrProd = terrProd, 
+    probOcc = probOcc, 
     
     epsT.Occ = epsT.Occ,
     epsT.Prod = epsT.Prod,
@@ -378,6 +370,9 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF, survVarT, fitRo
     InitVals$epsA.betaR.R <- betaR.R - h.Mu.betaR.R
     InitVals$RodentOcc <- Inits_RodentOcc
   }
+  
+  InitVals$betaGyr.S <- 0
+  #* CRN: Initialized at 0 for now, but this may need changing before full integration. 
   
   return(InitVals)
 }

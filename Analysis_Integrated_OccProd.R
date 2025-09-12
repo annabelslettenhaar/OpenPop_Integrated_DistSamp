@@ -8,14 +8,14 @@ library(nimble)
 #-------#
 
 ## Set seed
-mySeed <- 32
+mySeed <- 83
 set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
 niter <- 10000
 nburn <- 6000
-nthin <- 20
+nthin <- 5
 
 ## Source all functions in "R" folder
 sourceDir <- function(path, trace = TRUE, ...) {
@@ -53,10 +53,13 @@ fitRodentCov <- TRUE
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- FALSE
+testRun <- TRUE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
+
+# Fully closed loop in predator-prey model
+fullLoopPP <- TRUE
 
 
 # WRANGLE LINE TRANSECT DATA #
@@ -117,6 +120,10 @@ d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
 # PREPARE INPUT DATA FOR INTEGRATED MODEL #
 #-----------------------------------------#
 
+## Define mean and sd for standardizing ptarmigan density in the model (per area)
+totDens_meanCov <- c(1.4e-05, 2.1e-05, 2.5e-05)
+totDens_sdCov <- c(8e-06, 8e-06, 1.7e-05)
+
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans, 
                                      d_obs = LT_data$d_obs,
@@ -133,6 +140,9 @@ input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans,
                                      R_perF = R_perF,
                                      R_parent_drop0 = R_parent_drop0,
                                      sumR.Level = "line",
+                                     totDens_meanCov = totDens_meanCov,
+                                     totDens_sdCov = totDens_sdCov, 
+                                     fullLoopPP = fullLoopPP,
                                      dataVSconstants = TRUE,
                                      save = TRUE)
 
@@ -142,21 +152,26 @@ input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans,
 
 ## Write model code
 modelCode <- writeModelCode_Integ(survVarT = survVarT,
-                                  telemetryData = telemetryData)
+                                  telemetryData = telemetryData,
+                                  fullLoopPP = fullLoopPP)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
                               nchains = nchains)
+
+#MCMC.seeds <- MCMC.seeds[1]
 
 ## Setup for model using nimbleDistance::dHN
 model_setup <- setupModel_Integ(modelCode = modelCode,
                                 R_perF = R_perF,
                                 survVarT = survVarT, 
                                 fitRodentCov = fitRodentCov,
+                                fullLoopPP = fullLoopPP,
                                 nim.data = input_data$nim.data,
                                 nim.constants = input_data$nim.constants,
                                 testRun = testRun, 
                                 nchains = nchains,
+                                #nchains = 1,
                                 niter = niter,
                                 nburn = nburn,
                                 nthin = nthin,

@@ -7,11 +7,15 @@
 #' from Lierne. If FALSE, only line transect data is used. 
 #' @return an R call object specifying the model structure for integrated 
 #' distance sampling model. 
+#' @param fullLoopPP logical. If TRUE, two way interactions between ptarmigan and
+#' gyrfalcon are included.If FALSE, only effect of ptarmigan density on gyrfalcon
+#' is modelled explicitly while gyrfalcon effect on ptarmigan is included via 
+#' external covariate.
 #' @export
 #'
 #' @examples
 
-writeModelCode_Integ <- function(survVarT, telemetryData){
+writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
   
   IDSM.code <- nimble::nimbleCode({
     
@@ -108,7 +112,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     for (x in 1:N_areas){
       for(t in 1:N_years){
         totDens_raw[x, t] <- meanDens[x, 1, t] + meanDens[x, 2, t]
-        totDens_std[x, t] <- (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x] # Standardized
+        totDens_std[x, t] <- max(min(10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), -10) # Standardized
       } # t
     } # x
     
@@ -118,18 +122,39 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     #---------------------#
     
     for (x in 1:N_areas){
+      
+      ## Year 1 (no ptarmigan density estimate available)
+      # Occupancy
+      logit(probOcc[x, 1]) <- logit(alphaPtar.Occ[x]) + epsT.Occ[1]
+      
+      # Productivity
+      log(terrProd[x, 1]) <- log(alphaPtar.Prod[x]) + epsT.Prod[1]
+      
+      
+      ## Years 2+ (ptarmigan density estimate available)
+      
       for (t in 2:N_years){
         # Occupancy
-        logit(probOcc[x, t]) <- alphaPtar.Occ[x] + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t]
-        
+        logit(probOcc[x, t]) <- logit(alphaPtar.Occ[x]) + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t]
+
         # Productivity
-        terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t])
-        
+        log(terrProd[x, t]) <- log(alphaPtar.Prod[x]) + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t]
+
       } # t
-      
+
     } # x
     
-    
+    ## Gyrfalcon pressure covariate
+    if(fullLoopPP){
+      for(x in 1:N_areas){
+        for(t in 1:N_years){
+          
+          #GyrPressure[x, t] <- probOcc[x, t]
+          GyrPressure[x, t] <- terrProd[x, t]
+          
+        }
+      }
+    }
     
     ####################
     # DATA LIKELIHOODS #
@@ -172,13 +197,14 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       
       
       ## Gyrfalcon models
+
+      # Gyrfalcon occupancy (per area)
       
-      for (t in 2:N_years){
-        # Gyrfalcon occupancy (per area)
+      for (t in 1:N_years){
         # terrOcc[x, t] = number of territories occupied per area
         # probOcc[x, t] = probability of occupancy
         # terrMonitoredOcc[x, t] = number of monitored territories for occupancy
-        terrOcc[x, t] ~ dbinom(probOcc[x, t], terrMonitoredOcc[x, t]) 
+        terrOcc[x, t] ~ dbin(prob = probOcc[x, t], size = terrMonitoredOcc[x, t]) 
         
       } # t
       
@@ -192,8 +218,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     
     for (i in 1:N_terr){
       chicksObs[i] ~ dpois(terrProd[chicksObs_area[i], chicksObs_year[i]])
-      }
-    
+    }
     
     
     ################################
@@ -239,11 +264,13 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       #   logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S[x]*GyrPressure[x, 1:(N_years-1)]
       # } # Area specific effect of gyrpressure
       
-      if(survVarT){
-        #logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x] + epsR.S[x, 1:(N_years-1)]) # Old version
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + epsR.S[x, 1:(N_years-1)] + betaGyr.S*GyrPressure[x, 1:(N_years-1)]
-      }else{
-        logit(S[x, 1:(N_years-1)]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, 1:(N_years-1)]
+      for(t in 1:(N_years-1)){
+        if(survVarT){
+          #logit(S[x, t]) <- logit(Mu.S[x] + epsR.S[x, t]) # Old version
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t] + epsR.S[x, t] 
+        }else{
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t]
+        }
       }
       
       # Experimenting with including snowdepth in survival estimates  
@@ -267,25 +294,25 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     for(x in 1:N_areas){
       
       ## Initial density
-      #Mu.D1[x] ~ dunif(0, 10) # Original prior
-      Mu.D1[x] ~ dunif(0, 5)
+      Mu.D1[x] ~ dunif(0, 10) # Original prior
+      #Mu.D1[x] ~ dunif(0, 5)
       
       ## Recruitment fixed effects
-      #Mu.R[x] ~ dunif(0, 10) # Original prior
+      Mu.R[x] ~ dunif(0, 10) # Original prior
       #Mu.R[x] ~ dunif(0, 5) # Test
-      logMu.R[x] ~ dnorm(0.5, 1)
-      Mu.R[x] <- exp(logMu.R[x])
+      #logMu.R[x] ~ dnorm(0.5, 1)
+      #Mu.R[x] <- exp(logMu.R[x])
       
       
       ## Survival fixed effects
-      #mu.S[x] ~ dunif(0, 1) # Original prior
+      Mu.S[x] ~ dunif(0, 1) # Original prior
       #logit.Mu.S[x] ~ dnorm(0, 1) # Test
-      logit.Mu.S[x] ~ dnorm(0, 0.5)
-      Mu.S[x] <- ilogit(logit.Mu.S[x])
+      #logit.Mu.S[x] ~ dnorm(0, 0.5)
+      #Mu.S[x] <- ilogit(logit.Mu.S[x])
       
       ## Detection fixed effects
-      #mu.dd[x] ~ dunif(-10, 100)
-      mu.dd[x] ~ dnorm(0, 2)
+      mu.dd[x] ~ dunif(-10, 100)
+      #mu.dd[x] ~ dnorm(0, 2)
     }
     
     
@@ -296,13 +323,13 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     ## Standard deviations
     
     # Recruitment
-    #sigmaR.R ~ dunif(0, 5)
-    sigmaR.R ~ T(dnorm(0, 1), 0, )
+    sigmaR.R ~ dunif(0, 5)
+    #sigmaR.R ~ T(dnorm(0, 1), 0, )
     
     # Survival 
     if(survVarT){
-      #sigmaR.S ~ dunif(0, 5) # Original prior
-      sigmaR.S ~ dunif(0, 1)
+      sigmaR.S ~ dunif(0, 5) # Original prior
+      #sigmaR.S ~ dunif(0, 1)
     }
     
     # Detection
@@ -324,7 +351,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       # epsT.Gyr[t] ~ dnorm(0, sd = sigmaT.Gyr) # Shared random effect for gyr occ and prod
       epsT.Occ[t] ~ dnorm(0, sd = sigmaT.Occ)
       epsT.Prod[t] ~ dnorm(0, sd = sigmaT.Prod)
-      }
+    }
     
     # Residual variation
     for(x in 1:N_areas){
@@ -362,7 +389,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
       # for(x in 1:N_areas){
       #   betaR.R[x] ~ dunif(-5, 10) # Area specific slopes
       # }
-      betaR.R ~ dunif(-5,5)
+      betaR.R ~ dunif(-5, 5)
     }
     
     
@@ -371,8 +398,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     # } 
     
     betaGyr.S ~ dunif(-5, 5)
-    
-    
+
     # for(x in 1:N_areas){
     #   betaSD.S[x] ~ dunif(-10, 10)
     # }
@@ -382,14 +408,12 @@ writeModelCode_Integ <- function(survVarT, telemetryData){
     #-----------------#
     
     for(x in 1:N_areas){
-      alphaPtar.Occ[x] ~ dunif(-2, 2)
-      alphaPtar.Prod[x] ~ dunif(-2, 2)
-      # betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
+      alphaPtar.Occ[x] ~ dunif(0, 1)
+      alphaPtar.Prod[x] ~ dunif(0, 8)
+      #betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
     }
-    
-    betaPtar.Occ ~ dunif(-5,5)
-    betaPtar.Prod ~ dunif(-5,5)
-    
+
+
     #------------------#
     # Other parameters #
     #------------------#

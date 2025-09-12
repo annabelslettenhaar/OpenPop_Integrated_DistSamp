@@ -20,6 +20,12 @@
 #' @param sumR.Level character string. Default ("group") summarises reproduction/recruitment
 #' data at the group/observation level. Setting to "line" summarises data at the 
 #' transect line level instead. 
+#' @param totDens_meanCov numeric. Estimated average of density estimates used for
+#' standardizing ptarmigan density covariate in model. 
+#' @param totDens_sdCov numeric. Estimated standard deviation of density estimates used for
+#' standardizing ptarmigan density covariate in model. 
+#' @param fullLoopPP logical. If TRUE, does not return gyrfalcon pressure as an
+#' external covariate. If FALSE, returns gyrfalcon pressure as a covariate.
 #' @param dataVSconstants logical. If TRUE (default) returns a list of 2 lists
 #' containing data and constants for analysis with Nimble. If FALSE, returns a
 #' list containing all data and constants. 
@@ -41,7 +47,10 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                                    d_SD, 
                                    localities = NULL, areas = NULL, areaAggregation, 
                                    excl_neverObs = TRUE, R_perF, R_parent_drop0, 
-                                   sumR.Level = "group", dataVSconstants = TRUE, 
+                                   sumR.Level = "group", 
+                                   totDens_meanCov = 0, totDens_sdCov = 1, 
+                                   fullLoopPP, 
+                                   dataVSconstants = TRUE, 
                                    addDummyDim = TRUE, save = TRUE){
   
   
@@ -319,9 +328,6 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
   
   #d_gyrocc <- wrangleData_GyrOcc_agg(minYear, maxYear)
   
-  totDens_mean <- c(0.0000136, 0.0000178, 0.0000251)
-  totDens_sd <- c(0.00000212, 0.00000802, 0.00000504)
-  
   terrMonitored <- d_gyrocc$array_out[, , "n_monitored"]
   dimnames(terrMonitored) <- NULL
   terrOcc <- d_gyrocc$array_out[, , "Occ_count"]
@@ -407,8 +413,8 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
     N_terr = length(d_gyrprod$chicksObs),
     
     # Standardization ptarmigan covariate
-    totDens_meanCov = totDens_mean,
-    totDens_sdCov = totDens_sd,
+    totDens_meanCov = totDens_meanCov,
+    totDens_sdCov = totDens_sdCov,
     
     N_areas = N_sUnits,
     area_names = sUnits
@@ -461,6 +467,13 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                         totDens_sdCov = input.data$totDens_sdCov,
                         chicksObs_year = input.data$chicksObs_year,
                         chicksObs_area = input.data$chicksObs_area)
+  
+  
+  ## Remove gyrfalcon pressure covariate if necessary
+  if(fullLoopPP){
+    nim.data$GyrPressure <- NULL
+    input.data$GyrPressure <- NULL
+  }
   
   ## Make final data list to return
   if(dataVSconstants){
