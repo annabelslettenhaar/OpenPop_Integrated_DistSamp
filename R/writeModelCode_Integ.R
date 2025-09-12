@@ -154,7 +154,8 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
           # For years 2+:
           for(t in 2:N_years){
           GyrPressure[x, t] <- 0.5 * (2 * probOcc[x, t-1] * terrMonitoredOcc[x, t-1]) + # Number of gyrfalcons present in the first half of the ptarmigan 'year'
-                               0.5 * (2 * probOcc[x, t] * terrMonitoredOcc[x, t]) + terrProd[x, t] # Number of gyrfalcons present in second half of the ptarmigan 'year'
+                               0.5 * (2 * probOcc[x, t] * terrMonitoredOcc[x, t]) + # Number of adult gyrfalcons present in second half of the ptarmigan 'year'
+                               (terrProd[x, t] * probOcc[x, t] * terrMonitoredOcc[x, t]) # Number of juveniles/nestlings present in the second half
           
         }
       }
