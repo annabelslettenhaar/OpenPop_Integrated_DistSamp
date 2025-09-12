@@ -15,7 +15,7 @@ set.seed(mySeed)
 nchains <- 3
 niter <- 10000
 nburn <- 6000
-nthin <- 20
+nthin <- 5
 
 ## Source all functions in "R" folder
 sourceDir <- function(path, trace = TRUE, ...) {
