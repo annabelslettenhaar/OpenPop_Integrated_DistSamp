@@ -149,7 +149,8 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       for(x in 1:N_areas){
           
           # For year 1:
-          GyrPressure[x, 1] <- 2 * probOcc[x, 1] * terrMonitoredOcc[x, 1] + terrProd[x, 1] # Avoid using the time lag for t=1 
+          GyrPressure[x, 1] <- (2 * probOcc[x, 1] * terrMonitoredOcc[x, 1]) + # Number of adults, avoid using the time lag for t=1 
+                               (terrProd[x, 1] * probOcc[x, 1] * terrMonitoredOcc[x, 1]) # Number of nestlings
           
           # For years 2+:
           for(t in 2:N_years){
