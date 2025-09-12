@@ -151,8 +151,6 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
           
           #GyrPressure[x, t] <- probOcc[x, t]
           GyrPressure[x, t] <- terrProd[x, t]
-          #GyrPressure[x, t] <- alphaPtar.Occ[x]
-          #GyrPressure[x, t] <- alphaPtar.Prod[x]
           
         }
       }
