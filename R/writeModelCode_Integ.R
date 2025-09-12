@@ -150,7 +150,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
         for(t in 1:N_years){
           
           #GyrPressure[x, t] <- probOcc[x, t]
-          GyrPressure[x, t] <- terrProd[x, t]
+          GyrPressure[x, t] <- (probOcc[x, t] * terrMonitoredOcc[x, t]) + terrProd[x, t] # Number of gyrfalcons present in second half of the ptarmigan 'year'
           
         }
       }
