@@ -383,7 +383,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
     # Covariate effects #
     #-------------------#
     
-    ## Rodent effect on reproduction
+    ## Rodent effect on ptarmigan reproduction
     if(fitRodentCov){
       
       # for(x in 1:N_areas){
@@ -392,16 +392,15 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       betaR.R ~ dunif(-5, 5)
     }
     
-    
+    ## Gyrfalcon effect on ptarmigan survival
     # for(x in 1:N_areas){
     #   betaGyr.S[x] ~ dunif(-10, 10) # Area specific slopes
     # } 
-    
     betaGyr.S ~ dunif(-5, 5)
 
-    # for(x in 1:N_areas){
-    #   betaSD.S[x] ~ dunif(-10, 10)
-    # }
+    ## Ptarmigan density effect on ptarmigan occupancy and productivity
+    betaPtar.Prod ~ dunif(-5, 5)
+    betaPtar.Occ ~ dunif(-5, 5)
     
     #-----------------#
     # Gyrfalcon model #
