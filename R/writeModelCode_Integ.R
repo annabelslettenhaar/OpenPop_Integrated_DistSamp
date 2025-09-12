@@ -147,10 +147,14 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
     ## Gyrfalcon pressure covariate
     if(fullLoopPP){
       for(x in 1:N_areas){
-        for(t in 1:N_years){
           
-          #GyrPressure[x, t] <- probOcc[x, t]
-          GyrPressure[x, t] <- (probOcc[x, t] * terrMonitoredOcc[x, t]) + terrProd[x, t] # Number of gyrfalcons present in second half of the ptarmigan 'year'
+          # For year 1:
+          GyrPressure[x, 1] <- 2 * probOcc[x, 1] * terrMonitoredOcc[x, 1] + terrProd[x, 1] # Avoid using the time lag for t=1 
+          
+          # For years 2+:
+          for(t in 2:N_years){
+          GyrPressure[x, t] <- 0.5 * (2 * probOcc[x, t-1] * terrMonitoredOcc[x, t-1]) + # Number of gyrfalcons present in the first half of the ptarmigan 'year'
+                               0.5 * (2 * probOcc[x, t] * terrMonitoredOcc[x, t]) + terrProd[x, t] # Number of gyrfalcons present in second half of the ptarmigan 'year'
           
         }
       }
