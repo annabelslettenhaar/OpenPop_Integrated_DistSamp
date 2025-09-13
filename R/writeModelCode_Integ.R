@@ -149,16 +149,20 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       for(x in 1:N_areas){
           
           # For year 1:
-          GyrPressure[x, 1] <- (2 * probOcc[x, 1] * terrMonitoredOcc[x, 1]) + # Number of adults, avoid using the time lag for t=1 
+          GyrPressure_raw[x, 1] <- (2 * probOcc[x, 1] * terrMonitoredOcc[x, 1]) + # Number of adults, avoid using the time lag for t=1 
                                (terrProd[x, 1] * probOcc[x, 1] * terrMonitoredOcc[x, 1]) # Number of nestlings
           
           # For years 2+:
           for(t in 2:N_years){
-          GyrPressure[x, t] <- 0.5 * (2 * probOcc[x, t-1] * terrMonitoredOcc[x, t-1]) + # Number of gyrfalcons present in the first half of the ptarmigan 'year'
+          GyrPressure_raw[x, t] <- 0.5 * (2 * probOcc[x, t-1] * terrMonitoredOcc[x, t-1]) + # Number of gyrfalcons present in the first half of the ptarmigan 'year'
                                0.5 * (2 * probOcc[x, t] * terrMonitoredOcc[x, t]) + # Number of adult gyrfalcons present in second half of the ptarmigan 'year'
                                (terrProd[x, t] * probOcc[x, t] * terrMonitoredOcc[x, t]) # Number of juveniles/nestlings present in the second half
+          }
           
-        }
+         
+          for(t in 1:N_years){
+          GyrPressure_std[x, t] <- (GyrPressure_raw[x, t] - GyrPressure_meanCov[x]) / GyrPressure_sdCov[x] # Standardizing GyrPressure
+          }    
       }
     }
     
@@ -273,9 +277,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       for(t in 1:(N_years-1)){
         if(survVarT){
           #logit(S[x, t]) <- logit(Mu.S[x] + epsR.S[x, t]) # Old version
-          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t] + epsR.S[x, t] 
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure_std[x, t] + epsR.S[x, t] 
         }else{
-          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t]
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure_std[x, t]
         }
       }
       
