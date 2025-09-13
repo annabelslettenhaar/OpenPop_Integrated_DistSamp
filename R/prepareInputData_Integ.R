@@ -24,6 +24,10 @@
 #' standardizing ptarmigan density covariate in model. 
 #' @param totDens_sdCov numeric. Estimated standard deviation of density estimates used for
 #' standardizing ptarmigan density covariate in model. 
+#' @param GyrPressure_meanCov numeric. Estimated average of gyrfalcon predation pressure based on
+#' gyrfalcon occupancy and productivity used for standardizing the gyrpressure covariate
+#' @param GyrPressure_sdCov numeric. Estimated standard deviation of gyrfalcon predation pressure based on
+#' gyrfalcon occupancy and productivity used for standardizing the gyrpressure covariate
 #' @param fullLoopPP logical. If TRUE, does not return gyrfalcon pressure as an
 #' external covariate. If FALSE, returns gyrfalcon pressure as a covariate.
 #' @param dataVSconstants logical. If TRUE (default) returns a list of 2 lists
@@ -48,7 +52,8 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                                    localities = NULL, areas = NULL, areaAggregation, 
                                    excl_neverObs = TRUE, R_perF, R_parent_drop0, 
                                    sumR.Level = "group", 
-                                   totDens_meanCov = 0, totDens_sdCov = 1, 
+                                   totDens_meanCov = 0, totDens_sdCov = 1,
+                                   GyrPressure_meanCov = 0, GyrPressure_sdCov = 1,
                                    fullLoopPP, 
                                    dataVSconstants = TRUE, 
                                    addDummyDim = TRUE, save = TRUE){
@@ -416,6 +421,10 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
     totDens_meanCov = totDens_meanCov,
     totDens_sdCov = totDens_sdCov,
     
+    # Standardization gyrfalcon pressure covariate
+    GyrPressure_meanCov = GyrPressure_meanCov,
+    GyrPressure_sdCov = GyrPressure_sdCov,
+    
     N_areas = N_sUnits,
     area_names = sUnits
     )
@@ -465,6 +474,8 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
                         totDens_meanCov = input.data$totDens_meanCov,
                         totDens_sdCov = input.data$totDens_sdCov,
+                        GyrPressure_meanCov = input.data$GyrPressure_meanCov,
+                        GyrPressure_sdCov = input.data$GyrPressure_sdCov,
                         chicksObs_year = input.data$chicksObs_year,
                         chicksObs_area = input.data$chicksObs_area)
   
