@@ -13,9 +13,9 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 10000
-nburn <- 6000
-nthin <- 5
+niter <- 200000
+nburn <- 140000
+nthin <- 20
 
 ## Source all functions in "R" folder
 sourceDir <- function(path, trace = TRUE, ...) {
@@ -44,7 +44,7 @@ R_parent_drop0 <- TRUE
 sumR.Level <- "line" # Summing at the line level
 
 # Time variation in survival
-survVarT <- FALSE
+survVarT <- TRUE
 
 # Rodent covariate on reproduction
 fitRodentCov <- TRUE
@@ -53,7 +53,7 @@ fitRodentCov <- TRUE
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- TRUE
+testRun <- FALSE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -124,6 +124,10 @@ d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
 totDens_meanCov <- c(1.4e-05, 2.1e-05, 2.5e-05)
 totDens_sdCov <- c(8e-06, 8e-06, 1.7e-05)
 
+## Define mean and sd for standardizing GyrPressure in the model (per area)
+GyrPressure_meanCov <- c(18.5, 12.3, 12.1)
+GyrPressure_sdCov <- c(6.43, 3.91, 3.43)
+  
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans, 
                                      d_obs = LT_data$d_obs,
@@ -142,6 +146,8 @@ input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans,
                                      sumR.Level = "line",
                                      totDens_meanCov = totDens_meanCov,
                                      totDens_sdCov = totDens_sdCov, 
+                                     GyrPressure_meanCov = GyrPressure_meanCov,
+                                     GyrPressure_sdCov = GyrPressure_sdCov,
                                      fullLoopPP = fullLoopPP,
                                      dataVSconstants = TRUE,
                                      save = TRUE)
@@ -231,7 +237,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_occprod_08-09_allcov_oneslope.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_13-09_fullloop.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #
