@@ -53,7 +53,7 @@ setupModel_Integ <- function(modelCode, customDist,
   )
   
   if(fullLoopPP){
-    params <- c(params, "GyrPressure")
+    params <- c(params, "GyrPressure_raw", "GyrPressure_std")
   }
   
   if(survVarT){
