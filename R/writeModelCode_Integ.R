@@ -151,7 +151,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
           # For year 1:
           # GyrPressure_raw[x, 1] <- (2 * probOcc[x, 1] * terrMonitoredOcc[x, 1]) + # Number of adults, avoid using the time lag for t=1 
           #                      (terrProd[x, 1] * probOcc[x, 1] * terrMonitoredOcc[x, 1]) # Number of nestlings
-          GyPressure_raw[x, 1] <- probOcc[x, 1] 
+          GyrPressure_raw[x, 1] <- probOcc[x, 1] 
           
           # For years 2+:
           # for(t in 2:N_years){
@@ -164,9 +164,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
                                    (0.5 * probOcc[x, t]) # Occupancy probability in second half of the ptarmigan 'year'
           }
          
-          # for(t in 1:N_years){
-          # GyrPressure_std[x, t] <- (GyrPressure_raw[x, t] - GyrPressure_meanCov[x]) / GyrPressure_sdCov[x] # Standardizing GyrPressure
-          # }    
+          for(t in 1:N_years){
+          GyrPressure_std[x, t] <- (GyrPressure_raw[x, t] - GyrPressure_meanCov[x]) / GyrPressure_sdCov[x] # Standardizing GyrPressure
+          }
       }
     }
     
@@ -281,9 +281,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       for(t in 1:(N_years-1)){
         if(survVarT){
           #logit(S[x, t]) <- logit(Mu.S[x] + epsR.S[x, t]) # Old version
-          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure_raw[x, t] + epsR.S[x, t] 
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure_std[x, t] + epsR.S[x, t] 
         }else{
-          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure_raw[x, t]
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure_std[x, t]
         }
       }
       
