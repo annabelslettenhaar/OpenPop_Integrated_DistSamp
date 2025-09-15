@@ -124,10 +124,14 @@ d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
 totDens_meanCov <- c(1.4e-05, 2.1e-05, 2.5e-05)
 totDens_sdCov <- c(8e-06, 8e-06, 1.7e-05)
 
-## Define mean and sd for standardizing GyrPressure in the model (per area)
-GyrPressure_meanCov <- c(18.5, 12.3, 12.1)
-GyrPressure_sdCov <- c(6.43, 3.91, 3.43)
-  
+# ## Define mean and sd for standardizing GyrPressure in the model (occ + prod, indiv numbers)
+# GyrPressure_meanCov <- c(18.5, 12.3, 12.1)
+# GyrPressure_sdCov <- c(6.43, 3.91, 3.43)
+
+## Define mean and sd for standardizing GyrPressure in the model (only occ probability)
+GyrPressure_meanCov <- c(0.371, 0.35, 0.283)
+GyrPressure_sdCov <- c(0.1136, 0.0742, 0.0716)
+
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans, 
                                      d_obs = LT_data$d_obs,
@@ -237,7 +241,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_13-09_fullloop.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_15-09_fullloop_gyrPresAsOcc_forStdization.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #
