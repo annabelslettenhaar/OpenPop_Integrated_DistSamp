@@ -3,6 +3,7 @@ library(sf)
 library(terra)
 library(parallel)
 library(nimble)
+library(coda)
 
 # SETUP #
 #-------#
@@ -53,7 +54,7 @@ fitRodentCov <- TRUE
 telemetryData <- FALSE
 
 # Test run or not
-testRun <- FALSE
+testRun <- TRUE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -241,7 +242,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_15-09_fullloop_gyrPresAsOcc_forStdization.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_16-09_longrun_fullloop_onlyOcc.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #
@@ -256,16 +257,36 @@ IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out,
 # MAKE POSTERIOR SUMMARIES PER AREA #
 #-----------------------------------#
 
-PostSum.list <- summarisePost_areas(mcmc.out = IDSM.out.tidy, 
-                                    N_areas = input_data$nim.constant$N_areas, 
-                                    area_names = input_data$nim.constant$area_names, 
-                                    N_sites = input_data$nim.constant$N_sites, 
-                                    min_years = input_data$nim.constant$min_years, 
-                                    max_years = input_data$nim.constant$max_years, 
-                                    minYear = minYear, maxYear = maxYear,
-                                    fitRodentCov = fitRodentCov,
-                                    save = TRUE)
+PostSum.list <- summarisePost_areas_gyr_integ(mcmc.out = onlyOcc, 
+                                              N_areas = input_data$nim.constant$N_areas, 
+                                              area_names = input_data$nim.constant$area_names, 
+                                              N_sites = input_data$nim.constant$N_sites, 
+                                              min_years = input_data$nim.constant$min_years, 
+                                              max_years = input_data$nim.constant$max_years, 
+                                              minYear = minYear, maxYear = maxYear,
+                                              fitRodentCov = fitRodentCov,
+                                              save = FALSE)
 
+# Adjusted version
+
+var_list <- c("totDens_raw", "probOcc", "terrProd",
+              "GyrPressure_raw", "R_year", "S",
+              
+              "Mu.S", "Mu.R", "alphaPtar.Prod", "alphaPtar.Occ",
+              
+              "betaR.R", "betaPtar.Prod", "betaPtar.Occ", "betaGyr.S")
+
+var_type <- c("area_year", "area_year", "area_year",
+              "area_year", "area_year", "area_year",
+              
+              "area", "area", "area", "area",
+              
+              "overall", "overall", "overall", "overall")
+
+postSum_list <- postSum(samps = as.matrix(onlyOcc), 
+                        var_list = var_list,
+                        var_type = var_type,
+                        N_areas = 3)
 
 # OPTIONAL: MCMC TRACE PLOTS #
 #----------------------------#
