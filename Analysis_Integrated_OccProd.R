@@ -96,9 +96,23 @@ d_rodent <- wrangleData_RodentGyr(#localities = localities,
 
 # WRANGLE WEATHER DATA #
 #----------------------#
-weather_data <- wrangleData_Weather(areas = areas,
-                                    areaAggregation = areaAggregation,
-                                    minYear = minYear, maxYear = maxYear)
+
+## Using gyrfalcon territory coordinates
+# weather_data <- wrangleData_Weather(areas = areas,
+#                                     areaAggregation = areaAggregation,
+#                                     minYear = minYear, maxYear = maxYear)
+
+
+## Using ptarmigan line transect coordinates
+d_temp <- wrangleData_Temp(minYear = minYear, 
+                           maxYear = maxYear, 
+                           areas = areas)
+
+saveRDS(d_temp, "data/weather/temp.rds")
+
+
+## Or import the ptarmigan weather data that is imported and processed earlier
+#d_temp <- readRDS("data/weather/temp.rds")
 
 
 # WRANGLE GYRFALCON DATA #
