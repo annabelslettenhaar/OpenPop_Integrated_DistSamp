@@ -5,18 +5,16 @@
 #' and parameter, and calculates mean, standard deviation, and z-standardized values
 #' for the chick-rearing period (24 June–15 July) per area and year.
 #'
-#' @param start_year Integer. The starting year for weather data extraction (e.g., 1990).
-#' @param end_year Integer. The ending year for weather data extraction (e.g., 2020).
-#' @param param_value Character. The weather parameter to retrieve (e.g., `"tm"` for temperature).
+#' @param minYear Integer. The starting year for weather data extraction (e.g., 1990).
+#' @param maxYear Integer. The ending year for weather data extraction (e.g., 2020).
+#' @param areas string or vector of strings. Names of areas to extract
+#' data for.
 #'
-#'
-#' @import sf dplyr purrr httr jsonlite
+#' @import purrr httr jsonlite
 #' @export
-
-wrangleData_Weather_PT <- function(start_year, end_year, param_value) {
   
-  library(sf)
-  library(dplyr)
+wrangleData_Temp <- function(minYear, maxYear, areas) {
+  
   library(purrr)
   library(httr)
   library(jsonlite)
@@ -63,19 +61,20 @@ wrangleData_Weather_PT <- function(start_year, end_year, param_value) {
     distinct(utm_coord, .keep_all = TRUE)
   
   # 6. Prepare date range
-  start.date <- as.Date(paste0(start_year, "-01-01"))
-  end.date <- as.Date(paste0(end_year, "-12-31"))
+  start.date <- as.Date(paste0(minYear, "-01-01"))
+  end.date <- as.Date(paste0(maxYear, "-12-31"))
   dates <- seq(start.date, end.date, "days")
   start_date_str <- format(start.date, "%Y-%m-%d")
   end_date_str <- format(end.date, "%Y-%m-%d")
   
-  # 7. Fetch weather data
+  # 7. Fetch temperature data
+  param <- "tm"
   base_url <- "http://gts.nve.no/api/GridTimeSeries/"
   coordinates <- coords_df$utm_coord
   data_list <- list()
   
   for (coord in coordinates) {
-    url <- paste0(base_url, coord, "/", start_date_str, "/", end_date_str, "/", param_value, ".json")
+    url <- paste0(base_url, coord, "/", start_date_str, "/", end_date_str, "/", param, ".json")
     res <- httr::GET(url, timeout(seconds = 30))
     dat <- jsonlite::fromJSON(rawToChar(res$content))
     data_list[[coord]] <- dat
@@ -100,20 +99,42 @@ wrangleData_Weather_PT <- function(start_year, end_year, param_value) {
   # 10. Filter chick period (24 June - 15 July)
   df.temp$julianday <- as.numeric(format(df.temp$Date, "%j"))
   chickweather <- subset(df.temp, julianday >= 175 & julianday <= 196)
-  chickweather$year <- format(chickweather$Date, "%Y")
+  chickweather$Year <- as.numeric(format(chickweather$Date, "%Y"))
   
-  # 11. Summarise means per area/year and z-standardize
+  # 11. Summarize mean temperature per area/year
   chickweather_summary <- chickweather %>%
-    group_by(gyrArea, year) %>%
-    summarise(chicktemp_mean = mean(Value),
-              chicktemp_sd = sd(Value),
-              .groups = "drop") %>%
-    mutate(chicktemp_z = (chicktemp_mean - mean(chicktemp_mean)) / sd(chicktemp_mean))
+    group_by(gyrArea, Year) %>%
+    summarise(temp_mean = mean(Value, na.rm = TRUE), .groups = "drop") %>%
+    mutate(YearIdx = Year - minYear + 1)
   
-  return(chickweather_summary)
+  # 12. Create matrix
+  sUnits <- areas
+  N_sUnits <- length(sUnits)
+  mat <- matrix(NA, nrow = N_sUnits, ncol = length(minYear:maxYear))
+  
+  for (x in seq_len(N_sUnits)) {
+    unit <- sUnits[x]
+    df_sub <- chickweather_summary[chickweather_summary$gyrArea == unit, ]
+    for (t in seq_len(ncol(mat))) {
+      if (t %in% df_sub$YearIdx) {
+        mat[x, t] <- df_sub$temp_mean[df_sub$YearIdx == t]
+      }
+    }
+  }
+  
+  # 13. Standardize
+  cov_mean <- mean(mat, na.rm = TRUE)
+  cov_sd <- sd(mat, na.rm = TRUE)
+  mat_std <- (mat - cov_mean) / cov_sd
+  
+  return(list(
+    data = mat_std,
+    mean = cov_mean,
+    sd = cov_sd
+  ))
 }
-
-# temp <- wrangleWeather(start_year = 1990, 
-#                        end_year = 2020, 
-#                        param_value = "tm")
+  
+# temptest <- wrangleData_Temp(minYear = minYear,
+#                              maxYear = maxYear,
+#                              areas = areas)
 
