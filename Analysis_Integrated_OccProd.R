@@ -3,6 +3,7 @@ library(sf)
 library(terra)
 library(parallel)
 library(nimble)
+library(coda)
 
 # SETUP #
 #-------#
@@ -13,9 +14,9 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 10000
-nburn <- 6000
-nthin <- 5
+niter <- 200000
+nburn <- 140000
+nthin <- 20
 
 ## Source all functions in "R" folder
 sourceDir <- function(path, trace = TRUE, ...) {
@@ -44,7 +45,7 @@ R_parent_drop0 <- TRUE
 sumR.Level <- "line" # Summing at the line level
 
 # Time variation in survival
-survVarT <- FALSE
+survVarT <- TRUE
 
 # Rodent covariate on reproduction
 fitRodentCov <- TRUE
@@ -124,6 +125,14 @@ d_gyrocc <- wrangleData_GyrOcc_agg(minYear,
 totDens_meanCov <- c(1.4e-05, 2.1e-05, 2.5e-05)
 totDens_sdCov <- c(8e-06, 8e-06, 1.7e-05)
 
+# ## Define mean and sd for standardizing GyrPressure in the model (occ + prod, indiv numbers)
+# GyrPressure_meanCov <- c(18.5, 12.3, 12.1)
+# GyrPressure_sdCov <- c(6.43, 3.91, 3.43)
+
+## Define mean and sd for standardizing GyrPressure in the model (only occ probability)
+GyrPressure_meanCov <- c(0.371, 0.35, 0.283)
+GyrPressure_sdCov <- c(0.1136, 0.0742, 0.0716)
+
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans, 
                                      d_obs = LT_data$d_obs,
@@ -142,6 +151,8 @@ input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans,
                                      sumR.Level = "line",
                                      totDens_meanCov = totDens_meanCov,
                                      totDens_sdCov = totDens_sdCov, 
+                                     GyrPressure_meanCov = GyrPressure_meanCov,
+                                     GyrPressure_sdCov = GyrPressure_sdCov,
                                      fullLoopPP = fullLoopPP,
                                      dataVSconstants = TRUE,
                                      save = TRUE)
@@ -231,7 +242,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_occprod_08-09_allcov_oneslope.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_16-09_longrun_fullloop_onlyOcc.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #
@@ -246,16 +257,36 @@ IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out,
 # MAKE POSTERIOR SUMMARIES PER AREA #
 #-----------------------------------#
 
-PostSum.list <- summarisePost_areas(mcmc.out = IDSM.out.tidy, 
-                                    N_areas = input_data$nim.constant$N_areas, 
-                                    area_names = input_data$nim.constant$area_names, 
-                                    N_sites = input_data$nim.constant$N_sites, 
-                                    min_years = input_data$nim.constant$min_years, 
-                                    max_years = input_data$nim.constant$max_years, 
-                                    minYear = minYear, maxYear = maxYear,
-                                    fitRodentCov = fitRodentCov,
-                                    save = TRUE)
+PostSum.list <- summarisePost_areas_gyr_integ(mcmc.out = onlyOcc, 
+                                              N_areas = input_data$nim.constant$N_areas, 
+                                              area_names = input_data$nim.constant$area_names, 
+                                              N_sites = input_data$nim.constant$N_sites, 
+                                              min_years = input_data$nim.constant$min_years, 
+                                              max_years = input_data$nim.constant$max_years, 
+                                              minYear = minYear, maxYear = maxYear,
+                                              fitRodentCov = fitRodentCov,
+                                              save = FALSE)
 
+# Adjusted version
+
+var_list <- c("totDens_raw", "probOcc", "terrProd",
+              "GyrPressure_raw", "R_year", "S",
+              
+              "Mu.S", "Mu.R", "alphaPtar.Prod", "alphaPtar.Occ",
+              
+              "betaR.R", "betaPtar.Prod", "betaPtar.Occ", "betaGyr.S")
+
+var_type <- c("area_year", "area_year", "area_year",
+              "area_year", "area_year", "area_year",
+              
+              "area", "area", "area", "area",
+              
+              "overall", "overall", "overall", "overall")
+
+postSum_list <- postSum(samps = as.matrix(onlyOcc), 
+                        var_list = var_list,
+                        var_type = var_type,
+                        N_areas = 3)
 
 # OPTIONAL: MCMC TRACE PLOTS #
 #----------------------------#

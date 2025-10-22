@@ -13,8 +13,8 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 10000
-nburn <- 6000
+niter <- 100000
+nburn <- 60000
 nthin <- 20
 
 ## Source all functions in "R" folder
@@ -149,18 +149,18 @@ MCMC.seeds <- expandSeed_MCMC(seed = mySeed,
                               nchains = nchains)
 
 ## Setup for model using nimbleDistance::dHN
-model_setup <- setupModel_Integ_GyrRS(modelCode = modelCode,
-                                      R_perF = R_perF,
-                                      survVarT = survVarT, 
-                                      fitRodentCov = fitRodentCov,
-                                      nim.data = input_data$nim.data,
-                                      nim.constants = input_data$nim.constants,
-                                      testRun = testRun, 
-                                      nchains = nchains,
-                                      niter = niter,
-                                      nburn = nburn,
-                                      nthin = nthin,
-                                      initVals.seed = MCMC.seeds)
+model_setup <- setupModel_Integ_GyrOcc(modelCode = modelCode,
+                                       R_perF = R_perF,
+                                       survVarT = survVarT, 
+                                       fitRodentCov = fitRodentCov,
+                                       nim.data = input_data$nim.data,
+                                       nim.constants = input_data$nim.constants,
+                                       testRun = testRun, 
+                                       nchains = nchains,
+                                       niter = niter,
+                                       nburn = nburn,
+                                       nthin = nthin,
+                                       initVals.seed = MCMC.seeds)
 
 
 # MODEL (TEST) RUN #
@@ -216,7 +216,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_Occ_29-08_Rodents.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_integ_Occ_03-09_allcov_oneslope.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #

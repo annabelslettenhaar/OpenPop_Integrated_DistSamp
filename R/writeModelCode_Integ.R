@@ -147,12 +147,26 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
     ## Gyrfalcon pressure covariate
     if(fullLoopPP){
       for(x in 1:N_areas){
-        for(t in 1:N_years){
           
-          #GyrPressure[x, t] <- probOcc[x, t]
-          GyrPressure[x, t] <- terrProd[x, t]
+          # For year 1:
+          # GyrPressure_raw[x, 1] <- (2 * probOcc[x, 1] * terrMonitoredOcc[x, 1]) + # Number of adults, avoid using the time lag for t=1 
+          #                      (terrProd[x, 1] * probOcc[x, 1] * terrMonitoredOcc[x, 1]) # Number of nestlings
+          GyrPressure_raw[x, 1] <- probOcc[x, 1] 
           
-        }
+          # For years 2+:
+          # for(t in 2:N_years){
+          # GyrPressure_raw[x, t] <- 0.5 * (2 * probOcc[x, t-1] * terrMonitoredOcc[x, t-1]) + # Number of gyrfalcons present in the first half of the ptarmigan 'year'
+          #                      0.5 * (2 * probOcc[x, t] * terrMonitoredOcc[x, t]) + # Number of adult gyrfalcons present in second half of the ptarmigan 'year'
+          #                      (terrProd[x, t] * probOcc[x, t] * terrMonitoredOcc[x, t]) # Number of juveniles/nestlings present in the second half
+          # }
+          for(t in 2:N_years){
+          GyrPressure_raw[x, t] <- (0.5 * probOcc[x, t-1]) + # Occupancy probability in the first half of the ptarmigan 'year'
+                                   (0.5 * probOcc[x, t]) # Occupancy probability in second half of the ptarmigan 'year'
+          }
+         
+          for(t in 1:N_years){
+          GyrPressure_std[x, t] <- (GyrPressure_raw[x, t] - GyrPressure_meanCov[x]) / GyrPressure_sdCov[x] # Standardizing GyrPressure
+          }
       }
     }
     
@@ -267,9 +281,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       for(t in 1:(N_years-1)){
         if(survVarT){
           #logit(S[x, t]) <- logit(Mu.S[x] + epsR.S[x, t]) # Old version
-          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t] + epsR.S[x, t] 
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure_std[x, t] + epsR.S[x, t] 
         }else{
-          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure[x, t]
+          logit(S[x, t]) <- logit(Mu.S[x]) + betaGyr.S*GyrPressure_std[x, t]
         }
       }
       
@@ -383,7 +397,7 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
     # Covariate effects #
     #-------------------#
     
-    ## Rodent effect on reproduction
+    ## Rodent effect on ptarmigan reproduction
     if(fitRodentCov){
       
       # for(x in 1:N_areas){
@@ -392,16 +406,15 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       betaR.R ~ dunif(-5, 5)
     }
     
-    
+    ## Gyrfalcon effect on ptarmigan survival
     # for(x in 1:N_areas){
     #   betaGyr.S[x] ~ dunif(-10, 10) # Area specific slopes
     # } 
-    
     betaGyr.S ~ dunif(-5, 5)
 
-    # for(x in 1:N_areas){
-    #   betaSD.S[x] ~ dunif(-10, 10)
-    # }
+    ## Ptarmigan density effect on ptarmigan occupancy and productivity
+    betaPtar.Prod ~ dunif(-5, 5)
+    betaPtar.Occ ~ dunif(-5, 5)
     
     #-----------------#
     # Gyrfalcon model #

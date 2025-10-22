@@ -52,6 +52,10 @@ setupModel_Integ <- function(modelCode, customDist,
               #"betaSD.S",
   )
   
+  if(fullLoopPP){
+    params <- c(params, "GyrPressure_raw", "GyrPressure_std")
+  }
+  
   if(survVarT){
     params <- c(params, "sigmaR.S")
   }
