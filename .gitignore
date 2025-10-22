@@ -1,23 +1,19 @@
 # Folders
 .Rproj.user/
 data/norway_municipalities
-
 # History files
 .Rhistory
 .Rapp.history
-
 # RDS files
 *.rds
 !data/*.rds
-
 # PDF files
 *.pdf
-
 # PNG files
-*.png 
-
+*.png
 # Shape files
 *.shp
-
 # .zip archives
 *.zip
+# JPEG files
+*.jpeg
