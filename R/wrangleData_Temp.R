@@ -9,11 +9,13 @@
 #' @param maxYear Integer. The ending year for weather data extraction (e.g., 2020).
 #' @param areas string or vector of strings. Names of areas to extract
 #' data for.
+#' @param startday Integer. Julian day at which the relevant temperature period starts
+#' @param endday Integer. Julian day at which the relevant temperature period ends
 #'
 #' @import purrr httr jsonlite
 #' @export
   
-wrangleData_Temp <- function(minYear, maxYear, areas) {
+wrangleData_Temp <- function(minYear, maxYear, areas, startday, endday) {
   
   library(purrr)
   library(httr)
@@ -98,11 +100,11 @@ wrangleData_Temp <- function(minYear, maxYear, areas) {
   
   # 10. Filter chick period (24 June - 15 July)
   df.temp$julianday <- as.numeric(format(df.temp$Date, "%j"))
-  chickweather <- subset(df.temp, julianday >= 175 & julianday <= 196)
-  chickweather$Year <- as.numeric(format(chickweather$Date, "%Y"))
+  springtemp <- subset(df.temp, julianday >= startday & julianday <= endday)
+  springtemp$Year <- as.numeric(format(springtemp$Date, "%Y"))
   
   # 11. Summarize mean temperature per area/year
-  chickweather_summary <- chickweather %>%
+  springtemp_summary <- springtemp %>%
     group_by(gyrArea, Year) %>%
     summarise(temp_mean = mean(Value, na.rm = TRUE), .groups = "drop") %>%
     mutate(YearIdx = Year - minYear + 1)
@@ -114,7 +116,7 @@ wrangleData_Temp <- function(minYear, maxYear, areas) {
   
   for (x in seq_len(N_sUnits)) {
     unit <- sUnits[x]
-    df_sub <- chickweather_summary[chickweather_summary$gyrArea == unit, ]
+    df_sub <- springtemp_summary[springtemp_summary$gyrArea == unit, ]
     for (t in seq_len(ncol(mat))) {
       if (t %in% df_sub$YearIdx) {
         mat[x, t] <- df_sub$temp_mean[df_sub$YearIdx == t]
@@ -134,7 +136,9 @@ wrangleData_Temp <- function(minYear, maxYear, areas) {
   ))
 }
   
-# temptest <- wrangleData_Temp(minYear = minYear,
+# d_temppre <- wrangleData_Temp(minYear = minYear,
 #                              maxYear = maxYear,
-#                              areas = areas)
+#                              areas = areas,
+#                              startday = 121,
+#                              endday = 153)
 
