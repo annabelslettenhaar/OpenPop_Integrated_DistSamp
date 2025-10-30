@@ -263,9 +263,9 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       
       if(fitRodentCov){
         # R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years]) # Area specific slopes
-        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
+        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + betaTemp.R * SpringTemp[x, 1:N_years] + epsR.R[x, 1:N_years])
       }else{
-        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsR.R[x, 1:N_years]) 
+        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaTemp.R * SpringTemp[x, 1:N_years] + epsR.R[x, 1:N_years]) 
       }
       
       
@@ -426,7 +426,12 @@ writeModelCode_Integ <- function(survVarT, telemetryData, fullLoopPP){
       #betaPtar.R[x] ~ dunif(-5, 5) # Area specific slope
     }
 
-
+    #-----------------#
+    # Weather/climate #
+    #-----------------#
+    
+    betaTemp.R ~ dunif(-5, 5)
+    
     #------------------#
     # Other parameters #
     #------------------#
