@@ -154,6 +154,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF,
     betaR.R <- 0
   }
   
+  ## Temperature covariate slope (initialize at 0 to facilitate initial value simulation)
+  betaTemp.R <- 0
   
   # sigmaT.R <- runif(1, 0.05, 0.2)
   sigmaR.R <- runif(1, 0.05, 0.2)
@@ -356,6 +358,8 @@ simulateInits_Integ <- function(nim.data, nim.constants, R_perF,
     
     terrProd = terrProd, 
     probOcc = probOcc, 
+    
+    betaTemp.R = betaTemp.R,
     
     epsT.Occ = epsT.Occ,
     epsT.Prod = epsT.Prod,

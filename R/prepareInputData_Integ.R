@@ -48,7 +48,7 @@
 
 prepareInputData_Integ <- function(d_trans, d_obs, d_rodent, 
                                    d_gyr, d_gyrocc, d_gyrprod,
-                                   d_SD, 
+                                   d_SD, d_temp,
                                    localities = NULL, areas = NULL, areaAggregation, 
                                    excl_neverObs = TRUE, R_perF, R_parent_drop0, 
                                    sumR.Level = "group", 
@@ -401,6 +401,11 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
     RodentOcc_meanCov = d_rodent$meanCov,
     RodentOcc_sdCov = d_rodent$sdCov,
     
+    # Temperature covariate
+    SpringTemp = d_temp$data,
+    SpringTemp_meanCov = d_temp$mean,
+    SpringTemp_sdCov = d_temp$sd,
+    
     # Gyrfalcon covariate
     GyrPressure = d_gyr$gyrPressure,
     SDPreBrood = weather_data$d_SD$data,
@@ -451,6 +456,7 @@ prepareInputData_Integ <- function(d_trans, d_obs, d_rodent,
                    RodentOcc = input.data$RodentOcc, 
                    GyrPressure = input.data$GyrPressure,
                    SDPreBrood = input.data$SDPreBrood,
+                   SpringTemp = input.data$SpringTemp,
                    #GyrOcc = input.data$GyrOcc,
                    #terrMonitoredProd = input.data$terrMonitoredProd,
                    terrOcc = input.data$terrOcc,

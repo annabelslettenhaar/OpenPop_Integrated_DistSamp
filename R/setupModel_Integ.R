@@ -52,7 +52,7 @@ setupModel_Integ <- function(modelCode, customDist,
               "meanDens", "totDens_std", "totDens_raw",
               # Covariate slopes
               "betaPtar.Occ", "betaPtar.Prod", 
-              "betaGyr.S",
+              "betaGyr.S", "betaTemp.R",
               # Random effects
               "sigmaT.Occ", "epsT.Occ",
               "sigmaT.Prod", "epsT.Prod",
