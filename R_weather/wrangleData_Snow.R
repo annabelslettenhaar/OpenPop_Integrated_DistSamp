@@ -121,6 +121,18 @@ wrangleData_Snow <- function(minYear, maxYear, areas) {
     }
   }
   
+  # 14. Standardize the matrix
+  cov_mean <- mean(mat, na.rm = TRUE)
+  cov_sd <- sd(mat, na.rm = TRUE)
+  mat_std <- (mat - cov_mean) / cov_sd
+  
+  # 15. Return both raw and standardized data
+  return(list(
+    #average_snow_depth_may20 = mat,
+    standardized = mat_std,
+    mean = cov_mean,
+    sd = cov_sd
+  ))
   return(list(
     data = mat
   ))
