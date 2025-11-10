@@ -213,7 +213,7 @@ library(emmeans)
 pairs(emmeans(R3, ~ area))
 
 
-plot(R7)
+plot(R6)
 summary(R1)
 
 pp_check(R7)
@@ -287,15 +287,15 @@ library(tidyr)
 library(stringr)
 
 # Example for one model
-samples_R5 <- posterior_samples(R5, pars = "^b_")
-samples_R5 <- samples_R5 %>%
+samples_R3 <- posterior_samples(R3, pars = "^b_")
+samples_R3 <- samples_R3 %>%
   pivot_longer(cols = everything(), names_to = "param", values_to = "value") %>%
-  mutate(model = "R5")
+  mutate(model = "R3")
 
-samples_S5 <- posterior_samples(S5, pars = "^b_")
-samples_S5 <- samples_S5 %>%
+samples_S1 <- posterior_samples(S1, pars = "^b_")
+samples_S1 <- samples_S1 %>%
   pivot_longer(cols = everything(), names_to = "param", values_to = "value") %>%
-  mutate(model = "S5")
+  mutate(model = "S1")
 
 samples_S6 <- posterior_samples(S6, pars = "^b_")
 samples_S6 <- samples_S6 %>%
@@ -307,19 +307,18 @@ samples_S7 <- samples_S7 %>%
   pivot_longer(cols = everything(), names_to = "param", values_to = "value") %>%
   mutate(model = "S7")
 
-effects_df <- bind_rows(samples_R5, samples_S5, samples_S6, samples_S7)  # Add all models
+effects_df <- bind_rows(
+  samples_R3 %>% mutate(model = "Recruitment 3"),
+  samples_S1 %>% mutate(model = "Survival 1")
+  # samples_S6 %>% mutate(model = "Survival 6"),
+  # samples_S7 %>% mutate(model = "Survival 7")
+)
 
 effects_df <- effects_df %>%
   mutate(
     type = str_replace(param, "b_", "")
   )
 
-effects_df <- bind_rows(
-  samples_R5 %>% mutate(model = "Recruitment 5"),
-  samples_S5 %>% mutate(model = "Survival 5"),
-  samples_S6 %>% mutate(model = "Survival 6"),
-  samples_S7 %>% mutate(model = "Survival 7")
-)
 
 summary_df <- effects_df %>%
   group_by(model, type) %>%
@@ -329,7 +328,7 @@ summary_df <- effects_df %>%
     uci = quantile(value, 0.975),
     .groups = "drop"
   ) %>%
-  filter(type %in% c("SnowFree", "SnowPeriod", "TempJan", "TempPre"))
+  filter(type %in% c("SnowFree", "SnowPeriod", "TempJan", "TempPre", "TempPost"))
 
 
 
