@@ -5,6 +5,13 @@ library(terra)
 library(parallel)
 library(coda)
 
+## Set localities/areas and time period of interest
+areas <- c("Hardangervidda", 
+           "Dovrefjell", 
+           "Børgefjell")
+minYear <- 1991
+maxYear <- 2020
+
 ## Source all functions in "R_weather" folder
 sourceDir <- function(path, trace = TRUE, ...) {
   for (nm in list.files(path, pattern = "[.][RrSsQq]$")) {
@@ -14,13 +21,6 @@ sourceDir <- function(path, trace = TRUE, ...) {
   }
 }
 sourceDir('R_weather')
-
-## Set localities/areas and time period of interest
-areas <- c("Hardangervidda", 
-           "Dovrefjell", 
-           "Børgefjell")
-minYear <- 1991
-maxYear <- 2020
 
 # Read in IDSM output
 IDSM.out <- readRDS("/cloud/project/rypeIDSM_dHN_gyrData_23-10_mediumrun_fullloop_onlyOcc_RE.rds")
@@ -106,7 +106,7 @@ for (df_name in names(d_weather_long)) {
 
 ## Make correlation matrix
 
-cor_matrix <- cor(model_data[, c("chicktemp", "apriltemp", "febtemp", "febsnow", "SD20")], use = "complete.obs")
+cor_matrix <- cor(model_data[, c("chicktemp", "apriltemp", "febtemp", "febsnow", "SD20", "precip", "longrain")], use = "complete.obs")
 
 # Plot
 library(ggcorrplot)
@@ -135,15 +135,39 @@ pp_check(m1_occ)
 
 # Productivity
 m2_prod <- brm(
-  meanProd | se(sdProd) ~ SD20,
+  meanProd | se(sdProd) ~ SD20 + chicktemp,
   data = model_data,
   family = gaussian()
 )
 
-plot(m2_prod)
+P1 <- brm(
+  meanProd | se(sdProd) ~ chicktemp + precip,
+  data = model_data,
+  family = gaussian()
+)
+
+P2 <- brm(
+  meanProd | se(sdProd) ~ precip,
+  data = model_data,
+  family = gaussian()
+)
+
+P3 <- brm(
+  meanProd | se(sdProd) ~ chicktemp + longrain,
+  data = model_data,
+  family = gaussian()
+)
+
+P4 <- brm(
+  meanProd | se(sdProd) ~ chicktemp + precip,
+  data = model_data,
+  family = student()
+)
+
+plot(P4)
 summary(m2_prod)
 
-pp_check(m2_prod)
+pp_check(P4, type = "dens_overlay")
 
 
 ce <- conditional_effects(m2_temp)
