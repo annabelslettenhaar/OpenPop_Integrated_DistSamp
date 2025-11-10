@@ -5,13 +5,25 @@ library(coda)
 library(tidyverse)
 library(cowplot)
 
-posteriorsamples <- as.matrix(onlyOcc)
+posteriorsamples <- as.matrix(IDSM.out)
 
 # Convert to long format
 long_df <- as.data.frame(posteriorsamples) %>%
   tibble::rownames_to_column("iteration") %>%
   pivot_longer(-iteration, names_to = "param", values_to = "value") %>%
   filter(str_detect(param, "totDens_raw|GyrPressure_raw"))
+
+long_df <- as.data.frame(posteriorsamples) %>%
+  tibble::rownames_to_column("iteration") %>%
+  pivot_longer(-iteration, names_to = "param", values_to = "value") %>%
+  filter(str_detect(param, "probOcc|terrProd"))
+
+long_df <- as.data.frame(posteriorsamples) %>%
+  tibble::rownames_to_column("iteration") %>%
+  pivot_longer(-iteration, names_to = "param", values_to = "value") %>%
+  filter(str_detect(param, "^S\\[|^R_year\\["))
+
+
 
 # Extract variable type, area, and year
 parsed <- str_match(long_df$param, "^([a-zA-Z_]+)\\[(\\d+),\\s*(\\d+)\\]$")
@@ -46,20 +58,54 @@ summary_df <- long_df %>%
 # Define a scaling factor to align the second variable
 hv <- summary_df %>% filter(area == "Hardangervidda")
 
-scale_factor_hv <- max(hv$mean[hv$variable == "totDens_raw"]) /
-  max(hv$mean[hv$variable == "GyrPressure_raw"])
+scale_factor_hv <- max(hv$mean[hv$variable == "terrProd"]) /
+  max(hv$mean[hv$variable == "probOcc"])
+
+# Define consistent labels
+hv <- hv %>%
+  mutate(variable_label = case_when(
+    variable == "terrProd" ~ "Productivity per occupied territory",
+    variable == "probOcc" ~ "Probability of occupancy"
+  ))
 
 hv_plot <- ggplot() +
   # Prey density
-  geom_line(data = hv %>% filter(variable == "totDens_raw"),
-            aes(x = year, y = mean, color = "Prey Density")) +
-  geom_ribbon(data = hv %>% filter(variable == "totDens_raw"),
-              aes(x = year, ymin = lower, ymax = upper, fill = "Prey Density"), alpha = 0.2) +
+  geom_line(data = hv %>% filter(variable == "terrProd"),
+            aes(x = year, y = mean, color = variable_label)) +
+  geom_ribbon(data = hv %>% filter(variable == "terrProd"),
+              aes(x = year, ymin = lower, ymax = upper, fill = variable_label), alpha = 0.2) +
   # Predator occupancy
-  geom_line(data = hv %>% filter(variable == "GyrPressure_raw"),
-            aes(x = year, y = mean * scale_factor, color = "Predator Occupancy")) +
-  geom_ribbon(data = hv %>% filter(variable == "GyrPressure_raw"),
-              aes(x = year, ymin = lower * scale_factor_hv, ymax = upper * scale_factor_hv, fill = "Predator Occupancy"),
+  geom_line(data = hv %>% filter(variable == "probOcc"),
+            aes(x = year, y = mean * scale_factor_hv, color = variable_label)) +
+  geom_ribbon(data = hv %>% filter(variable == "probOcc"),
+              aes(x = year, ymin = lower * scale_factor_hv, ymax = upper * scale_factor_hv, fill = variable_label),
+              alpha = 0.2) +
+  
+  scale_y_continuous(
+    name = "Productivity per occupied territory",
+    sec.axis = sec_axis(~ . / scale_factor_hv, name = "Probability of occupancy")
+  ) +
+  scale_color_manual(name = "Variable",
+                     values = c("Productivity per occupied territory" = "darkgreen", "Probability of occupancy" = "#d95f02")) +
+  scale_fill_manual(name = "Variable",
+                    values = c("Productivity per occupied territory" = "darkgreen", "Probability of occupancy" = "#d95f02")) +
+  labs(title = "Posterior estimates for Hardangervidda", 
+       x = "Year") +
+  theme_minimal()
+
+
+
+hv_plot <- ggplot() +
+  # Prey density
+  geom_line(data = hv %>% filter(variable == "terrProd"),
+            aes(x = year, y = mean, color = "Productivity")) +
+  geom_ribbon(data = hv %>% filter(variable == "terrProd"),
+              aes(x = year, ymin = lower, ymax = upper, fill = "Productivity"), alpha = 0.2) +
+  # Predator occupancy
+  geom_line(data = hv %>% filter(variable == "probOcc"),
+            aes(x = year, y = mean * scale_factor_hv, color = "Probability of occupancy")) +
+  geom_ribbon(data = hv %>% filter(variable == "probOcc"),
+              aes(x = year, ymin = lower * scale_factor_hv, ymax = upper * scale_factor_hv, fill = "Probability of occupancy"),
               alpha = 0.2) +
   
   scale_y_continuous(
