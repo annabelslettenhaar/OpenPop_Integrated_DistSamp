@@ -9,6 +9,7 @@
 #' We calculate mean temperature during the early breeding phase (egg laying, April)
 #' We calculate mean temperature during the chick phase (between 15th of May (135) 
 #' to 1st of July (182))
+#' We calculate 
 #' We calculate mean snow depth during chick development (20th of May)
 #' 
 #' The output is one z-standardized mean value per area per year. 
@@ -99,13 +100,36 @@ wrangleData_GyrWeather <- function(minYear, maxYear, areas, byArea) {
     group_by(across(all_of(group_vars))) %>%
     summarise(snow_mean = mean(snow, na.rm = TRUE), .groups = "drop")
   
+  # Total precipitation during nestling period
+  precip <- raw_weather %>%
+    filter(julianday >= 135 & julianday <= 182) %>%
+    group_by(across(all_of(group_vars))) %>%
+    summarise(precip_total = sum(precip, na.rm = TRUE), .groups = "drop")
+  
+  # Number of periods with 5 consecutive rainy days during nestling period
+  rain_streaks <- raw_weather %>%
+    filter(julianday >= 135 & julianday <= 182) %>%
+    group_by(across(all_of(group_vars))) %>%
+    arrange(julianday) %>%
+    mutate(rainy = precip > 1) %>%
+    summarise(
+      long_streaks = {
+        rle_result <- rle(rainy)
+        sum(rle_result$values & rle_result$lengths >= 5)
+      },
+      .groups = "drop"
+    )
+  
+  
   # Return list of standardized matrices
   return(list(
     chicktemp = make_matrix(chick_df, "temp_mean"),
     apriltemp = make_matrix(april_df, "temp_mean"),
     febtemp = make_matrix(feb_df, "temp_mean"),
     febsnow = make_matrix(feb_df, "snow_mean"),
-    SD20 = make_matrix(sd20_df, "snow_mean")
+    SD20 = make_matrix(sd20_df, "snow_mean"),
+    precip = make_matrix(precip, "precip_total"),
+    longrain = make_matrix(rain_streaks, "long_streaks")
   ))
 }
 
