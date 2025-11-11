@@ -67,32 +67,41 @@ matplot(t(RodentOcc), type='l', lty=1, main=paste("Scenario:", chosen),
 # Gyrfalcon vital rates #
 #-----------------------#
 
-# Intercepts
-alphaPtar.Occ <- runif(N_areas, 0, 1) # Replace with model estimates
-alphaPtar.Prod <- runif(N_areas, 1, 4) # Replace with model estimates
+## Extract posterior medians
+post_gyr <- extractPostMedians(modelOutput = model_output,
+                               paramNames = c("alphaPtar.Occ", "alphaPtar.Prod", 
+                                              "betaPtar.Occ", "betaPtar.Prod", 
+                                              "sigmaT.Occ", "sigmaT.Prod"))
 
-# Ptarmigan covariate slopes (initialize at 0 to facilitate initial value simulation)
-betaPtar.Occ <- 0 # Replace with model estimates
-betaPtar.Prod <- 0 # Replace with model estimates
+# Intercepts
+alphaPtar.Occ <- post_gyr$alphaPtar.Occ 
+alphaPtar.Prod <- post_gyr$alphaPtar.Prod 
+
+# Ptarmigan covariate slopes
+betaPtar.Occ <- post_gyr$betaPtar.Occ 
+betaPtar.Prod <- post_gyr$betaPtar.Prod 
 
 # Random effects
-sigmaT.Occ <- runif(1, 0.1, 1) # Replace with model estimates
-sigmaT.Prod <- runif(1, 0.1, 1) # Replace with model estimates
+sigmaT.Occ <- post_gyr$sigmaT.Occ 
+sigmaT.Prod <- post_gyr$sigmaT.Prod 
 
-# epsT.Occ <- rep(0, N_years) 
-# epsT.Prod <- rep(0, N_years)
 epsT.Occ <- rnorm(N_years, 0, sigmaT.Occ)
 epsT.Prod <- rnorm(N_years, 0, sigmaT.Prod)
 
-# Area- and time dependent vital rates
+# Storing estimates
 probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
 
-for(x in 1:N_areas){
-  for(t in 1:N_years){
-    probOcc[x, t] <- plogis(qlogis(alphaPtar.Occ[x]) + epsT.Occ[t])
-    terrProd[x, t] <- exp(log(alphaPtar.Prod[x]) + epsT.Prod[t])
-  }
-}
+# Initial values for year 1 
+probOcc[, 1] <- plogis(alphaPtar.Occ)
+terrProd[, 1] <- exp(alphaPtar.Prod)
+
+# Replace this with the full model after everything is initialised
+# for(x in 1:N_areas){
+#   for(t in 1:N_years){
+#     probOcc[x, t] <- plogis(qlogis(alphaPtar.Occ[x]) + epsT.Occ[t])
+#     terrProd[x, t] <- exp(log(alphaPtar.Prod[x]) + epsT.Prod[t])
+#   }
+# }
 
 
 # Ptarmigan vital rates #
