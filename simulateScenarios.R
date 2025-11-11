@@ -20,10 +20,11 @@ A <- input_data$nim.data$A
 totDens_meanCov <- input_data$nim.constants$totDens_meanCov
 totDens_sdCov <- input_data$nim.constants$totDens_sdCov
 
+
 # Rodent data #
 #-------------#
 
-# Second order autoregressive model (AR2) to simulate rodent dynamics 
+# Second order auto regressive model (AR2) to simulate rodent dynamics 
 
 simulateRodentAR2 <- function(N_areas, N_years, alpha, phi1, phi2, sigma) {
   mat <- matrix(NA, nrow = N_areas, ncol = N_years)
@@ -63,6 +64,7 @@ RodentOcc <- simulateRodentAR2(N_areas = 3, N_years = 30,
 
 matplot(t(RodentOcc), type='l', lty=1, main=paste("Scenario:", chosen),
         ylab="Rodent index", xlab="Year")
+
 
 # Gyrfalcon vital rates #
 #-----------------------#
@@ -107,13 +109,33 @@ terrProd[, 1] <- exp(alphaPtar.Prod)
 # Ptarmigan vital rates #
 #-----------------------#
 
-## Survival
-mu.S <- EnvStats::rnormTrunc(N_areas, qlogis(h.Mu.S), sd = h.sigma.S) 
+## Extract posterior medians
+post_ptar <- extractPostMedians(modelOutput = model_output,
+                                paramNames = c("Mu.S", "Mu.R", 
+                                               "sigmaR.S", "sigmaR.R", 
+                                               "betaR.R", "betaTemp.R",
+                                               "betaGyr.S"))
+# Intercepts
+Mu.S <- post_ptar$Mu.S
+Mu.R <- post_ptar$Mu.R
 
-sigmaR.S <- runif(1, 0.05, 0.2) # Replacew ith model estimates
+# Covariate slopes
+betaGyr.S <- post_ptar$betaGyr.S
+betaTemp.R <- post_ptar$betaTemp.R
 
-Mu.S <- rep(NA, N_areas) #replace with model estimates
-S <-  matrix(NA, nrow = N_areas, ncol = N_years-1)
+if(fitRodentCov){
+  betaR.R <- post_ptar$betaR.R
+}else{
+  betaR.R <- 0
+}
+
+# Random effects
+sigmaR.S <- post_ptar$sigmaR.S
+sigmaR.R <- post_ptar$sigmaR.R
+
+epsR.S <- matrix(rnorm(N_areas*(N_years-1), 0, sigmaR.S), nrow = N_areas)
+epsR.R <- matrix(rnorm(N_areas*N_years, 0, sigmaR.R), nrow = N_areas)
+
 
 # if(survVarT){
 #   epsR.S <- matrix(0, nrow = N_areas, ncol = N_years-1)
@@ -122,29 +144,14 @@ S <-  matrix(NA, nrow = N_areas, ncol = N_years-1)
 #   epsR.S <- matrix(0, nrow = N_areas, ncol = N_years-1)
 # }
 
-epsR.S <- matrix(rnorm(N_areas*(N_years-1), 0, sigmaR.S), nrow = N_areas)
+# Storing and model survival
+S <-  matrix(NA, nrow = N_areas, ncol = N_years-1)
 
 for(x in 1:N_areas){
   S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + epsR.S[x, ])
 }
 
-## Recruitment
-
-Mu.R <- rlnorm(N_areas, meanlog = log(h.Mu.R), sdlog =  h.sigma.R) # Replace with model estimates
-
-if(fitRodentCov){
-  betaR.R <- rnorm(1, mean = h.Mu.betaR.R, sd = h.sigma.betaR.R) # Replace with model estimates
-}else{
-  betaR.R <- 0
-}
-
-# Temperature covariate slope (initialize at 0 to facilitate initial value simulation)
-betaTemp.R <- 0 # Replace with model estimates
-
-sigmaR.R <- runif(1, 0.05, 0.2) # Replace with model estimates
-
-epsR.R <- matrix(rnorm(N_areas*N_years, 0, sigmaR.R), nrow = N_areas)
-
+# Storing and model recruitment
 R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
 
 for(x in 1:N_areas){
