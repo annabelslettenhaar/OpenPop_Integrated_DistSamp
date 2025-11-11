@@ -98,133 +98,105 @@ for(x in 1:N_areas){
 # Ptarmigan vital rates #
 #-----------------------#
 
-## Area-specific survival parameters
-h.Mu.S <- runif(1, 0.40, 0.45)
-h.sigma.S <- runif(1, 0.05, 0.2)
-Mu.S1 <- runif(1, 0.5, 0.7)
+## Survival
+mu.S <- EnvStats::rnormTrunc(N_areas, qlogis(h.Mu.S), sd = h.sigma.S) 
 
-mu.S <- EnvStats::rnormTrunc(N_areas, qlogis(h.Mu.S), sd = h.sigma.S)
+sigmaR.S <- runif(1, 0.05, 0.2) # Replacew ith model estimates
 
-sigmaR.S <- runif(1, 0.05, 0.2)
-
-Mu.S <- rep(NA, N_areas)
+Mu.S <- rep(NA, N_areas) #replace with model estimates
 S <-  matrix(NA, nrow = N_areas, ncol = N_years-1)
-#S1 <- S2 <- rep(NA, N_years)
 
-#eps.S1.prop <- runif(1, 0.3, 0.8)
+# if(survVarT){
+#   epsR.S <- matrix(0, nrow = N_areas, ncol = N_years-1)
+#   #epsR.S <- matrix(rnorm(N_areas*N_years, 0, sigmaR.S), nrow = N_areas, ncol = N_years)
+# }else{
+#   epsR.S <- matrix(0, nrow = N_areas, ncol = N_years-1)
+# }
 
-if(survVarT){
-  # epsT.S <- rep(0, N_years-1)
-  #epsT.S <- rnorm(N_years-1, 0, sigmaT.S)
-  epsR.S <- matrix(0, nrow = N_areas, ncol = N_years-1)
-  #epsR.S <- matrix(rnorm(N_areas*N_years, 0, sigmaR.S), nrow = N_areas, ncol = N_years)
-  
-}else{
-  # epsT.S <- rep(0, N_years-1)
-  epsR.S <- matrix(0, nrow = N_areas, ncol = N_years-1)
-}
-
-#for(x in 1:N_areas){
-#  Mu.S[x] <- plogis(mu.S[x])
-#  S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + epsT.S[1:(N_years-1)] + epsR.S[x, 1:(N_years-1)])
-#}
+epsR.S <- matrix(rnorm(N_areas*(N_years-1), 0, sigmaR.S), nrow = N_areas)
 
 for(x in 1:N_areas){
-  Mu.S[x] <- plogis(mu.S[x])
-  #S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + epsT.S + epsR.S[x, ])
   S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + epsR.S[x, ])
 }
 
-#S1[1:(N_years-1)] <- plogis(qlogis(Mu.S1) + eps.S1.prop*(epsT.S[1:(N_years-1)] + epsR.S[nim.constants$SurvAreaIdx, 1:(N_years-1)]))
-#S2[1:(N_years-1)] <- S[nim.constants$SurvAreaIdx, 1:(N_years-1)] / S1[1:(N_years-1)]
+## Recruitment
 
-## Area-specific reproductive parameters
-h.Mu.R  <- runif(1, 1.5, 3)
-h.sigma.R <- runif(1, 0.05, 0.2)
-
-h.Mu.betaR.R <- runif(1, 0.01, 0.1)
-h.sigma.betaR.R <- runif(1, 0.05, 0.1)
-
-Mu.R <- rlnorm(N_areas, meanlog = log(h.Mu.R), sdlog =  h.sigma.R)
-
-# if(fitRodentCov){
-#   betaR.R <- rnorm(N_areas, mean = h.Mu.betaR.R, sd = h.sigma.betaR.R)
-# }else{
-#   betaR.R <- rep(0, N_areas) # FOr area specific estimates
-# }
+Mu.R <- rlnorm(N_areas, meanlog = log(h.Mu.R), sdlog =  h.sigma.R) # Replace with model estimates
 
 if(fitRodentCov){
-  betaR.R <- rnorm(1, mean = h.Mu.betaR.R, sd = h.sigma.betaR.R)  # single slope
+  betaR.R <- rnorm(1, mean = h.Mu.betaR.R, sd = h.sigma.betaR.R) # Replace with model estimates
 }else{
   betaR.R <- 0
 }
 
-## Temperature covariate slope (initialize at 0 to facilitate initial value simulation)
-betaTemp.R <- 0
+# Temperature covariate slope (initialize at 0 to facilitate initial value simulation)
+betaTemp.R <- 0 # Replace with model estimates
 
-# sigmaT.R <- runif(1, 0.05, 0.2)
-sigmaR.R <- runif(1, 0.05, 0.2)
+sigmaR.R <- runif(1, 0.05, 0.2) # Replace with model estimates
+
+epsR.R <- matrix(rnorm(N_areas*N_years, 0, sigmaR.R), nrow = N_areas)
 
 R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
 
-# epsT.R <- rep(0, N_years)
-#epsT.R <- rnorm(N_year, 0, sigmaT.R)
-epsR.R <- matrix(0, nrow = N_areas, ncol = N_years)
-#epsR.R <- matrix(rnorm(N_areas*N_years, 0, sigmaR.R), nrow = N_areas, ncol = N_years)
-
 for(x in 1:N_areas){
-  #R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years]) 
-  R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years]) # Global slope and no random area effect
+  R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
 }
-
 
 
 # Detection parameters #
 #----------------------#
 
-## Area-specific detection parameters
-h.mu.dd <- runif(1, 3.5, 5.5)
-h.sigma.dd <- runif(1, 0.05, 0.2)
+# Leave this whole block out and use model estimates instead
 
-#mu.dd <- rnorm(N_areas, h.mu.dd, sd = h.sigma.dd)
-mu.dd <- rep(h.mu.dd, N_areas)
+# ## Area-specific detection parameters
+# h.mu.dd <- runif(1, 3.5, 5.5)
+# h.sigma.dd <- runif(1, 0.05, 0.2)
+# 
+# #mu.dd <- rnorm(N_areas, h.mu.dd, sd = h.sigma.dd)
+# mu.dd <- rep(h.mu.dd, N_areas)
+# 
+# # sigmaT.dd <- runif(1, 0.05, 0.2)
+# sigmaR.dd <- runif(1, 0.05, 0.2)
+# 
+# sigma <- esw <- p <- matrix(NA, nrow = N_areas, ncol = N_years)
+# 
+# 
+# # epsT.dd <- rep(0, N_years)
+# #epsT.dd <- rnorm(N_years, 0, sd = sigmaT.dd)
+# epsR.dd <- matrix(0, nrow = N_areas, ncol = N_years)
+# #epsR.dd <- matrix(rnorm(N_areas*N_years, 0, sigmaR.dd), nrow = N_areas, ncol = N_years)
+# 
+# for(x in 1:N_areas){
+#   # sigma[x, 1:N_years] <- exp(mu.dd[x] + epsT.dd[1:N_years] + epsR.dd[x, 1:N_years])
+#   sigma[x, 1:N_years] <- exp(mu.dd[x] + epsR.dd[x, 1:N_years])
+# }
+# 
+# for(x in 1:N_areas){
+#   esw[x, 1:N_years] <- sqrt(pi * sigma[x, 1:N_years]^2 / 2) 
+#   p[x, 1:N_years] <- min(esw[x, 1:N_years], W) / W
+# }
 
-# sigmaT.dd <- runif(1, 0.05, 0.2)
-sigmaR.dd <- runif(1, 0.05, 0.2)
+# Something like this:
+ptarDens <- posterior_samples$ptardens
 
-sigma <- esw <- p <- matrix(NA, nrow = N_areas, ncol = N_years)
-
-
-# epsT.dd <- rep(0, N_years)
-#epsT.dd <- rnorm(N_years, 0, sd = sigmaT.dd)
-epsR.dd <- matrix(0, nrow = N_areas, ncol = N_years)
-#epsR.dd <- matrix(rnorm(N_areas*N_years, 0, sigmaR.dd), nrow = N_areas, ncol = N_years)
-
-for(x in 1:N_areas){
-  # sigma[x, 1:N_years] <- exp(mu.dd[x] + epsT.dd[1:N_years] + epsR.dd[x, 1:N_years])
-  sigma[x, 1:N_years] <- exp(mu.dd[x] + epsR.dd[x, 1:N_years])
-}
-
-for(x in 1:N_areas){
-  esw[x, 1:N_years] <- sqrt(pi * sigma[x, 1:N_years]^2 / 2) 
-  p[x, 1:N_years] <- min(esw[x, 1:N_years], W) / W
-}
+# Or with noise
+ptarDens <- ptarDens * exp(rnorm(length(ptarDens), 0, 0.1))
 
 
 # Population model #
 #------------------#
 
 ## Initial densities / population sizes
-Mu.D1 <- rep(NA, N_areas)
-sigma.D <- runif(N_areas, 0.1, 2)
+Mu.D1 <- rep(NA, N_areas) # Replace with model estimates
+#sigma.D <- runif(N_areas, 0.1, 2)
 
 N_exp <- Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
 
 for(x in 1:N_areas){
   
-  D_x_sum <- nim.data$N_a_line_year[x,2,,] / (L[x,,]*W*2)
-  D_data <- D_x_sum[which(!is.na(D_x_sum) & D_x_sum > 0)]
-  Mu.D1[x] <- runif(1, quantile(D_data, 0.25), quantile(D_data, 0.75))  
+  # D_x_sum <- nim.data$N_a_line_year[x,2,,] / (L[x,,]*W*2)
+  # D_data <- D_x_sum[which(!is.na(D_x_sum) & D_x_sum > 0)]
+  # Mu.D1[x] <- runif(1, quantile(D_data, 0.25), quantile(D_data, 0.75))  
   
   for(j in 1:N_sites[x]){
     
@@ -251,9 +223,6 @@ for(x in 1:N_areas){
     } else {
       N_exp[x, 2, j, 1] <- 1 # Fallback value if lambda is NA or negative
     }
-    # 
-    # N_exp[x, 1, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 1, j, 1]*L[x, j, 1]*W*2, a = 1)
-    # N_exp[x, 2, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 2, j, 1]*L[x, j, 1]*W*2, a = 1)
   }
 }
 
@@ -304,6 +273,13 @@ for (x in 1:N_areas){
     totDens_std[x, t] <- max(min(-10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), 10) # Standardized
   }
 }
+
+
+
+
+
+
+
 
 # Assembly #
 #----------#
