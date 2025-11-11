@@ -164,48 +164,77 @@ for(x in 1:N_areas){
 
 # Leave this whole block out and use model estimates instead
 
-# ## Area-specific detection parameters
-# h.mu.dd <- runif(1, 3.5, 5.5)
-# h.sigma.dd <- runif(1, 0.05, 0.2)
-# 
-# #mu.dd <- rnorm(N_areas, h.mu.dd, sd = h.sigma.dd)
-# mu.dd <- rep(h.mu.dd, N_areas)
-# 
-# # sigmaT.dd <- runif(1, 0.05, 0.2)
-# sigmaR.dd <- runif(1, 0.05, 0.2)
-# 
-# sigma <- esw <- p <- matrix(NA, nrow = N_areas, ncol = N_years)
-# 
-# 
-# # epsT.dd <- rep(0, N_years)
-# #epsT.dd <- rnorm(N_years, 0, sd = sigmaT.dd)
-# epsR.dd <- matrix(0, nrow = N_areas, ncol = N_years)
-# #epsR.dd <- matrix(rnorm(N_areas*N_years, 0, sigmaR.dd), nrow = N_areas, ncol = N_years)
-# 
-# for(x in 1:N_areas){
-#   # sigma[x, 1:N_years] <- exp(mu.dd[x] + epsT.dd[1:N_years] + epsR.dd[x, 1:N_years])
-#   sigma[x, 1:N_years] <- exp(mu.dd[x] + epsR.dd[x, 1:N_years])
-# }
-# 
-# for(x in 1:N_areas){
-#   esw[x, 1:N_years] <- sqrt(pi * sigma[x, 1:N_years]^2 / 2) 
-#   p[x, 1:N_years] <- min(esw[x, 1:N_years], W) / W
-# }
-
-# Something like this:
+# Something like this?
 ptarDens <- posterior_samples$ptardens
-
-# Or with noise
-ptarDens <- ptarDens * exp(rnorm(length(ptarDens), 0, 0.1))
 
 
 # Population model #
 #------------------#
 
-## Initial densities / population sizes
-Mu.D1 <- rep(NA, N_areas) # Replace with model estimates
-#sigma.D <- runif(N_areas, 0.1, 2)
+## Extract posterior median
+post_pop <- extractPostMedians(modelOutput = model_output,
+                              paramNames = c("Mu.D1"))
 
+
+## Initial densities / population sizes
+
+# Intercept
+Mu.D1 <- post_pop$Mu.D1
+
+
+
+# Putting models together #
+#-------------------------#
+
+
+## Gyrfalcon occupancy and productivity
+
+for (t in 2:N_years) {
+  for (x in 1:N_areas) {
+    probOcc[x, t] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t])
+    terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t])
+  }
+}
+
+
+## Gyrfalcon pressure covariate
+
+for(x in 1:N_areas){
+  
+  # For year 1:
+  GyrPressure_raw[x, 1] <- probOcc[x, 1] 
+  
+  # For years 2+:
+  for(t in 2:N_years){
+    GyrPressure_raw[x, t] <- (0.5 * probOcc[x, t-1]) + # Occupancy probability in the first half of the ptarmigan 'year'
+      (0.5 * probOcc[x, t]) # Occupancy probability in second half of the ptarmigan 'year'
+  }
+  
+  for(t in 1:N_years){
+    GyrPressure_std[x, t] <- (GyrPressure_raw[x, t] - GyrPressure_meanCov[x]) / GyrPressure_sdCov[x] # Standardizing GyrPressure
+  }
+}
+
+
+## Ptarmigan survival
+
+for(x in 1:N_areas){
+  S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + betaGyr.S * GyrPressure_std[x, t] + 
+                                  epsR.S[x, ])
+}
+
+
+## Ptarmigan recruitment
+
+for(x in 1:N_areas){
+  R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + 
+                                betaTemp.R * SpringTemp[x, 1:N_years] + 
+                                epsR.R[x, 1:N_years])
+}
+
+## Ptarmigan density
+
+# Setup matrix
 N_exp <- Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
 
 for(x in 1:N_areas){
@@ -223,7 +252,6 @@ for(x in 1:N_areas){
     }else{
       Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1] # Juveniles
     }
-    
     
     lambda1 <- Density[x, 1, j, 1]*L[x, j, 1]*W*2
     lambda2 <- Density[x, 2, j, 1]*L[x, j, 1]*W*2
@@ -290,90 +318,4 @@ for (x in 1:N_areas){
   }
 }
 
-
-
-
-
-
-
-
-# Assembly #
-#----------#
-
-InitVals <- list(
-  #b = runif(1, 1, 50), 
-  
-  Mu.D1 = Mu.D1, 
-  sigma.D = sigma.D,
-  eps.D1 = matrix(0, nrow = nim.constants$N_areas, ncol = max(N_sites)),
-  
-  Mu.R = Mu.R,
-  h.Mu.betaR.R = h.Mu.betaR.R, h.sigma.betaR.R = h.sigma.betaR.R,
-  h.Mu.R = h.Mu.R, h.sigma.R = h.sigma.R,
-  # sigmaT.R = sigmaT.R, 
-  sigmaR.R = sigmaR.R,
-  # epsT.R = epsT.R, 
-  epsR.R = epsR.R,
-  epsA.R =  log(Mu.R) - log(h.Mu.R),
-  R_year = R_year,
-  
-  mu.dd = mu.dd,
-  h.mu.dd = h.mu.dd, h.sigma.dd = h.sigma.dd,
-  # sigmaT.dd = sigmaT.dd, 
-  sigmaR.dd = sigmaR.dd,
-  # epsT.dd = epsT.dd, 
-  epsR.dd = epsR.dd,
-  epsA.dd = mu.dd - h.mu.dd,
-  sigma = sigma, sigma2 = sigma^2,
-  esw = esw,
-  p = p,
-  
-  h.Mu.S = h.Mu.S,
-  h.sigma.S = h.sigma.S,
-  mu.S = mu.S, Mu.S = Mu.S, 
-  # sigmaT.S = sigmaT.S, 
-  sigmaR.S = sigmaR.S,
-  # epsT.S = epsT.S, 
-  epsR.S = epsR.S,
-  epsA.S = mu.S - logit(h.Mu.S),
-  #Mu.S1 = Mu.S1,
-  #eps.S1.prop = eps.S1.prop,
-  #S1 = S1, S2 = S2, 
-  S = S,
-  
-  Density = Density,
-  meanDens = meanDens,
-  totDens_raw = totDens_raw,
-  totDens_std = totDens_std,
-  N_exp = N_exp,
-  N_tot_exp = N_tot_exp,
-  
-  betaPtar.Occ = betaPtar.Occ,
-  betaPtar.Prod = betaPtar.Prod,
-  alphaPtar.Occ = alphaPtar.Occ,
-  alphaPtar.Prod = alphaPtar.Prod,
-  
-  terrProd = terrProd, 
-  probOcc = probOcc, 
-  
-  betaTemp.R = betaTemp.R,
-  
-  epsT.Occ = epsT.Occ,
-  epsT.Prod = epsT.Prod,
-  sigmaT.Occ = sigmaT.Occ,
-  sigmaT.Prod = sigmaT.Prod
-)
-
-if(fitRodentCov){
-  InitVals$h.Mu.betaR.R <- h.Mu.betaR.R
-  InitVals$h.sigma.betaR.R <- h.sigma.betaR.R
-  InitVals$betaR.R <- betaR.R
-  InitVals$epsA.betaR.R <- betaR.R - h.Mu.betaR.R
-  InitVals$RodentOcc <- Inits_RodentOcc
-}
-
-InitVals$betaGyr.S <- 0
-#* CRN: Initialized at 0 for now, but this may need changing before full integration. 
-
-return(InitVals)
 
