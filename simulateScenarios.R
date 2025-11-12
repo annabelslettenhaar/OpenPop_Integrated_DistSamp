@@ -162,14 +162,14 @@ totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
 # No standardization and no random effects
 
 # Initialize matrices
-AdultDensity <- JuvenileDensity <- matrix(NA, nrow = N_areas, ncol = N_years)
+AdultDensity <- JuvenileDensity <- totalDensity <- matrix(NA, nrow = N_areas, ncol = N_years)
 S <- matrix(NA, nrow = N_areas, ncol = N_years-1)
 R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
 probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
 GyrPressure_raw <- matrix(NA, nrow = N_areas, ncol = N_years)
 
 # Initial values for the first year
-AdultDensity[, 1] <- Mu.D1
+AdultDensity[, 1] <- Mu.D1 * 1000000
 JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
 probOcc[, 1] <- plogis(alphaPtar.Occ)
 terrProd[, 1] <- exp(alphaPtar.Prod)
@@ -184,10 +184,11 @@ for (t in 2:N_years) {
     # Update densities
     AdultDensity[x, t] <- (AdultDensity[x, t-1] + JuvenileDensity[x, t-1]) * S[x, t-1]
     JuvenileDensity[x, t] <- if (R_perF) (AdultDensity[x, t]/2)*R_year[x, t] else AdultDensity[x, t]*R_year[x, t]
+    totalDensity[x, t] <- AdultDensity[x, t] + JuvenileDensity[x, t]
     
     # Gyrfalcon occupancy & productivity (use only adult density)
-    probOcc[x, t] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * AdultDensity[x, t-1]) #+ epsT.Occ[t])
-    terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * AdultDensity[x, t-1]) #+ epsT.Prod[t])
+    probOcc[x, t] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * totalDensity[x, t-1]) #+ epsT.Occ[t])
+    terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totalDensity[x, t-1]) #+ epsT.Prod[t])
     
     # Gyrfalcon pressure
     GyrPressure_raw[x, t] <- 0.5*probOcc[x, t-1] + 0.5*probOcc[x, t]
@@ -197,6 +198,7 @@ for (t in 2:N_years) {
 matplot(t(probOcc), type='l', lty=1, main="Gyrfalcon Occupancy", ylab="Probability", xlab="Year")
 matplot(t(AdultDensity), type='l', lty=1, main="Ptarmigan Adult Density", ylab="Density", xlab="Year")
 matplot(t(JuvenileDensity), type='l', lty=1, main="Ptarmigan Juvenile Density", ylab="Density", xlab="Year")
+matplot(t(totalDensity), type='l', lty=1, main="Ptarmigan total Density", ylab="Density", xlab="Year")
 matplot(t(R_year), type='l', lty=1, main="Ptarmigan Recruitment", ylab="Recruitment", xlab="Year")
 matplot(t(S), type='l', lty=1, main="Ptarmigan Survival", ylab="Survival", xlab="Year")
 
