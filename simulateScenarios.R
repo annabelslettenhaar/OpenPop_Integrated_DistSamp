@@ -146,13 +146,13 @@ Mu.D1 <- post_pop$Mu.D1
 # Initialize matrices #
 #---------------------#
 
-GyrPressure_raw <- GyrPressure_std <- matrix(NA, nrow = N_areas, ncol = N_years)
-S <- matrix(NA, nrow = N_areas, ncol = N_years-1)
-R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
-Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
-N_exp <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
-meanDens <- array(NA, dim = c(N_areas, N_ageC, N_years))
-totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
+# GyrPressure_raw <- GyrPressure_std <- matrix(NA, nrow = N_areas, ncol = N_years)
+# S <- matrix(NA, nrow = N_areas, ncol = N_years-1)
+# R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
+# Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
+# N_exp <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
+# meanDens <- array(NA, dim = c(N_areas, N_ageC, N_years))
+# totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
 
 
 # Putting models together #
@@ -161,7 +161,9 @@ totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
 # Starting with the simplest of the simplest: only ptarmigan dynamics without the site level variation 
 # No standardization and no random effects
 
+alphaPtar.Occ <- -5
 betaPtar.Occ <- 1
+Mu.S <- 0.5
 betaGyr.S <- -2
 
 # Initialize matrices
@@ -172,10 +174,13 @@ probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
 GyrPressure <- matrix(NA, nrow = N_areas, ncol = N_years)
 
 # Initial values for the first year
-AdultDensity[, 1] <- Mu.D1 * 1000000
-JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
+# AdultDensity[, 1] <- Mu.D1 * 1000000
+AdultDensity[, 1] <- 10
+# JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
+JuvenileDensity[, 1] <- 5
 totalDensity[, 1] <- AdultDensity[, 1] + JuvenileDensity[, 1]
-probOcc[, 1] <- plogis(alphaPtar.Occ)
+# probOcc[, 1] <- plogis(alphaPtar.Occ)
+probOcc[, 1] <- 0.5
 terrProd[, 1] <- exp(alphaPtar.Prod)
 GyrPressure[, 1] <- probOcc[, 1]
 
@@ -189,7 +194,7 @@ for (t in 2:N_years) {
     
     # 2. Compute gyrfalcon pressure for current year
     #GyrPressure[x, t] <- 0.5 * probOcc[x, t-1] + 0.5 * probOcc[x, t]
-    GyrPressure[x, t] <- probOcc[x, t-1]
+    GyrPressure[x, t] <- probOcc[x, t]
     
     # 3. Survival influenced by same-year pressure
     S[x, t-1] <- plogis(qlogis(Mu.S[x]) + betaGyr.S * GyrPressure[x, t])
