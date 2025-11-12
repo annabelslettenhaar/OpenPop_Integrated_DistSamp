@@ -90,20 +90,12 @@ sigmaT.Prod <- post_gyr$sigmaT.Prod
 epsT.Occ <- rnorm(N_years, 0, sigmaT.Occ)
 epsT.Prod <- rnorm(N_years, 0, sigmaT.Prod)
 
-# Storing estimates
-probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
-
-# Initial values for year 1 
-probOcc[, 1] <- plogis(alphaPtar.Occ)
-terrProd[, 1] <- exp(alphaPtar.Prod)
-
-# Replace this with the full model after everything is initialised
-# for(x in 1:N_areas){
-#   for(t in 1:N_years){
-#     probOcc[x, t] <- plogis(qlogis(alphaPtar.Occ[x]) + epsT.Occ[t])
-#     terrProd[x, t] <- exp(log(alphaPtar.Prod[x]) + epsT.Prod[t])
-#   }
-# }
+# # Storing estimates
+# probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
+# 
+# # Initial values for year 1 
+# probOcc[, 1] <- plogis(alphaPtar.Occ)
+# terrProd[, 1] <- exp(alphaPtar.Prod)
 
 
 # Ptarmigan vital rates #
@@ -137,38 +129,7 @@ epsR.S <- matrix(rnorm(N_areas*(N_years-1), 0, sigmaR.S), nrow = N_areas)
 epsR.R <- matrix(rnorm(N_areas*N_years, 0, sigmaR.R), nrow = N_areas)
 
 
-# if(survVarT){
-#   epsR.S <- matrix(0, nrow = N_areas, ncol = N_years-1)
-#   #epsR.S <- matrix(rnorm(N_areas*N_years, 0, sigmaR.S), nrow = N_areas, ncol = N_years)
-# }else{
-#   epsR.S <- matrix(0, nrow = N_areas, ncol = N_years-1)
-# }
-
-# Storing and model survival
-S <-  matrix(NA, nrow = N_areas, ncol = N_years-1)
-
-for(x in 1:N_areas){
-  S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + epsR.S[x, ])
-}
-
-# Storing and model recruitment
-R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
-
-for(x in 1:N_areas){
-  R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + epsR.R[x, 1:N_years])
-}
-
-
-# Detection parameters #
-#----------------------#
-
-# Leave this whole block out and use model estimates instead
-
-# Something like this?
-ptarDens <- posterior_samples$ptardens
-
-
-# Population model #
+# Population density #
 #------------------#
 
 ## Extract posterior median
@@ -182,54 +143,87 @@ post_pop <- extractPostMedians(modelOutput = model_output,
 Mu.D1 <- post_pop$Mu.D1
 
 
+# Initialize matrices #
+#---------------------#
+
+GyrPressure_raw <- GyrPressure_std <- matrix(NA, nrow = N_areas, ncol = N_years)
+S <- matrix(NA, nrow = N_areas, ncol = N_years-1)
+R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
+Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
+N_exp <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
+meanDens <- array(NA, dim = c(N_areas, N_ageC, N_years))
+totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
+
 
 # Putting models together #
 #-------------------------#
 
+# Starting with the simplest of the simplest: only ptarmigan dynamics without the site level variation 
+# No standardization and no random effects
 
-## Gyrfalcon occupancy and productivity
+# Initialize matrices
+AdultDensity <- JuvenileDensity <- matrix(NA, nrow = N_areas, ncol = N_years)
+S <- matrix(NA, nrow = N_areas, ncol = N_years-1)
+R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
+probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
+GyrPressure_raw <- matrix(NA, nrow = N_areas, ncol = N_years)
 
+# Initial values for the first year
+AdultDensity[, 1] <- Mu.D1
+JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
+probOcc[, 1] <- plogis(alphaPtar.Occ)
+terrProd[, 1] <- exp(alphaPtar.Prod)
+
+# Loop to fill out the rest of the years
 for (t in 2:N_years) {
   for (x in 1:N_areas) {
-    probOcc[x, t] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t])
-    terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t])
+    # Survival & recruitment
+    S[x, t-1] <- plogis(qlogis(Mu.S[x])) #+ epsR.S[x, t-1])
+    R_year[x, t] <- exp(log(Mu.R[x])) #+ epsR.R[x, t])
+    
+    # Update densities
+    AdultDensity[x, t] <- (AdultDensity[x, t-1] + JuvenileDensity[x, t-1]) * S[x, t-1]
+    JuvenileDensity[x, t] <- if (R_perF) (AdultDensity[x, t]/2)*R_year[x, t] else AdultDensity[x, t]*R_year[x, t]
+    
+    # Gyrfalcon occupancy & productivity (use only adult density)
+    probOcc[x, t] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * AdultDensity[x, t-1]) #+ epsT.Occ[t])
+    terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * AdultDensity[x, t-1]) #+ epsT.Prod[t])
+    
+    # Gyrfalcon pressure
+    GyrPressure_raw[x, t] <- 0.5*probOcc[x, t-1] + 0.5*probOcc[x, t]
   }
 }
 
+matplot(t(probOcc), type='l', lty=1, main="Gyrfalcon Occupancy", ylab="Probability", xlab="Year")
+matplot(t(AdultDensity), type='l', lty=1, main="Ptarmigan Adult Density", ylab="Density", xlab="Year")
+matplot(t(JuvenileDensity), type='l', lty=1, main="Ptarmigan Juvenile Density", ylab="Density", xlab="Year")
+matplot(t(R_year), type='l', lty=1, main="Ptarmigan Recruitment", ylab="Recruitment", xlab="Year")
+matplot(t(S), type='l', lty=1, main="Ptarmigan Survival", ylab="Survival", xlab="Year")
 
-## Gyrfalcon pressure covariate
+# Everything is constant
 
-for(x in 1:N_areas){
+
+
+## FOR LATER
+
+
+## Ptarmigan vital rates survival and recruitment
+for(x in 1:N_years){
   
-  # For year 1:
-  GyrPressure_raw[x, 1] <- probOcc[x, 1] 
+  ## Ptarmigan survival
   
-  # For years 2+:
-  for(t in 2:N_years){
-    GyrPressure_raw[x, t] <- (0.5 * probOcc[x, t-1]) + # Occupancy probability in the first half of the ptarmigan 'year'
-      (0.5 * probOcc[x, t]) # Occupancy probability in second half of the ptarmigan 'year'
+  for(x in 1:N_areas){
+    S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + betaGyr.S * GyrPressure_std[x, t] + 
+                                    epsR.S[x, ])
   }
   
-  for(t in 1:N_years){
-    GyrPressure_std[x, t] <- (GyrPressure_raw[x, t] - GyrPressure_meanCov[x]) / GyrPressure_sdCov[x] # Standardizing GyrPressure
+  ## Ptarmigan recruitment
+  
+  for(x in 1:N_areas){
+    R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + 
+                                  betaTemp.R * SpringTemp[x, 1:N_years] + 
+                                  epsR.R[x, 1:N_years])
   }
-}
-
-
-## Ptarmigan survival
-
-for(x in 1:N_areas){
-  S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + betaGyr.S * GyrPressure_std[x, t] + 
-                                  epsR.S[x, ])
-}
-
-
-## Ptarmigan recruitment
-
-for(x in 1:N_areas){
-  R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, 1:N_years] + 
-                                betaTemp.R * SpringTemp[x, 1:N_years] + 
-                                epsR.R[x, 1:N_years])
 }
 
 ## Ptarmigan density
@@ -317,5 +311,39 @@ for (x in 1:N_areas){
     totDens_std[x, t] <- max(min(-10, (totDens_raw[x, t] - totDens_meanCov[x]) / totDens_sdCov[x]), 10) # Standardized
   }
 }
+
+## Gyrfalcon occupancy and productivity
+
+for (t in 2:N_years) {
+  for (x in 1:N_areas) {
+    probOcc[x, t] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * totDens_std[x, t-1] + epsT.Occ[t])
+    terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totDens_std[x, t-1] + epsT.Prod[t])
+  }
+}
+
+
+## Gyrfalcon pressure covariate
+
+for(x in 1:N_areas){
+  
+  # For year 1:
+  GyrPressure_raw[x, 1] <- probOcc[x, 1] 
+  
+  # For years 2+:
+  for(t in 2:N_years){
+    GyrPressure_raw[x, t] <- (0.5 * probOcc[x, t-1]) + # Occupancy probability in the first half of the ptarmigan 'year'
+      (0.5 * probOcc[x, t]) # Occupancy probability in second half of the ptarmigan 'year'
+  }
+  
+  for(t in 1:N_years){
+    GyrPressure_std[x, t] <- (GyrPressure_raw[x, t] - GyrPressure_meanCov[x]) / GyrPressure_sdCov[x] # Standardizing GyrPressure
+  }
+}
+
+GyrPressure_meanCov <- apply(GyrPressure_raw, 1, mean)
+GyrPressure_sdCov <- Apply(GyrPressure_raw, 1, sd)
+
+
+
 
 
