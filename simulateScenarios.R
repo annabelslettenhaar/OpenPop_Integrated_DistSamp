@@ -178,13 +178,13 @@ probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
 GyrPressure <- matrix(NA, nrow = N_areas, ncol = N_years)
 
 # Initial values for the first year
-# AdultDensity[, 1] <- Mu.D1 * 1000000
-AdultDensity[, 1] <- 10
-# JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
-JuvenileDensity[, 1] <- 5
+AdultDensity[, 1] <- Mu.D1 * 1000000
+# AdultDensity[, 1] <- 10
+JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
+# JuvenileDensity[, 1] <- 5
 totalDensity[, 1] <- AdultDensity[, 1] + JuvenileDensity[, 1]
-# probOcc[, 1] <- plogis(alphaPtar.Occ)
-probOcc[, 1] <- 0.5
+probOcc[, 1] <- plogis(alphaPtar.Occ)
+# probOcc[, 1] <- 0.5
 terrProd[, 1] <- exp(alphaPtar.Prod)
 #GyrPressure[, 1] <- probOcc[, 1]
 
@@ -213,7 +213,8 @@ for (t in 1:(N_years - 1)) {
     # 5. Recruitment for next year
     terrProd[x, t + 1] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totalDensity[x, t])
     # R_year[x, t + 1] <- exp(log(Mu.R[x]) + betaR.R * terrProd[x, t + 1])
-    R_year[x, t + 1] <- exp(log(Mu.R[x])+ betaR.R * RodentOcc[x, t])
+    # R_year[x, t + 1] <- exp(log(Mu.R[x])+ betaR.R * RodentOcc[x, t])
+    R_year[x, t + 1] <- exp(log(Mu.R[x]))
     
     # 6. Update densities for next year
     AdultDensity[x, t + 1] <- totalDensity[x, t] * S[x, t + 1]
