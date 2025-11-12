@@ -166,19 +166,20 @@ AdultDensity <- JuvenileDensity <- totalDensity <- matrix(NA, nrow = N_areas, nc
 S <- matrix(NA, nrow = N_areas, ncol = N_years-1)
 R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
 probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
-GyrPressure_raw <- matrix(NA, nrow = N_areas, ncol = N_years)
+GyrPressure <- matrix(NA, nrow = N_areas, ncol = N_years)
 
 # Initial values for the first year
 AdultDensity[, 1] <- Mu.D1 * 1000000
 JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
 probOcc[, 1] <- plogis(alphaPtar.Occ)
 terrProd[, 1] <- exp(alphaPtar.Prod)
+GyrPressure[, 1] <- probOcc[, 1]
 
 # Loop to fill out the rest of the years
 for (t in 2:N_years) {
   for (x in 1:N_areas) {
-    # Survival & recruitment
-    S[x, t-1] <- plogis(qlogis(Mu.S[x])) #+ epsR.S[x, t-1])
+    # Survival & recruitment influenced by gyrpressure
+    S[x, t-1] <- plogis(qlogis(Mu.S[x]) + betaGyr.S * GyrPressure[x, t-1]) #+ epsR.S[x, t-1])
     R_year[x, t] <- exp(log(Mu.R[x])) #+ epsR.R[x, t])
     
     # Update densities
@@ -191,7 +192,7 @@ for (t in 2:N_years) {
     terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totalDensity[x, t-1]) #+ epsT.Prod[t])
     
     # Gyrfalcon pressure
-    GyrPressure_raw[x, t] <- 0.5*probOcc[x, t-1] + 0.5*probOcc[x, t]
+    GyrPressure[x, t] <- 0.5*probOcc[x, t-1] + 0.5*probOcc[x, t]
   }
 }
 
