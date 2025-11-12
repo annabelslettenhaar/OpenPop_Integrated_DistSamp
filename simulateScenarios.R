@@ -161,6 +161,9 @@ totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
 # Starting with the simplest of the simplest: only ptarmigan dynamics without the site level variation 
 # No standardization and no random effects
 
+betaPtar.Occ <- 1
+betaGyr.S <- -2
+
 # Initialize matrices
 AdultDensity <- JuvenileDensity <- totalDensity <- matrix(NA, nrow = N_areas, ncol = N_years)
 S <- matrix(NA, nrow = N_areas, ncol = N_years-1)
@@ -171,30 +174,37 @@ GyrPressure <- matrix(NA, nrow = N_areas, ncol = N_years)
 # Initial values for the first year
 AdultDensity[, 1] <- Mu.D1 * 1000000
 JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
+totalDensity[, 1] <- AdultDensity[, 1] + JuvenileDensity[, 1]
 probOcc[, 1] <- plogis(alphaPtar.Occ)
 terrProd[, 1] <- exp(alphaPtar.Prod)
 GyrPressure[, 1] <- probOcc[, 1]
 
 # Loop to fill out the rest of the years
+
 for (t in 2:N_years) {
   for (x in 1:N_areas) {
-    # Survival & recruitment influenced by gyrpressure
-    S[x, t-1] <- plogis(qlogis(Mu.S[x]) + betaGyr.S * GyrPressure[x, t-1]) #+ epsR.S[x, t-1])
-    R_year[x, t] <- exp(log(Mu.R[x])) #+ epsR.R[x, t])
+    # 1. Predict occupancy and productivity based on previous density
+    probOcc[x, t] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * totalDensity[x, t-1])
+    terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totalDensity[x, t-1])
     
-    # Update densities
+    # 2. Compute gyrfalcon pressure for current year
+    #GyrPressure[x, t] <- 0.5 * probOcc[x, t-1] + 0.5 * probOcc[x, t]
+    GyrPressure[x, t] <- probOcc[x, t-1]
+    
+    # 3. Survival influenced by same-year pressure
+    S[x, t-1] <- plogis(qlogis(Mu.S[x]) + betaGyr.S * GyrPressure[x, t])
+    
+    # 4. Recruitment
+    R_year[x, t] <- exp(log(Mu.R[x]))
+    
+    # 5. Update densities
     AdultDensity[x, t] <- (AdultDensity[x, t-1] + JuvenileDensity[x, t-1]) * S[x, t-1]
     JuvenileDensity[x, t] <- if (R_perF) (AdultDensity[x, t]/2)*R_year[x, t] else AdultDensity[x, t]*R_year[x, t]
     totalDensity[x, t] <- AdultDensity[x, t] + JuvenileDensity[x, t]
-    
-    # Gyrfalcon occupancy & productivity (use only adult density)
-    probOcc[x, t] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * totalDensity[x, t-1]) #+ epsT.Occ[t])
-    terrProd[x, t] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totalDensity[x, t-1]) #+ epsT.Prod[t])
-    
-    # Gyrfalcon pressure
-    GyrPressure[x, t] <- 0.5*probOcc[x, t-1] + 0.5*probOcc[x, t]
   }
 }
+
+
 
 matplot(t(probOcc), type='l', lty=1, main="Gyrfalcon Occupancy", ylab="Probability", xlab="Year")
 matplot(t(AdultDensity), type='l', lty=1, main="Ptarmigan Adult Density", ylab="Density", xlab="Year")
