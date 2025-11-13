@@ -1,24 +1,28 @@
+library(tidyverse)
+library(sf)
+library(terra)
+library(parallel)
+library(nimble)
+library(coda)
+
 
 # Limits and constants #
 #----------------------#
   
-N_areas <- input_data$nim.constants$N_areas
-N_ageC <- input_data$nim.constants$N_ageC
-N_years <- input_data$nim.constants$N_years
+# N_areas <- input_data$nim.constants$N_areas
+# N_ageC <- input_data$nim.constants$N_ageC
+# N_years <- input_data$nim.constants$N_years
+N_areas <- 3
+N_ageC <- 2
+N_years <- 30
 
-if(N_areas == 1){
-  N_sites <- input_data$nim.constants$N_sites[1]
-}else{
-  N_sites <- input_data$nim.constants$N_sites
-}
+# L <- input_data$nim.data$L
+# W <- input_data$nim.constants$W
+# pi <- 3.141593
+# A <- input_data$nim.data$A
 
-L <- input_data$nim.data$L
-W <- input_data$nim.constants$W
-pi <- 3.141593
-A <- input_data$nim.data$A
-
-totDens_meanCov <- input_data$nim.constants$totDens_meanCov
-totDens_sdCov <- input_data$nim.constants$totDens_sdCov
+# totDens_meanCov <- input_data$nim.constants$totDens_meanCov
+# totDens_sdCov <- input_data$nim.constants$totDens_sdCov
 
 
 # Rodent data #
@@ -64,6 +68,25 @@ RodentOcc <- simulateRodentAR2(N_areas = 3, N_years = 50,
 
 matplot(t(RodentOcc), type='l', lty=1, main=paste("Scenario:", chosen),
         ylab="Rodent index", xlab="Year")
+
+
+
+# Helper function to get posterior medians
+# ---------------------------------------#
+
+extractPostMedians <- function(modelOutput, paramNames) {
+  samps <- as.matrix(modelOutput)
+  median_list <- list()
+  for (pname in paramNames) {
+    param_cols <- grep(paste0("^", pname), colnames(samps), value = TRUE)
+    medians <- apply(samps[, param_cols, drop = FALSE], 2, median)
+    median_list[[pname]] <- medians
+  }
+  return(median_list)
+}
+
+# Load model output
+model_output <- readRDS("/cloud/project/rypeIDSM_dHN_gyrData_11-11_longrun_fullloop_Rodent_Temp.rds")
 
 
 # Gyrfalcon vital rates #
@@ -161,13 +184,14 @@ Mu.D1 <- post_pop$Mu.D1
 # Starting with the simplest of the simplest: only ptarmigan dynamics without the site level variation 
 # No standardization and no random effects
 
+# Starting values from theoretical example
 alphaPtar.Occ <- -5
 betaPtar.Occ <- 1
 Mu.S <- 0.5
 Mu.R <- 1.5
 betaGyr.S <- -2
 
-sim.years <- 50
+sim.years <- 50 # Increase simulation years to make oscillations visible
 N_years <- sim.years
 
 # Initialize matrices
@@ -178,13 +202,13 @@ probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
 GyrPressure <- matrix(NA, nrow = N_areas, ncol = N_years)
 
 # Initial values for the first year
-AdultDensity[, 1] <- Mu.D1 * 1000000
-# AdultDensity[, 1] <- 10
-JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
-# JuvenileDensity[, 1] <- 5
+# AdultDensity[, 1] <- Mu.D1 * 1000000
+AdultDensity[, 1] <- 10
+# JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
+JuvenileDensity[, 1] <- 5
 totalDensity[, 1] <- AdultDensity[, 1] + JuvenileDensity[, 1]
-probOcc[, 1] <- plogis(alphaPtar.Occ)
-# probOcc[, 1] <- 0.5
+# probOcc[, 1] <- plogis(alphaPtar.Occ)
+probOcc[, 1] <- 0.5
 terrProd[, 1] <- exp(alphaPtar.Prod)
 #GyrPressure[, 1] <- probOcc[, 1]
 
@@ -222,7 +246,7 @@ for (t in 1:(N_years - 1)) {
     }
   }
 
-
+par(mar = c(4, 4, 2, 1))
 matplot(t(probOcc), type='l', lty=1, main="Gyrfalcon Occupancy", ylab="Probability", xlab="Year")
 matplot(t(AdultDensity), type='l', lty=1, main="Ptarmigan Adult Density", ylab="Density", xlab="Year")
 matplot(t(JuvenileDensity), type='l', lty=1, main="Ptarmigan Juvenile Density", ylab="Density", xlab="Year")
