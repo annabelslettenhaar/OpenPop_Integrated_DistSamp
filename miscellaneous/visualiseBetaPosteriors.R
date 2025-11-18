@@ -6,7 +6,7 @@ library(dplyr)
 library(ggridges)
 
 # Convert to matrix
-samps <- as.matrix(IDSM.out)
+samps <- as.matrix(model_output)
 
 # Grab only the totDens_raw variables
 cov_names <- c("betaR.R", "betaPtar.Occ", "betaPtar.Prod", "betaGyr.S", "betaTemp.R")
@@ -19,7 +19,7 @@ posterior_df <- samps_sel %>%
   mutate(Parameter = factor(Parameter, levels = rev(unique(Parameter))),
          Parameter = fct_recode(Parameter, 
                             "β-Rodent" = "betaR.R",
-                            "β-Occ" = "betaPtar.Occ",
+                            "β-Init" = "betaPtar.Occ",
                             "β-Prod" = "betaPtar.Prod",
                             "β-Gyr" = "betaGyr.S",
                             "β-Temp" = "betaTemp.R"))
