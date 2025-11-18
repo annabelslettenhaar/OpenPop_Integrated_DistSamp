@@ -5,39 +5,38 @@ library(flextable)
 
 survival_bl <- as.data.frame(postSum_list$Mu.S)
 survival_bl <- survival_bl %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>%
+  select(area, Median, uCI, lCI, SD, CV) %>%
   mutate(Species = "Ptarmigan",
          Variable = "μ_S",
          Definition = "Baseline survival probability")
 
 survival <- as.data.frame(postSum_list$S)
 survival <- survival %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>%
+  select(area, Median, uCI, lCI, SD, CV) %>%
   mutate(Species = "Ptarmigan",
          Variable = "S",
          Definition = "Survival probability")
 
 recruitment_bl <- as.data.frame(postSum_list$Mu.R)
 recruitment_bl <- recruitment_bl %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>%
+  select(area, Median, uCI, lCI, SD, CV) %>%
   mutate(Species = "Ptarmigan",
          Variable = "μ_R",
          Definition = "Baseline recruitment rate")
 
 recruitment <- as.data.frame(postSum_list$R_year)
 recruitment <- recruitment %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>%
+  select(area, Median, uCI, lCI, SD, CV) %>%
   mutate(Species = "Ptarmigan",
          Variable = "R",
          Definition = "Recruitment rate")
 
 popdens <- as.data.frame(postSum_list$totDens_raw)
 popdens <- popdens %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>% 
+  select(area, Median, uCI, lCI, SD, CV) %>% 
   mutate(Median = Median * 1000000,
          uCI = uCI * 1000000,
          lCI = lCI * 1000000,
-         Mean = Mean * 1000000,
          SD = SD * 1000000,
          Species = "Ptarmigan",
          Variable = "totDens",
@@ -45,28 +44,28 @@ popdens <- popdens %>%
 
 occ_bl <- as.data.frame(postSum_list$alphaPtar.Occ)
 occ_bl <- occ_bl %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>%
+  select(area, Median, uCI, lCI, SD, CV) %>%
   mutate(Species = "Gyrfalcon",
-         Variable = "α_Prod",
-         Definition = "Baseline probability of occupancy")
+         Variable = "μ_Init",
+         Definition = "Baseline probability of brood initiation")
 
 occ <- as.data.frame(postSum_list$probOcc)
 occ <- occ %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>%
+  select(area, Median, uCI, lCI, SD, CV) %>%
   mutate(Species = "Gyrfalcon",
-         Variable = "probOcc",
-         Definition = "Probability of occupancy")
+         Variable = "probInit",
+         Definition = "Probability of brood initiation")
 
 prod_bl <- as.data.frame(postSum_list$alphaPtar.Prod)
 prod_bl <- prod_bl %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>%
+  select(area, Median, uCI, lCI, SD, CV) %>%
   mutate(Species = "Gyrfalcon",
-         Variable = "α_Occ",
+         Variable = "μ_Prod",
          Definition = "Baseline no. nestlings per breeding attempt")
 
 prod <- as.data.frame(postSum_list$terrProd)
 prod <- prod %>%
-  select(area, Median, uCI, lCI, Mean, SD, CV) %>%
+  select(area, Median, uCI, lCI, SD, CV) %>%
   mutate(Species = "Gyrfalcon",
          Variable = "terrProd",
          Definition = "No. nestlings per breeding attempt")
