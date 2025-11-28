@@ -172,11 +172,11 @@ ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower",
 
 The correlation matrix shows that some variables are strongly correlated. We will not include both precipitation indices in the same model and we cannot put SD20 and febsnow in the same model. Other correlation coefficients are below 0.4 and should not pose too many problems during modelling.
 
-#### Modelling: brms linear models
+#### Modelling: *brms* linear models
 
-Now we can run a series of linear models and plot their output to compare effect sizes and directions of correlations with brood initiation rates and productivity.
+Now we can run a series of linear models and plot their output to compare effect sizes and directions of correlations with brood initiation rates and productivity. For this, we used the *brms* package, and we used the default modelling settings.
 
-Model 1: occupancy/brood initiation rates and weather conditions in february
+Model 1: occupancy/brood initiation rates and weather conditions in February
 
 ```{r}
 #| label: Occupancy model
@@ -192,4 +192,49 @@ plot(O1)
 summary(O1)
 ```
 
-Model 2:
+Model 2: productivity and temperature + precipitation during the nestling period
+
+```{r}
+#| label: Productivity model 1
+P1 <- brm(
+  meanProd | se(sdProd) ~ chicktemp + precip,
+  data = model_data,
+  family = gaussian()
+)
+
+plot(P1)
+summary(P1)
+```
+
+Model 3: productivity and temperature + the amount of long-rain events during the nestling period
+
+```{r}
+#| label: Productivity model 2
+P2 <- brm(
+  meanProd | se(sdProd) ~ chicktemp + longrain,
+  data = model_data,
+  family = gaussian()
+)
+
+plot(P2)
+summary(P2)
+```
+
+Model 4: productivity and april temperature + precipitation during the nestling phase
+
+```{r}
+P4 <- brm(
+  meanProd | se(sdProd) ~ apriltemp + precip,
+  data = model_data,
+  family = gaussian()
+)
+
+plot(P4)
+summary(P4)
+```
+
+As mentioned above, none of these variables show significant correlations with the posterior means of the random effects of gyrfalcon brood initiation rates or productivity. This analysis should be repeated with higher quality datasets to confidently draw conclusions about correlations with weather variables.
+
+### Ptarmigan
+
+The approach for the analysis for ptarmigan will be very similar to that of the gyrfalcon, except here we selected different weather variables, and we use the posterior means from the ptarmigan vital rates models on recruitment and survival. These did show sufficient variation for such a post-hoc analysis.
