@@ -1,6 +1,6 @@
 ---
 title: "PostHoc_weatherAnalysis"
-format: html
+format: pdf
 editor: visual
 ---
 
@@ -14,7 +14,10 @@ To start, we load the necessary packages, relevant R-functions, and we set area 
 
 ```{r}
 #| label: Initial setup
-#| echo: false
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 library(tidyverse)
 library(sf)
 library(terra)
@@ -65,7 +68,10 @@ For this analysis we need weather data, so in the code chunk below, we load thos
 
 ```{r}
 #| label: Load and process gyrfalcon weather data
-#| echo: false
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 ## Read in and process weather data
 d_weather <- wrangleData_GyrWeather(areas = areas,
                                     minYear = minYear, 
@@ -113,7 +119,10 @@ Then, we extract posterior summaries (posterior mean and SD) for the random effe
 
 ```{r}
 #| label: Extract and process gyr posterior summaries
-#| echo: false
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 ## Extract posterior mean values and SD's for posthoc testing
 
 # Occupancy/brood initiation rates
@@ -141,7 +150,7 @@ Then we prep both datasets to be combined, and we set up a correlation matrix to
 
 ```{r}
 #| label: Data setup and correlation matrix gyrfalcon
-#| echo: false
+#| echo: true
 ## Setup data for modelling
 
 # Edit weather function to return means per year, not per year per area. 
@@ -170,72 +179,100 @@ ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower",
 
 ```
 
-The correlation matrix shows that some variables are strongly correlated. We will not include both precipitation indices in the same model and we cannot put SD20 and febsnow in the same model. Other correlation coefficients are below 0.4 and should not pose too many problems during modelling.
+The correlation matrix shows that some variables are strongly correlated. We will not include any of the correlated variables that show a correlation coefficient higher than 0.4 in the same model.
 
 #### Modelling: *brms* linear models
 
 Now we can run a series of linear models and plot their output to compare effect sizes and directions of correlations with brood initiation rates and productivity. For this, we used the *brms* package, and we used the default modelling settings.
 
-Model 1: occupancy/brood initiation rates and weather conditions in February
+**Model 1: occupancy/brood initiation rates and weather conditions in February**
 
 ```{r}
 #| label: Occupancy model
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 # Occupancy
 O1 <- brm(
   meanOcc | se(sdOcc) ~ febsnow + febtemp,
   data = model_data,
   family = gaussian()
 )
-
-plot(O1)
-summary(O1)
 ```
 
-Model 2: productivity and temperature + precipitation during the nestling period
+```{r}
+plot(O1)
+
+rm(O1)
+```
+
+**Model 2: productivity and temperature + precipitation during the nestling period**
 
 ```{r}
 #| label: Productivity model 1
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 P1 <- brm(
   meanProd | se(sdProd) ~ chicktemp + precip,
   data = model_data,
   family = gaussian()
 )
-
-plot(P1)
-summary(P1)
 ```
 
-Model 3: productivity and temperature + the amount of long-rain events during the nestling period
+```{r}
+#| label: plot P1
+plot(P1)
+rm(P1)
+```
+
+**Model 3: productivity and temperature + the amount of long-rain events during the nestling period**
 
 ```{r}
 #| label: Productivity model 2
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 P2 <- brm(
   meanProd | se(sdProd) ~ chicktemp + longrain,
   data = model_data,
   family = gaussian()
 )
-
-plot(P2)
-summary(P2)
 ```
 
-Model 4: productivity and april temperature + precipitation during the nestling phase
+```{r}
+#| label: plot P2
+plot(P2)
+rm(P2)
+```
+
+**Model 4: productivity and april temperature + precipitation during the nestling phase**
 
 ```{r}
 #| label: Productivity model 3
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 P3 <- brm(
   meanProd | se(sdProd) ~ apriltemp + precip,
   data = model_data,
   family = gaussian()
 )
+```
 
+```{r}
+#| label: plot P3
 plot(P3)
-summary(P3)
+rm(P3)
 ```
 
 As mentioned above, none of these variables show significant correlations with the posterior means of the random effects of gyrfalcon brood initiation rates or productivity. This analysis should be repeated with higher quality data sets to confidently draw conclusions about correlations with weather variables.
 
-### Ptarmigan
+### **Ptarmigan**
 
 The approach for the analysis for ptarmigan will be very similar to that of the gyrfalcon, except here we selected different weather variables, and we use the posterior means from the ptarmigan vital rates models on recruitment and survival. These did show sufficient variation for such a post-hoc analysis.
 
@@ -257,6 +294,10 @@ Again, we start with extracting the weather data from SeNorge, and processing th
 
 ```{r}
 #| label: Load and process ptarmigan weather data
+#| echo: false
+#| results: "hide"
+#| message: false
+#| warning: false
 # Read in and process weather data
 
 d_temp <- readRDS("data/weather/temp.rds") # Temperature during chick rearing
@@ -341,6 +382,10 @@ Then, we extract posterior summaries (posterior mean and SD) again, for the rand
 
 ```{r}
 #| label: Extract and process posterior summaries ptarmigan
+#| echo: false
+#| results: "hide"
+#| message: false
+#| warning: false
 ## Extract posterior mean values and SD's for posthoc testing
 
 # Ptarmigan recruitment
@@ -368,6 +413,8 @@ Then we prep both data sets to be combined, and we set up a correlation matrix t
 
 ```{r}
 #| label: Set up model data and correlation matrix ptarmigan
+#| echo: false
+
 residual_summary <- epsR_summary %>%
   left_join(epsS_summary)
 
@@ -396,215 +443,173 @@ We see a high correlation between the three snow depth variables, SnowFree, Snow
 
 #### Modelling: *brms* linear models
 
-Now we can run a series of linear models again and plot their output to compare effect sizes and directions of correlations with brood initiation rates and productivity. For this, we used the *brms* package, and we used the default modelling settings. We included area as a fixed effect to account for repeated measurements from the same area.
+Now we can run a series of linear models again and plot their output to compare effect sizes and directions of correlations with brood initiation rates and productivity. For this, we used the *brms* package, and we used the default modelling settings.
 
 ##### Recruitment
 
 We start with recruitment. We tested whether ptarmigan recruitment was related to temperature and spring timing. Many studies report positive relationships between ptarmigan recruitment and spring air temperatures, which is also reflected in earlier snowmelt (46, 69-72). Generally, in years with warm springs, nutritious and fresh vegetation is available to ptarmigan and their offspring earlier and in higher abundance (73). For temperature, we calculated the average during the (pre-)incubation period between the 1 May and 2 June, and the average during the chick rearing period from 24 June to 15 July. For spring timing, we quantified the snow conditions by calculating the average snow depth on 20 May and the first 7-day period where snow depth is below 1 cm.
 
+**Model 1: Recruitment and early spring temperature + late spring temperature + spring snow depth**
+
 ```{r}
-#| label: Modelling for ptarmigan recruitment
+#| label: Model recruitment 1
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
+
 R1 <- brm(
-  meanR | se(sdR) ~ TempPre + TempPost + SnowFree + (1 | area),
+  meanR | se(sdR) ~ TempPre + TempPost + SD20, 
   data = model_data,
   family = gaussian()
 )
+```
+
+```{r}
+#| label: Plot R1
+plot(R1)
+rm(R1)
+```
+
+**Model 2: Recruitment and early spring temperature + late spring temperature**
+
+```{r}
+#| label: Model recruitment 2
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 
 R2 <- brm(
-  meanR | se(sdR) ~ TempPre + TempPost + SD20 + (1 | area),
+  meanR | se(sdR) ~ TempPre + TempPost, 
   data = model_data,
   family = gaussian()
 )
 
-R3 <- brm(
-  meanR | se(sdR) ~ TempPre + TempPost + SnowFree + area,
-  data = model_data,
-  family = gaussian()
-)
 
-R4 <- brm(
-  meanR | se(sdR) ~ TempPre + TempPost + area,
-  data = model_data,
-  family = gaussian()
-)
-
-plot(R4)
-
-R5 <- brm(
-  meanR | se(sdR) ~ TempPre + SnowFree + area,
-  data = model_data,
-  family = gaussian()
-)
-
-plot(R5)
-
-R6 <- brm(
-  meanR | se(sdR) ~ SnowFree + area,
-  data = model_data,
-  family = gaussian()
-)
-
-R7 <- brm(
-  meanR | se(sdR) ~ TempPre + area,
-  data = model_data,
-  family = gaussian()
-)
 ```
-
-We tried several model setups and compared them using leave-one-out cross validation
 
 ```{r}
-#| label: Model comparison ptarmigan recruitment
-loo_R1 <- loo(R1)
-loo_R2 <- loo(R2)
-loo_R3 <- loo(R3)
-loo_R4 <- loo(R4)
-loo_R5 <- loo(R5)
-loo_R6 <- loo(R6)
-loo_R7 <- loo(R7)
-loo_compare(loo_R1, loo_R2, loo_R3, loo_R4, loo_R6, loo_R5, loo_R7)
+#| label: Plot R2
+plot(R2)
+rm(R2)
 ```
 
-Based on these analyses, TempPre is always included and shows the strongest correlation with ptarmigan recruitment
+**Model 3: recruitment and early spring temperature + length of the snowfree period**
+
+```{r}
+#| label: Model recruitment 3
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
+R3 <- brm(
+  meanR | se(sdR) ~ TempPre + SnowFree, 
+  data = model_data,
+  family = gaussian()
+)
+```
+
+```{r}
+#| label: Plot R3
+plot(R3)
+rm(R3)
+```
+
+This shows that TempPre, TempPost and SnowFree all have positive effects on recruitment. Based on these figures, we can conclude that early spring temperature always shows a positive effect that is stronger in effect size compared to the other weather variables that are related to recruitment.
 
 ##### Survival
 
 We tested whether ptarmigan survival was related to temperature and snow conditions throughout the year. Previous studies show that snow depth in the spring is negatively related to ptarmigan survival (7, 8). We used the same spring snow depth index as above, as the average snow depth on 20 May. We also calculated the average length of the snow-free period in the summer, as the number of consecutive days where snow depth is below 1 cm. We calculated the mean snow depth during the pre-breeding period, which we defined as the period between 1 May and 2 June, which includes ptarmigan laying and pre-laying days.
 
+**Model 1: survival and early spring temperature + winter temperature + length of the snowfree period**
+
 ```{r}
-#| label: Modelling for ptarmigan survival
-# Survival
+#| label: Model survival 1
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 
 S1 <- brm(
-  meanS | se(sdS) ~ TempPre + TempJan + SnowPeriod + area,
+  meanS | se(sdS) ~ TempPre + TempJan + SnowPeriod, 
   data = model_data,
   family = gaussian()
 )
+```
+
+```{r}
+#| label: Plot S1
+plot(S1)
+rm(S1)
+```
+
+**Model 2: survival and early spring temperature + winter temperature + spring snow depth**
+
+```{r}
+#| label: Model survival 2
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 
 S2 <- brm(
-  meanS | se(sdS) ~ TempPre + TempJan + SD20 + area,
+  meanS | se(sdS) ~ TempPre + TempJan + SD20, 
   data = model_data,
   family = gaussian()
 )
 
+```
+
+```{r}
+#| label: Plot S2
+plot(S2)
+rm(S2)
+```
+
+**Model 3: Survival and winter temperature + length of the snow free period**
+
+```{r}
+#| label: Model survival 3
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 S3 <- brm(
-  meanS | se(sdS) ~ TempJan + SnowPeriod + area,
+  meanS | se(sdS) ~ TempJan + SnowPeriod, 
   data = model_data,
   family = gaussian()
 )
+```
 
+```{r}
+#| label: Plot S3
 plot(S3)
+rm(S3)
+```
 
+**Model 4: survival and early spring temperature + length of the snow free period**
+
+```{r}
+#| label: Model survival 4
+#| echo: true
+#| results: "hide"
+#| message: false
+#| warning: false
 S4 <- brm(
-  meanS | se(sdS) ~ TempPre + SnowPeriod + area,
+  meanS | se(sdS) ~ TempPre + SnowPeriod, 
   data = model_data,
   family = gaussian()
 )
+```
 
+```{r}
+#| label: Plot S4
 plot(S4)
-
-S5 <- brm(
-  meanS | se(sdS) ~ TempPre + area,
-  data = model_data,
-  family = gaussian()
-)
-
-S6 <- brm(
-  meanS | se(sdS) ~ TempJan + area,
-  data = model_data,
-  family = gaussian()
-)
-
-S7 <- brm(
-  meanS | se(sdS) ~ SnowPeriod + area,
-  data = model_data,
-  family = gaussian()
-)
-
+rm(S4)
 ```
 
-Again, we set up several models and compared them using leave-one-out cross validation
-
-```{r}
-#| label: Model comparison ptarmigan survival
-loo_S1 <- loo(S1)
-loo_S2 <- loo(S2)
-loo_S3 <- loo(S3)
-loo_S4 <- loo(S4)
-loo_S5 <- loo(S5)
-loo_S6 <- loo(S6)
-loo_S7 <- loo(S7)
-loo_compare(loo_S1, loo_S2, loo_S3, loo_S4, loo_S5, loo_S6, loo_S7)
-```
-
-#### Plotting model results
-
-After all the modelling, we want to visualise the results, to be able to select the most relevant weather variable.
-
-```{r}
-#| label: Plotting model results
-## Plot effects
-
-library(dplyr)
-library(tidyr)
-library(stringr)
-
-# Example for one model
-samples_R3 <- posterior_samples(R3, pars = "^b_")
-samples_R3 <- samples_R3 %>%
-  pivot_longer(cols = everything(), names_to = "param", values_to = "value") %>%
-  mutate(model = "R3")
-
-samples_S1 <- posterior_samples(S1, pars = "^b_")
-samples_S1 <- samples_S1 %>%
-  pivot_longer(cols = everything(), names_to = "param", values_to = "value") %>%
-  mutate(model = "S1")
-
-samples_S6 <- posterior_samples(S6, pars = "^b_")
-samples_S6 <- samples_S6 %>%
-  pivot_longer(cols = everything(), names_to = "param", values_to = "value") %>%
-  mutate(model = "S6")
-
-samples_S7 <- posterior_samples(S7, pars = "^b_")
-samples_S7 <- samples_S7 %>%
-  pivot_longer(cols = everything(), names_to = "param", values_to = "value") %>%
-  mutate(model = "S7")
-
-effects_df <- bind_rows(
-  samples_R3 %>% mutate(model = "Recruitment 3"),
-  samples_S1 %>% mutate(model = "Survival 1")
-  # samples_S6 %>% mutate(model = "Survival 6"),
-  # samples_S7 %>% mutate(model = "Survival 7")
-)
-
-effects_df <- effects_df %>%
-  mutate(
-    type = str_replace(param, "b_", "")
-  )
-
-
-summary_df <- effects_df %>%
-  group_by(model, type) %>%
-  summarise(
-    median = median(value),
-    lci = quantile(value, 0.025),
-    uci = quantile(value, 0.975),
-    .groups = "drop"
-  ) %>%
-  filter(type %in% c("SnowFree", "SnowPeriod", "TempJan", "TempPre", "TempPost"))
-
-
-
-library(ggplot2)
-
-ggplot(summary_df, aes(x = median, y = type)) +
-  geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = lci, xmax = uci), height = 0.2) +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  facet_wrap(~ model) +
-  theme_minimal() +
-  labs(x = "Posterior effect (median ± 95% CI)", y = "Covariate")
-```
+The models based on ptarmigan survival show that ... Elaborate!
 
 ### Conclusions
 
