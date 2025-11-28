@@ -1,0 +1,195 @@
+---
+title: "PostHoc_weatherAnalysis"
+format: html
+editor: visual
+---
+
+## Post-hoc weather analysis: selecting weather variables
+
+The complexity of our integrated model does not allow including an unlimited number of weather variables, and many weather variables are correlated to each other. Therefore, we have to select which one out of a candidate list will explain most of the variation. This document describes the process we followed to select the most relevant weather variable to include in the bigger integrated model.
+
+NOTE: For the gyrfalcon, we tested several weather variables, but realised that there was not sufficient variation in the random effects. We still described the process in this document to show which variables we intended to test, but none them show correlations, which is entirely explained by the lack of variation. We therefore decided not to interpret these results in this part of the analysis.
+
+To start, we load the necessary packages, relevant R-functions, and we set area names and years. We also load the model output of the complete model, without any weather covariates.
+
+```{r}
+#| label: Initial setup
+#| echo: false
+library(tidyverse)
+library(sf)
+library(terra)
+library(parallel)
+library(coda)
+library(brms)
+
+## Set localities/areas and time period of interest
+areas <- c("Hardangervidda", 
+           "Dovrefjell", 
+           "Børgefjell")
+minYear <- 1991
+maxYear <- 2020
+
+## Source all functions in "R_weather" folder
+sourceDir <- function(path, trace = TRUE, ...) {
+  for (nm in list.files(path, pattern = "[.][RrSsQq]$")) {
+    if(trace) cat(nm,":")
+    source(file.path(path, nm), ...)
+    if(trace) cat("\n")
+  }
+}
+sourceDir('R_weather')
+
+# Read in IDSM output
+IDSM.out <- readRDS("/cloud/project/rypeIDSM_dHN_gyrData_23-10_mediumrun_fullloop_onlyOcc_RE.rds")
+```
+
+### Gyrfalcons
+
+#### Extract and process weather data
+
+For this analysis we need weather data, so in the code chunk below, we load those and process them so we can use this weather dataframe to test correlations later on. The wrangleData_GyrWeather function loads snowdepth, temperature and precipitation data from every day during the study period, and converts this to specific averages relevant to our study. The included averages are:
+
+-   chicktemp: mean temperature during the nestling phase (between 15th of May (135) to 1st of July (182))
+
+-   apriltemp: mean temperature during the early breeding phase (egg laying, April)
+
+-   febtemp: mean temperature during territory establishment (February)
+
+-   febsnow: mean snow depth during territory establishment (February)
+
+-   SD20: mean snow depth during chick development (20th of May)
+
+-   precip: sum of precipitation during the nestling period (between 15th of May (135) to 1st of July (182))
+
+-   longrain: number of periods with 5 consecutive rainy days during the nestling period
+
+```{r}
+#| label: Load and process weather data
+#| echo: false
+## Read in and process weather data
+d_weather <- wrangleData_GyrWeather(areas = areas,
+                                    minYear = minYear, 
+                                    maxYear = maxYear,
+                                    byArea = FALSE)
+
+# Define year range 
+years <- seq_along(minYear:maxYear)
+
+d_weather_long <- list()
+
+# Loop through each element in the weather list
+for (i in seq_along(d_weather)) {
+  metric_name <- names(d_weather)[i]
+  mat <- d_weather[[i]]$data
+  
+  # Convert to data frame
+  df <- as.data.frame(mat)
+  colnames(df) <- as.character(years)
+  
+  # Assign area index only if multiple rows (i.e., by_area = TRUE)
+  if (nrow(df) > 1) {
+    df$area <- seq_len(nrow(df))
+  }
+  
+  # Reshape to long format
+  df_long <- df %>%
+    tidyr::pivot_longer(
+      cols = if ("area" %in% colnames(df)) colnames(df)[colnames(df) != "area"] else everything(),
+      names_to = "year",
+      values_to = "value"
+    ) %>%
+    mutate(year = as.integer(year)) %>%
+    rename(!!metric_name := value)
+  
+  # Store in list
+  d_weather_long[[metric_name]] <- df_long
+}
+
+```
+
+#### Extract and process random effects posteriors
+
+Then, we extract posterior summaries (posterior mean and SD) for the random effects included in the models for gyrfalcon brood initiation and productivity.
+
+```{r}
+#| label: Extract and process posterior summaries
+#| echo: false
+## Extract posterior mean values and SD's for posthoc testing
+
+# Occupancy/brood initiation rates
+epsOcc_summary <- extractParamSummary(modelOutput = IDSM.out,
+                                      parameterName = "epsT.Occ",
+                                      byArea = FALSE)
+
+epsOcc_summary <- epsOcc_summary %>%
+  mutate(meanOcc = mean,
+         sdOcc = sd) %>%
+  select(-c(mean, sd))
+
+# Productivity
+epsProd_summary <- extractParamSummary(modelOutput = IDSM.out,
+                                       parameterName = "epsT.Prod",
+                                       byArea = FALSE)
+
+epsProd_summary <- epsProd_summary %>%
+  mutate(meanProd = mean,
+         sdProd = sd) %>%
+  select(-c(mean, sd))
+```
+
+Then we prep both datasets to be combined, and we set up a correlation matrix to identify weather variables that cannot be included in the same linear model.
+
+```{r}
+#| label: Data setup and correlation matrix
+#| echo: false
+## Setup data for modelling
+
+# Edit weather function to return means per year, not per year per area. 
+
+residual_summary <- epsOcc_summary %>%
+  left_join(epsProd_summary)
+
+model_data <- residual_summary
+
+for (df_name in names(d_weather_long)) {
+  model_data <- model_data %>%
+    left_join(d_weather_long[[df_name]], by = c("year"))
+}
+
+
+## Make correlation matrix
+
+cor_matrix <- cor(model_data[, c("chicktemp", "apriltemp", "febtemp", "febsnow", "SD20", "precip", "longrain")], use = "complete.obs")
+
+# Plot
+library(ggcorrplot)
+ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower",
+           lab = TRUE, lab_size = 3, method = "square",
+           colors = c("blue", "white", "red"))
+
+
+```
+
+The correlation matrix shows that some variables are strongly correlated. We will not include both precipitation indices in the same model and we cannot put SD20 and febsnow in the same model. Other correlation coefficients are below 0.4 and should not pose too many problems during modelling.
+
+#### Modelling: brms linear models
+
+Now we can run a series of linear models and plot their output to compare effect sizes and directions of correlations with brood initiation rates and productivity.
+
+Model 1: occupancy/brood initiation rates and weather conditions in february
+
+```{r}
+#| label: Occupancy model
+#| echo: false
+# Occupancy
+O1 <- brm(
+  meanOcc | se(sdOcc) ~ febsnow + febtemp,
+  data = model_data,
+  family = gaussian()
+)
+
+plot(O1)
+summary(O1)
+```
+
+Model 2:
