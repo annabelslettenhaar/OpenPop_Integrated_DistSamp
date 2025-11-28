@@ -134,7 +134,7 @@ wrangleData_GyrWeather <- function(minYear, maxYear, areas, byArea) {
 }
 
 
-test <- wrangleData_GyrWeather(minYear = minYear,
-                               maxYear = maxYear,
-                               areas = areas,
-                               byArea = TRUE)
+# test <- wrangleData_GyrWeather(minYear = minYear,
+#                                maxYear = maxYear,
+#                                areas = areas,
+#                                byArea = TRUE)
