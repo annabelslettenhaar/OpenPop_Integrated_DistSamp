@@ -8,6 +8,8 @@ library(coda)
 
 # Limits and constants #
 #----------------------#
+
+set.seed(123) 
   
 # N_areas <- input_data$nim.constants$N_areas
 # N_ageC <- input_data$nim.constants$N_ageC
@@ -30,16 +32,47 @@ N_years <- 30
 
 # Second order auto regressive model (AR2) to simulate rodent dynamics 
 
-simulateRodentAR2 <- function(N_areas, N_years, alpha, phi1, phi2, sigma) {
+# simulateRodentAR2 <- function(N_areas, N_years, alpha, phi1, phi2, sigma) {
+#   mat <- matrix(NA, nrow = N_areas, ncol = N_years)
+#   for (i in 1:N_areas) {
+#     mat[i, 1:2] <- rnorm(2, 0, 1)
+#     for (t in 3:N_years) {
+#       mat[i, t] <- alpha + phi1 * mat[i, t-1] + phi2 * mat[i, t-2] + rnorm(1, 0, sigma)
+#     }
+#   }
+#   mat
+# }
+
+# More detailed version
+
+simulateRodentAR2 <- function(N_areas, N_years,
+                                   alpha = 0, phi1 = 0.6, phi2 = -0.3, sigma = 0.2,
+                                   peak_interval = 4, peak_jitter = 0, peak_size = 3.5,
+                                   baseline = 0.1,
+                                   mean_val = 5.39, sd_val = 9.36) {
   mat <- matrix(NA, nrow = N_areas, ncol = N_years)
+  
   for (i in 1:N_areas) {
-    mat[i, 1:2] <- rnorm(2, 0, 1)
+    mat[i, 1:2] <- baseline + runif(2, 0, 0.2)  # start near baseline
+    
+    # Generate peak years with randomness
+    peak_years <- seq(peak_interval, N_years, by = peak_interval) +
+      sample(-peak_jitter:peak_jitter, length(seq(peak_interval, N_years, by = peak_interval)), replace = TRUE)
+    peak_years <- peak_years[peak_years > 2 & peak_years <= N_years]  # keep valid years
+    
     for (t in 3:N_years) {
-      mat[i, t] <- alpha + phi1 * mat[i, t-1] + phi2 * mat[i, t-2] + rnorm(1, 0, sigma)
+      shock <- ifelse(t %in% peak_years, peak_size, 0)
+      val <- alpha + phi1 * mat[i, t-1] + phi2 * mat[i, t-2] + rnorm(1, 0, sigma) + shock
+      mat[i, t] <- max(val, baseline)  # enforce positivity
     }
   }
-  mat
+  
+  # Transform back to original scale
+  # mat_real <- mat * sd_val + mean_val
+  return(mat)
 }
+
+
 
 # Parameters with three versions of rodent fluctuation strength
 params <- list(
@@ -58,11 +91,11 @@ for (scenario in names(params)) {
 }
 
 # Choose scenario and run simulation
-chosen <- "strong"
+chosen <- "weak"
 p <- params[[chosen]]
 
 # Run simulation
-RodentOcc <- simulateRodentAR2(N_areas = 3, N_years = 50, 
+RodentOcc <- simulateRodentAR2(N_areas = 3, N_years = 100, 
                          alpha = p$alpha, phi1 = p$phi1, phi2 = p$phi2, sigma = p$sigma)
 
 
@@ -70,9 +103,24 @@ matplot(t(RodentOcc), type='l', lty=1, main=paste("Scenario:", chosen),
         ylab="Rodent index", xlab="Year")
 
 
+## Get temperature data and resample
 
-# Helper function to get posterior medians
-# ---------------------------------------#
+d_temp <- readRDS("data/weather/springtemp.rds")
+d_temp <- d_temp$data
+
+extra_years <- 70
+rows <- nrow(d_temp)
+cols <- ncol(d_temp)
+
+future_data <- d_temp[, sample(1:cols, extra_years, replace = TRUE)]
+SpringTemp <- cbind(d_temp, future_data)
+
+matplot(t(SpringTemp), type = "l", lty = 1,
+        main = "Simulated Spring Temperatures (100 years)",
+        xlab = "Year", ylab = "Temperature")
+
+# Helper function to get posterior medians #
+# -----------------------------------------#
 
 extractPostMedians <- function(modelOutput, paramNames) {
   samps <- as.matrix(modelOutput)
@@ -106,20 +154,6 @@ alphaPtar.Prod <- post_gyr$alphaPtar.Prod
 betaPtar.Occ <- post_gyr$betaPtar.Occ 
 betaPtar.Prod <- post_gyr$betaPtar.Prod 
 
-# Random effects
-sigmaT.Occ <- post_gyr$sigmaT.Occ 
-sigmaT.Prod <- post_gyr$sigmaT.Prod 
-
-epsT.Occ <- rnorm(N_years, 0, sigmaT.Occ)
-epsT.Prod <- rnorm(N_years, 0, sigmaT.Prod)
-
-# # Storing estimates
-# probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
-# 
-# # Initial values for year 1 
-# probOcc[, 1] <- plogis(alphaPtar.Occ)
-# terrProd[, 1] <- exp(alphaPtar.Prod)
-
 
 # Ptarmigan vital rates #
 #-----------------------#
@@ -138,22 +172,11 @@ Mu.R <- post_ptar$Mu.R
 betaGyr.S <- post_ptar$betaGyr.S
 betaTemp.R <- post_ptar$betaTemp.R
 
-if(fitRodentCov){
-  betaR.R <- post_ptar$betaR.R
-}else{
-  betaR.R <- 0
-}
-
-# Random effects
-sigmaR.S <- post_ptar$sigmaR.S
-sigmaR.R <- post_ptar$sigmaR.R
-
-epsR.S <- matrix(rnorm(N_areas*(N_years-1), 0, sigmaR.S), nrow = N_areas)
-epsR.R <- matrix(rnorm(N_areas*N_years, 0, sigmaR.R), nrow = N_areas)
+betaR.R <- post_ptar$betaR.R
 
 
 # Population density #
-#------------------#
+#--------------------#
 
 ## Extract posterior median
 post_pop <- extractPostMedians(modelOutput = model_output,
@@ -166,32 +189,19 @@ post_pop <- extractPostMedians(modelOutput = model_output,
 Mu.D1 <- post_pop$Mu.D1
 
 
-# Initialize matrices #
-#---------------------#
-
-# GyrPressure_raw <- GyrPressure_std <- matrix(NA, nrow = N_areas, ncol = N_years)
-# S <- matrix(NA, nrow = N_areas, ncol = N_years-1)
-# R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
-# Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
-# N_exp <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
-# meanDens <- array(NA, dim = c(N_areas, N_ageC, N_years))
-# totDens_raw <- totDens_std <- matrix(NA, nrow = N_areas, ncol = N_years)
-
-
 # Putting models together #
 #-------------------------#
 
-# Starting with the simplest of the simplest: only ptarmigan dynamics without the site level variation 
-# No standardization and no random effects
-
 # Starting values from theoretical example
 alphaPtar.Occ <- -5
-betaPtar.Occ <- 1
+betaPtar.Occ <- 0.2
 Mu.S <- 0.5
 Mu.R <- 1.5
-betaGyr.S <- -2
+betaGyr.S <- -2 # -5 in example
+betaR.R <- 0.3
+betaTemp.R <- 0.1
 
-sim.years <- 50 # Increase simulation years to make oscillations visible
+sim.years <- 100 # Increase simulation years to make oscillations visible
 N_years <- sim.years
 
 # Initialize matrices
@@ -202,15 +212,17 @@ probOcc <- terrProd <- matrix(NA, nrow = N_areas, ncol = N_years)
 GyrPressure <- matrix(NA, nrow = N_areas, ncol = N_years)
 
 # Initial values for the first year
-# AdultDensity[, 1] <- Mu.D1 * 1000000
-AdultDensity[, 1] <- 10
-# JuvenileDensity[, 1] <- if (R_perF) (AdultDensity[, 1]/2)*Mu.R else AdultDensity[, 1]*Mu.R
-JuvenileDensity[, 1] <- 5
-totalDensity[, 1] <- AdultDensity[, 1] + JuvenileDensity[, 1]
-# probOcc[, 1] <- plogis(alphaPtar.Occ)
+AdultDensity[, 1] <- Mu.D1 * 1000000 # Convert to individuals per square km instead of per square meter
+JuvenileDensity[, 1] <- AdultDensity[, 1]*Mu.R
+probOcc[, 1] <- plogis(alphaPtar.Occ)
+
+AdultDensity[, 1] <- 6
+JuvenileDensity[, 1] <- 2
 probOcc[, 1] <- 0.5
+
 terrProd[, 1] <- exp(alphaPtar.Prod)
-#GyrPressure[, 1] <- probOcc[, 1]
+totalDensity[, 1] <- AdultDensity[, 1] + JuvenileDensity[, 1]
+
 
 # Loop to fill out the rest of the years
 for (t in 1:(N_years - 1)) {
@@ -223,11 +235,11 @@ for (t in 1:(N_years - 1)) {
     probOcc[x, t + 1] <- plogis(alphaPtar.Occ[x] + betaPtar.Occ * totalDensity[x, t])
     
     # Calculate gyrpressure (average of current and next occupancy, or lagged only)
-    GyrPressure[x, t] <- 0.5 * probOcc[x, t] + 0.5 * probOcc[x, t + 1]
+    # GyrPressure[x, t] <- 0.5 * probOcc[x, t] + 0.5 * probOcc[x, t + 1]
     if (t == 1) {
       GyrPressure[x, t] <- probOcc[x, 1]  # use initial occupancy for first step
     } else {
-      #GyrPressure[x, t] <- probOcc[x, t - 1]
+      # GyrPressure[x, t] <- probOcc[x, t - 1]
       GyrPressure[x, t] <- 0.5 * probOcc[x, t-1] + 0.5 * probOcc[x, t]
     }
     
@@ -235,10 +247,11 @@ for (t in 1:(N_years - 1)) {
     S[x, t + 1] <- plogis(qlogis(Mu.S[x]) + betaGyr.S * GyrPressure[x, t])
     
     # 5. Recruitment for next year
-    terrProd[x, t + 1] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totalDensity[x, t])
-    # R_year[x, t + 1] <- exp(log(Mu.R[x]) + betaR.R * terrProd[x, t + 1])
-    # R_year[x, t + 1] <- exp(log(Mu.R[x])+ betaR.R * RodentOcc[x, t])
-    R_year[x, t + 1] <- exp(log(Mu.R[x]))
+    # terrProd[x, t + 1] <- exp(alphaPtar.Prod[x] + betaPtar.Prod * totalDensity[x, t])
+    # R_year[x, t + 1] <- exp(log(Mu.R[x]))
+    R_year[x, t + 1] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, t])
+    # R_year[x, t + 1] <- exp(log(Mu.R[x]) + betaTemp.R * SpringTemp[x, t])
+    # R_year[x, t + 1] <- exp(log(Mu.R[x]) + betaR.R * RodentOcc[x, t] + betaTemp.R * SpringTemp[x, t])
     
     # 6. Update densities for next year
     AdultDensity[x, t + 1] <- totalDensity[x, t] * S[x, t + 1]
@@ -246,11 +259,31 @@ for (t in 1:(N_years - 1)) {
     }
   }
 
-par(mar = c(4, 4, 2, 1))
+par(mfrow = c(1, 2))
 matplot(t(probOcc), type='l', lty=1, main="Gyrfalcon Occupancy", ylab="Probability", xlab="Year")
+matplot(t(totalDensity), type='l', lty=1, main="Ptarmigan total Density", ylab="Density", xlab="Year")
+
+
+# Two panels side by side
+par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+
+# Gyrfalcon Occupancy
+matplot(t(probOcc), type = 'l', lty = 1, lwd = 3, col = c("steelblue", "darkgreen", "firebrick"),
+        main = "Gyrfalcon brood initiation", ylab = "Probability", xlab = "Time step")
+#legend("bottomright", legend = c("Area 1", "Area 2", "Area 3"),
+#       col = c("steelblue", "darkgreen", "firebrick"), lty = 1, lwd = 3, cex = 0.9)
+
+# Ptarmigan Density
+matplot(t(totalDensity), type = 'l', lty = 1, lwd = 3, col = c("steelblue", "darkgreen", "firebrick"),
+        main = "Ptarmigan total density", ylab = "Density (individuals per sqkm)", xlab = "Time step")
+#legend("bottomright", legend = c("Area 1", "Area 2", "Area 3"),
+#       col = c("steelblue", "darkgreen", "firebrick"), lty = 1, lwd = 3, cex = 0.9)
+
+
+
+
 matplot(t(AdultDensity), type='l', lty=1, main="Ptarmigan Adult Density", ylab="Density", xlab="Year")
 matplot(t(JuvenileDensity), type='l', lty=1, main="Ptarmigan Juvenile Density", ylab="Density", xlab="Year")
-matplot(t(totalDensity), type='l', lty=1, main="Ptarmigan total Density", ylab="Density", xlab="Year")
 matplot(t(R_year), type='l', lty=1, main="Ptarmigan Recruitment", ylab="Recruitment", xlab="Year")
 matplot(t(S), type='l', lty=1, main="Ptarmigan Survival", ylab="Survival", xlab="Year")
 matplot(t(RodentOcc), type='l', lty=1, main="Rodent Occupancy", ylab="Rodent occupancy standardized", xlab="Year")
