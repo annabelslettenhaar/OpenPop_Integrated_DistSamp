@@ -1,20 +1,20 @@
 ---
-title: "PostHoc_weatherAnalysis"
+title: "Post-hoc weather analysis: selecting weather variables"
 format: pdf
+output-file: PostHocRender.pdf
 editor: visual
+bibliography: references.bib
 ---
 
 ## Post-hoc weather analysis: selecting weather variables
 
-The complexity of our integrated model does not allow including an unlimited number of weather variables, and many weather variables are correlated to each other. Therefore, we have to select which one out of a candidate list will explain most of the variation. This document describes the process we followed to select the most relevant weather variable to include in the bigger integrated model.
+In our integrated model, we also wanted to take into account stochastic weather effects. Due to rapidly increasing model complexity, we included only one weather variable in the weather analysis. To identify relevant weather variables for our study, we conducted a post-hoc analysis using estimates from the integrated model. The goal is to describe the effect of a range of weather variables on vital rates of both species, i.e. ptarmigan recruitment and survival, and gyrfalcon brood initiation and productivity. We tested variables that have shown to affect these vital rates based on previous studies, which included variables relating to temperature, snow cover and availability of vegetation. This document describes the approach we used to select the most relevant weather variable for inclusion in the larger integrated model.
 
-NOTE: For the gyrfalcon, we tested several weather variables, but realised that there was not sufficient variation in the random effects. We still described the process in this document to show which variables we intended to test, but none them show correlations, which is entirely explained by the lack of variation. We therefore decided not to interpret these results in this part of the analysis.
-
-To start, we load the necessary packages, relevant R-functions, and we set area names and years. We also load the model output of the complete model, without any weather covariates.
+NOTE: For the gyrfalcon, we tested several weather variables but noticed there was not sufficient variation left after accounting for ptarmigan density. This makes the results of this analysis not very meaningful, so we decided not to interpret the results of this part of the analysis. We still describe the process in this document to show which variables we intended to test.
 
 ```{r}
 #| label: Initial setup
-#| echo: true
+#| echo: false
 #| results: "hide"
 #| message: false
 #| warning: false
@@ -23,7 +23,9 @@ library(sf)
 library(terra)
 library(parallel)
 library(coda)
+library(ggcorrplot)
 library(brms)
+library(bayesplot)
 
 ## Set localities/areas and time period of interest
 areas <- c("Hardangervidda", 
@@ -48,27 +50,27 @@ IDSM.out <- readRDS("/cloud/project/rypeIDSM_dHN_gyrData_23-10_mediumrun_fullloo
 
 ### Gyrfalcons
 
-#### Extract and process weather data
+#### 1. Extract and process weather data
 
-For this analysis we need weather data, so in the code chunk below, we load those and process them so we can use this weather dataframe to test correlations later on. The wrangleData_GyrWeather function loads snowdepth, temperature and precipitation data from every day during the study period, and converts this to specific averages relevant to our study. The weather is extracted based on the centerpoints of gyrfalcon territories, and averaged per area. Raw weather data is extracted from SeNorge. The included averages are:
+Based on previous literature, we created a list of variables that we expect to be related to gyrfalcon breeding parameters. Here, we import the raw data and convert it to the averages relevant to our study, matching the list of candidate variables. We obtained local weather data from the seNorge model from the Norwegian Meteorological Institute, which provides gridded weather data with a 1x1 km resolution [@lussana2018]. We extracted weather data from gyrfalcon territory center points for every day during the study period, and we calculated specific averages per study area, per year from 1991 to 2020. All weather variables were z-standardized before they were passed to the models. The variables that we calculated and assessed are:
 
--   chicktemp: mean temperature during the nestling phase (between 15th of May (135) to 1st of July (182))
+-   *chicktemp*: mean temperature during the nestling phase, defined as the period between 15 May and 1July.
 
--   apriltemp: mean temperature during the early breeding phase (egg laying, April)
+-   *apriltemp*: mean temperature during the early breeding phase (month of April)
 
--   febtemp: mean temperature during territory establishment (February)
+-   *febtemp*: mean temperature during territory establishment (month of February)
 
--   febsnow: mean snow depth during territory establishment (February)
+-   *febsnow*: mean snow depth during territory establishment (month of February)
 
--   SD20: mean snow depth during chick development (20th of May)
+-   *SD20*: mean snow depth during nestling development (20 May)
 
--   precip: sum of precipitation during the nestling period (between 15th of May (135) to 1st of July (182))
+-   *precip*: sum of precipitation during the nestling period (again between 15 May and 1 July)
 
--   longrain: number of periods with 5 consecutive rainy days during the nestling period
+-   *longrain*: number of periods with 5 consecutive rainy days during the nestling period
 
 ```{r}
 #| label: Load and process gyrfalcon weather data
-#| echo: true
+#| echo: false
 #| results: "hide"
 #| message: false
 #| warning: false
@@ -113,13 +115,13 @@ for (i in seq_along(d_weather)) {
 
 ```
 
-#### Extract and process random effects posteriors
+#### 2. Extract and process random effects posteriors
 
-Then, we extract posterior summaries (posterior mean and SD) for the random effects included in the models for gyrfalcon brood initiation and productivity.
+We calculated the mean and standard deviations from posteriors of random effects of gyrfalcon productivity and brood initiation rates. These were the response variables for the post-hoc weather models.
 
 ```{r}
 #| label: Extract and process gyr posterior summaries
-#| echo: true
+#| echo: false
 #| results: "hide"
 #| message: false
 #| warning: false
@@ -146,11 +148,13 @@ epsProd_summary <- epsProd_summary %>%
   select(-c(mean, sd))
 ```
 
-Then we prep both datasets to be combined, and we set up a correlation matrix to identify weather variables that cannot be included in the same linear model.
+We set up a correlation matrix to assess correlations between the considered weather variables.
+
+library(ggcorrplot)
 
 ```{r}
 #| label: Data setup and correlation matrix gyrfalcon
-#| echo: true
+#| echo: false
 ## Setup data for modelling
 
 # Edit weather function to return means per year, not per year per area. 
@@ -171,7 +175,6 @@ for (df_name in names(d_weather_long)) {
 cor_matrix <- cor(model_data[, c("chicktemp", "apriltemp", "febtemp", "febsnow", "SD20", "precip", "longrain")], use = "complete.obs")
 
 # Plot
-library(ggcorrplot)
 ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower",
            lab = TRUE, lab_size = 3, method = "square",
            colors = c("blue", "white", "red"))
@@ -179,13 +182,13 @@ ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower",
 
 ```
 
-The correlation matrix shows that some variables are strongly correlated. We will not include any of the correlated variables that show a correlation coefficient higher than 0.4 in the same model.
+The correlation matrix above showed that some variables are strongly correlated (e.g. precip and longrain, with a correlation coefficient of 0.79). We did not include combinations of the variables that show a correlation coefficient higher than 0.5 in the same model to prevent multicollinearity.
 
-#### Modelling: *brms* linear models
+#### 3. Modelling: *brms* linear models
 
-Now we can run a series of linear models and plot their output to compare effect sizes and directions of correlations with brood initiation rates and productivity. For this, we used the *brms* package, and we used the default modelling settings.
+We fitted Bayesian linear regression models using the *brms* package in R [@bürkner2021], with the posterior means of gyrfalcon productivity and brood initiation probability random effects as response variables, with their associated standard errors incorporated to account for uncertainty. The predictor variables are the considered weather variables as described above. We implemented weakly informative priors and ran four chains for 4000 iterations each, with a burn-in of 2000 samples. For each considered weather variable, we plot the posterior distribution as estimated by the model, and due to the standardization of the weather variables we can directly compare their effect size.
 
-**Model 1: occupancy/brood initiation rates and weather conditions in February**
+**Model 1: occupancy/brood initiation rates and snow and temperature conditions in February**
 
 ```{r}
 #| label: Occupancy model
@@ -202,7 +205,23 @@ O1 <- brm(
 ```
 
 ```{r}
-plot(O1)
+#| label: Plot O1
+#| echo: false
+
+# Extract posterior samples
+posterior <- as_draws_df(O1)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_febsnow", "b_febtemp"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
+
 
 rm(O1)
 ```
@@ -224,7 +243,20 @@ P1 <- brm(
 
 ```{r}
 #| label: plot P1
-plot(P1)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(P1)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_chicktemp", "b_precip"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(P1)
 ```
 
@@ -245,7 +277,20 @@ P2 <- brm(
 
 ```{r}
 #| label: plot P2
-plot(P2)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(P2)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_chicktemp", "b_longrain"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(P2)
 ```
 
@@ -266,31 +311,47 @@ P3 <- brm(
 
 ```{r}
 #| label: plot P3
-plot(P3)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(P3)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_apriltemp", "b_precip"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(P3)
 ```
 
-As mentioned above, none of these variables show significant correlations with the posterior means of the random effects of gyrfalcon brood initiation rates or productivity. This analysis should be repeated with higher quality data sets to confidently draw conclusions about correlations with weather variables.
+None of these variables showed significant correlations with the posterior means of the random effects of gyrfalcon brood initiation rates or productivity, likely due to the lack of variation in the random effects.
+
+::: pagebreak
+:::
 
 ### **Ptarmigan**
 
-The approach for the analysis for ptarmigan will be very similar to that of the gyrfalcon, except here we selected different weather variables, and we use the posterior means from the ptarmigan vital rates models on recruitment and survival. These did show sufficient variation for such a post-hoc analysis.
+The approach for the analysis for ptarmigan was very similar to that of the gyrfalcon, apart from the selection of tested weather variables. We used the posterior means and standard deviations from the ptarmigan vital rates models on recruitment and survival. These did show sufficient variation for a post-hoc analysis.
 
-#### Extract and process weather data
+#### 1. Extract and process weather data
 
-Again, we start with extracting the weather data from SeNorge, and processing those data into the desired format. This time, weather is extracted from points along all transect lines in the dataset, spaced 500 meters apart. The wrangleData_Temp function samples these points, and extracts and averages the values for each weather variable. Because these take some time to run, the ready-made datasets are also saved in the repository and can simply be imported here to save time. Each of the averages are then formatted into the desired long format needed for our weather analysis. The weather variables we extracted are:
+We started with extracting the weather data from SeNorge, and processed those data into the desired format. For this part of the weather analysis, we extracted raw local weather variables from points along each ptarmigan transect line with a 500 meter interval (Hardangervidda: n = 61, Dovrefjell: n = 166, Børgefjell: n = 54). Using these raw data, we calculated an average over all sampled points per study area, per year from 1991 to 2020. The weather variables we extracted are:
 
--   TempPost: temperature after incubation, during the chick rearing phase between 24 June to 15 July.
+-   *TempPost*: temperature after ptarmigan incubation, during the chick rearing phase, here defined as the period between 24 June to 15 July [@kvasnes2014].
 
--   TempPre: temperature during the (pre-)incubation period between 1 May and 2 June.
+-   *TempPre*: temperature during the (pre-)incubation period between 1 May and 2 June [@kvasnes2014].
 
--   TempJan: mean temperature in January, as a proxy for the harshness of the winters.
+-   *TempJan*: mean temperature in January, as a proxy for the harshness of the winters.
 
--   SnowFree: the first consecutive 7-day period where snow depth is under 1 cm
+-   *SnowFree*: the first consecutive 7-day period where snow depth is under 1 cm
 
--   SD20: mean snow depth on 20 May
+-   *SD20*: mean snow depth on 20 May, roughly in the middle of the early breeding phase.
 
--   SnowPeriod: total length of the period in spring/summer where the snow depth is below 1 cm.
+-   *SnowPeriod*: total length of the period in spring/summer where the snow depth is below 1 cm.
 
 ```{r}
 #| label: Load and process ptarmigan weather data
@@ -376,16 +437,16 @@ for (i in seq_along(weather)) {
 
 ```
 
-#### Extract and process random effects posteriors
+#### 2. Extract and process random effects posteriors
 
-Then, we extract posterior summaries (posterior mean and SD) again, for the random effects included in the models for ptarmigan survival and recruitment.
+We calculated the mean and standard deviations from posteriors of random effects of ptarmigan recruitment and survival. These were the response variables for our post-hoc weather models.
 
 ```{r}
 #| label: Extract and process posterior summaries ptarmigan
 #| echo: false
-#| results: "hide"
 #| message: false
 #| warning: false
+#| results: hide
 ## Extract posterior mean values and SD's for posthoc testing
 
 # Ptarmigan recruitment
@@ -409,7 +470,7 @@ epsS_summary <- epsS_summary %>%
   select(-c(mean, sd))
 ```
 
-Then we prep both data sets to be combined, and we set up a correlation matrix to identify weather variables that cannot be included in the same linear model.
+We set up a correlation matrix to detect correlations between the selected weather variables.
 
 ```{r}
 #| label: Set up model data and correlation matrix ptarmigan
@@ -439,15 +500,15 @@ ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower",
 
 ```
 
-We see a high correlation between the three snow depth variables, SnowFree, SnowPeriod and SD20. These can therefore not be included in the same model. Other corralation coefficients are all below 0.3 suggesting no issues with being included in the same model.
+We see a high correlation between the three snow depth variables, SnowFree, SnowPeriod and SD20. These can therefore not be included together in the same model. Other correlation coefficients are all below 0.3 suggesting no multicollinearity issues.
 
-#### Modelling: *brms* linear models
+#### 3. Modelling: *brms* linear models
 
-Now we can run a series of linear models again and plot their output to compare effect sizes and directions of correlations with brood initiation rates and productivity. For this, we used the *brms* package, and we used the default modelling settings.
+We fitted Bayesian linear regression models using the *brms* package in R [@bürkner2021], with the posterior means of ptarmigan survival and recruitment random effects as response variables, with their associated standard errors incorporated to account for uncertainty. The predictor variables were the considered weather variables. We implemented weakly informative priors and ran four chains for 4000 iterations each, with a burn-in of 2000 samples. For each considered weather variable, we plot the posterior distribution as estimated by the model, and due to the standardization of the weather variables we can directly compare their effect size. For both the recruitment and survival models, we provided some background of why we included the selected variables.
 
 ##### Recruitment
 
-We start with recruitment. We tested whether ptarmigan recruitment was related to temperature and spring timing. Many studies report positive relationships between ptarmigan recruitment and spring air temperatures, which is also reflected in earlier snowmelt (46, 69-72). Generally, in years with warm springs, nutritious and fresh vegetation is available to ptarmigan and their offspring earlier and in higher abundance (73). For temperature, we calculated the average during the (pre-)incubation period between the 1 May and 2 June, and the average during the chick rearing period from 24 June to 15 July. For spring timing, we quantified the snow conditions by calculating the average snow depth on 20 May and the first 7-day period where snow depth is below 1 cm.
+We tested whether ptarmigan recruitment was related to temperature and spring timing. Many studies report positive relationships between ptarmigan recruitment and spring air temperatures, which is also reflected in earlier snow melt [@eriksen2023; @wann2016; @kvasnes2014b; @novoa2016; @novoa2007]. Generally, in years with warm springs, nutritious and fresh vegetation is available to ptarmigan and their offspring earlier and in higher abundance [@garcía-gonzález2016]. For temperature, we calculated the average during the pre-egg-laying and egg-laying period between 1 May and 2 June (*TempPre*), and the average during the chick rearing period from 24 June to 15 July (*TempPost*). For spring timing, we quantified the snow conditions by calculating the average snow depth on 20 May (*SD20*) and the first 7-day period where snow depth is below 1 cm (*SnowFree*).
 
 **Model 1: Recruitment and early spring temperature + late spring temperature + spring snow depth**
 
@@ -467,7 +528,20 @@ R1 <- brm(
 
 ```{r}
 #| label: Plot R1
-plot(R1)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(R1)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_TempPre", "b_TempPost", "b_SD20"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(R1)
 ```
 
@@ -491,7 +565,20 @@ R2 <- brm(
 
 ```{r}
 #| label: Plot R2
-plot(R2)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(R2)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_TempPre", "b_TempPost"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(R2)
 ```
 
@@ -512,15 +599,28 @@ R3 <- brm(
 
 ```{r}
 #| label: Plot R3
-plot(R3)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(R3)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_TempPre", "b_SnowFree"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(R3)
 ```
 
-This shows that TempPre, TempPost and SnowFree all have positive effects on recruitment. Based on these figures, we can conclude that early spring temperature always shows a positive effect that is stronger in effect size compared to the other weather variables that are related to recruitment.
+This shows that *TempPre*, *TempPost* and *SnowFree* all have positive effects on recruitment. Based on these figures, we concluded that early spring temperature always showed a positive effect that is stronger in effect size compared to the other weather variables related to recruitment.
 
 ##### Survival
 
-We tested whether ptarmigan survival was related to temperature and snow conditions throughout the year. Previous studies show that snow depth in the spring is negatively related to ptarmigan survival (7, 8). We used the same spring snow depth index as above, as the average snow depth on 20 May. We also calculated the average length of the snow-free period in the summer, as the number of consecutive days where snow depth is below 1 cm. We calculated the mean snow depth during the pre-breeding period, which we defined as the period between 1 May and 2 June, which includes ptarmigan laying and pre-laying days.
+We tested whether ptarmigan survival was related to temperature and snow conditions throughout the year. Previous studies show that snow depth in the spring is negatively related to ptarmigan survival [@eriksen2025; @clarke1992]. We used the same spring snow depth index as earlier: the average snow depth on 20 May (*SD20*). We also calculated the average length of the snow-free period in the summer, as the number of consecutive days where snow depth is below 1 cm (*SnowPeriod*). This should reflect the length of the period where nutritious vegetation is available to ptarmigan, with a longer period having a positive effect on ptarmigan body condition. We expected improved body condition to be well reflected in increased survival rates. We calculated the mean snow depth during the pre-breeding period, which we defined as the period between 1 May and 2 June, which includes ptarmigan laying and pre-laying days (*TempPre*). Although most studies focus on summer weather conditions, some studies also show an impact of winter temperatures on ptarmigan population growth rates [@wang2002]. Therefore we also tested the effect of winter temperature (*TempJan*) as the temperature throughout the month of January.
 
 **Model 1: survival and early spring temperature + winter temperature + length of the snowfree period**
 
@@ -540,7 +640,20 @@ S1 <- brm(
 
 ```{r}
 #| label: Plot S1
-plot(S1)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(S1)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_TempPre", "b_TempJan", "b_SnowPeriod"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(S1)
 ```
 
@@ -563,7 +676,20 @@ S2 <- brm(
 
 ```{r}
 #| label: Plot S2
-plot(S2)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(S2)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_TempPre", "b_TempJan", "b_SD20"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(S2)
 ```
 
@@ -584,7 +710,20 @@ S3 <- brm(
 
 ```{r}
 #| label: Plot S3
-plot(S3)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(S3)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_TempJan", "b_SnowPeriod"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(S3)
 ```
 
@@ -605,12 +744,25 @@ S4 <- brm(
 
 ```{r}
 #| label: Plot S4
-plot(S4)
+#| echo: false
+# Extract posterior samples
+posterior <- as_draws_df(S4)
+
+# Density plots for coefficients
+mcmc_areas(posterior, pars = c("b_TempPre", "b_SnowPeriod"),
+           prob = 0.95) +
+  ggplot2::labs(title = "Posterior Distributions of Coefficients") +
+  ggplot2::theme(
+    axis.title = element_text(size = 16),  # Axis titles
+    axis.text = element_text(size = 14),   # Axis tick labels
+    plot.title = element_text(size = 18)   # Plot title
+  )+
+  geom_vline(xintercept = 0, color = "black", linewidth = 0.8, linetype = "solid")
 rm(S4)
 ```
 
-The models based on ptarmigan survival show that ... Elaborate!
+The models based on ptarmigan survival showed that there were some tendencies for positive and negative relationships, but all posteriors overlap with zero. We also observed that the strength of these relationships varied depending on which variables were included in the models.
 
 ### Conclusions
 
-Based on these analyses, we see that TempPre has the strongest and most consistent support from our post-hoc modelling analysis. Besides, it receives strong support from previous studies investigating the effect of weather on ptarmigan vital rates. Therefore, we decided to include temperature during the (pre-)incubation period as the main weather variable in our integrated model. Because it is strongly related to ptarmigan recruitment, it will be included in the model estimating recruitment.
+Based on these analyses, we observed that *TempPre*, temperature during the early part of the ptarmigan breeding season, covering pre-egg-laying and egg-laying period, has the strongest and most consistent support from our post-hoc modelling analysis. Besides, it receives strong support from previous studies investigating the effect of weather on ptarmigan vital rates. Therefore, we decided to include temperature as defined by *TempPre* as the weather variable in our integrated model. As it showed the strongest correlation with ptarmigan recruitment, we included it in the model for ptarmigan recruitment.
