@@ -5,6 +5,7 @@ library(parallel)
 library(nimble)
 library(coda)
 
+
 # SETUP #
 #-------#
 
@@ -14,8 +15,8 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 20000
-nburn <- 14000
+niter <- 200000
+nburn <- 140000
 nthin <- 20
 
 ## Source all functions in "R" folder
@@ -97,22 +98,28 @@ d_rodent <- wrangleData_RodentGyr(#localities = localities,
 # WRANGLE WEATHER DATA #
 #----------------------#
 
+sourceDir('R_weather')
+
 # Using gyrfalcon territory coordinates
 weather_data <- wrangleData_Weather_GT(areas = areas,
-                                    areaAggregation = areaAggregation,
-                                    minYear = minYear, maxYear = maxYear)
+                                       areaAggregation = areaAggregation,
+                                       minYear = minYear,
+                                       maxYear = maxYear)
+
+# The weather_data above are not used in the actual analysis: can be cleaned up later
 
 
 ## Using ptarmigan line transect coordinates
-d_temp <- wrangleData_Temp(minYear = minYear,
-                           maxYear = maxYear,
-                           areas = areas)
-# 
-# saveRDS(d_temp, "data/weather/temp.rds")
 
+# d_temp <- wrangleData_Temp(minYear = minYear,
+#                            maxYear = maxYear,
+#                            areas = areas,
+#                            startday = 121,
+#                            endday = 153)
+# saveRDS(d_temp, "data/weather/springtemp.rds")
 
-## Or import the ptarmigan weather data that is imported and processed earlier
-d_temp <- readRDS("data/weather/temp.rds")
+d_temp <- readRDS("data/weather/springtemp.rds")
+
 
 
 # WRANGLE GYRFALCON DATA #
@@ -150,13 +157,14 @@ GyrPressure_sdCov <- c(0.1136, 0.0742, 0.0716)
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputData_Integ(d_trans = LT_data$d_trans, 
                                      d_obs = LT_data$d_obs,
-                                    #d_cmr = d_cmr,
+                                     #d_cmr = d_cmr,
                                      d_rodent = d_rodent,
                                      d_gyr = d_gyr, # GyrPressure covariate
                                      d_gyrocc = d_gyrocc, # Occupancy data
                                      d_gyrprod = d_gyrprod, # Productivity data
                                      d_SD = weather_data$d_SD, # For analysis including weather
-                                    #localities = localities, 
+                                     d_temp = d_temp,
+                                     #localities = localities, 
                                      areas = areas,
                                      areaAggregation = areaAggregation,
                                      excl_neverObs = TRUE,
@@ -256,30 +264,31 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_23-10_mediumrun_fullloop_onlyOcc_RE.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_11-11_longrun_fullloop_Rodent_Temp.rds")
 
 
-# TIDY UP POSTERIOR SAMPLES #
-#---------------------------#
-
-IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
-                             save = FALSE,
-                             fileName = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3_tidy.rds")
+# # TIDY UP POSTERIOR SAMPLES #
+# #---------------------------#
+# 
+# IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
+#                              save = FALSE,
+#                              fileName = "rypeIDSM_dHN_multiArea_gyrData_gyrCov3_tidy.rds")
 
 
 
 # MAKE POSTERIOR SUMMARIES PER AREA #
 #-----------------------------------#
 
-PostSum.list <- summarisePost_areas_gyr_integ(mcmc.out = onlyOcc, 
-                                              N_areas = input_data$nim.constant$N_areas, 
-                                              area_names = input_data$nim.constant$area_names, 
-                                              N_sites = input_data$nim.constant$N_sites, 
-                                              min_years = input_data$nim.constant$min_years, 
-                                              max_years = input_data$nim.constant$max_years, 
-                                              minYear = minYear, maxYear = maxYear,
-                                              fitRodentCov = fitRodentCov,
-                                              save = FALSE)
+# PostSum.list <- summarisePost_areas_gyr_integ(mcmc.out = onlyOcc, 
+#                                               N_areas = input_data$nim.constant$N_areas, 
+#                                               area_names = input_data$nim.constant$area_names, 
+#                                               N_sites = input_data$nim.constant$N_sites, 
+#                                               min_years = input_data$nim.constant$min_years, 
+#                                               max_years = input_data$nim.constant$max_years, 
+#                                               minYear = minYear, maxYear = maxYear,
+#                                               fitRodentCov = fitRodentCov,
+#                                               save = FALSE)
+# Above code can be cleaned up later
 
 # Adjusted version
 
@@ -288,154 +297,54 @@ var_list <- c("totDens_raw", "probOcc", "terrProd",
               
               "Mu.S", "Mu.R", "alphaPtar.Prod", "alphaPtar.Occ",
               
-              "betaR.R", "betaPtar.Prod", "betaPtar.Occ", "betaGyr.S")
+              "betaR.R", "betaPtar.Prod", "betaPtar.Occ", "betaGyr.S", "betaTemp.R")
 
 var_type <- c("area_year", "area_year", "area_year",
               "area_year", "area_year", "area_year",
               
               "area", "area", "area", "area",
               
-              "overall", "overall", "overall", "overall")
+              "overall", "overall", "overall", "overall", "overall")
 
-postSum_list <- postSum(samps = as.matrix(onlyOcc), 
+postSum_list <- postSum(samps = as.matrix(IDSM.out), 
                         var_list = var_list,
                         var_type = var_type,
                         N_areas = 3)
 
-# OPTIONAL: MCMC TRACE PLOTS #
-#----------------------------#
+## Summarize results in a table
 
-plotMCMCTraces(mcmc.out = IDSM.out.tidy,
-               fitRodentCov = fitRodentCov,
-               survVarT = survVarT)
+postSumTable <- createTablePosteriorSummaries(postSum_list)
 
 
-# OPTIONAL: TIME SERIES PLOTS #
+# PLOT COVARIATE EFFECT SIZES #
 #-----------------------------#
 
-plotTimeSeries(mcmc.out = IDSM.out.tidy, 
-               N_areas = input_data$nim.constant$N_areas, 
-               area_names = input_data$nim.constant$area_names, 
-               N_sites = input_data$nim.constant$N_sites, 
-               min_years = input_data$nim.constant$min_years, 
-               max_years = input_data$nim.constant$max_years, 
-               minYear = minYear, maxYear = maxYear,
-               VitalRates = TRUE, DetectParams = TRUE, Densities = TRUE)
+CovPlot <- visualiseBetaPosteriors(IDSM_out = IDSM.out,
+                          cov_names = c("betaR.R", "betaPtar.Occ",
+                                        "betaPtar.Prod", "betaGyr.S",
+                                        "betaTemp.R"))
 
-
-# OPTIONAL: PLOT VITAL RATE POSTERIORS #
-#--------------------------------------#
-# Needs to be adjusted to work without providing telemetry data
-plotPosteriorDens_VR_Gyr(mcmc.out = IDSM.out.tidy,
-                         N_areas = input_data$nim.constant$N_areas, 
-                         area_names = input_data$nim.constant$area_names, 
-                         N_years = input_data$nim.constant$N_years,
-                         minYear = minYear,
-                         #survAreaIdx = input_data$nim.constants$SurvAreaIdx,
-                         survVarT = survVarT,
-                         fitRodentCov = fitRodentCov) 
-
-
-# OPTIONAL: PLOT COVARIATE PREDICTIONS #
-#--------------------------------------#
-
-if(fitRodentCov){
-  plotCovPrediction(mcmc.out = IDSM.out.tidy,
-                    effectParam = "betaR.R",
-                    covName = "Rodent occupancy",
-                    minCov = 0, 
-                    maxCov = 1,
-                    meanCov = d_rodent$meanCov,
-                    sdCov = d_rodent$sdCov,
-                    covData = d_rodent$rodentAvg,
-                    N_areas = input_data$nim.constant$N_areas, 
-                    area_names = input_data$nim.constant$area_names,
-                    fitRodentCov = fitRodentCov)
-}
-
-
-# OPTIONAL: CHECK WITHIN-AREA DENSITY DEPENDENCE #
-#------------------------------------------------#
-
-checkDD(mcmc.out = IDSM.out.tidy, 
-        N_areas = input_data$nim.constant$N_areas, 
-        area_names = input_data$nim.constant$area_names, 
-        N_sites = input_data$nim.constant$N_sites, 
-        min_years = input_data$nim.constant$min_years, 
-        max_years = input_data$nim.constant$max_years)
-
-
-# OPTIONAL: CHECK VITAL RATE SAMPLING CORRELATIONS #
-#--------------------------------------------------#
-
-checkVRcorrs(mcmc.out = IDSM.out.tidy, 
-             N_areas = input_data$nim.constant$N_areas, 
-             area_names = input_data$nim.constant$area_names, 
-             area_coord = LT_data$d_coord,
-             min_years = input_data$nim.constant$min_years, 
-             max_years = input_data$nim.constant$max_years)
-
-
-# OPTIONAL: CALCULATE AND PLOT VARIANCE DECOMPOSITION #
-#-----------------------------------------------------#
-
-plotVarDecomposition(mcmc.out = IDSM.out.tidy, 
-                     N_areas = input_data$nim.constants$N_areas, 
-                     N_years = input_data$nim.constants$N_years, 
-                     fitRodentCov = fitRodentCov, 
-                     RodentOcc_data = input_data$nim.data$RodentOcc,
-                     saveResults = TRUE)
-
-
-# OPTIONAL: MAP PLOTS #
-#---------------------#
-
-## Make map of Norwegian municipalities ("fylke")
-NorwayMunic.map <- setupMap_NorwayMunic(shp.path = "data/norway_municipalities/norway_municipalities.shp",
-                                        d_trans = LT_data$d_trans,
-                                        areas = areas, areaAggregation = areaAggregation)
-
-## Plot population growth rate, density, and vital rates on map
-plotMaps(PostSum.list = PostSum.list, 
-         mapNM = NorwayMunic.map,
-         minYear = minYear, maxYear = maxYear,
-         fitRodentCov = fitRodentCov)
-
-
-# OPTIONAL: LATITUDE PATTERN PLOTS #
-#----------------------------------#
-
-plotLatitude(PostSum.list = PostSum.list, 
-             area_coord = LT_data$d_coord,
-             minYear = minYear, maxYear = maxYear,
-             fitRodentCov = fitRodentCov)
-
-
-# OPTIONAL: GENERATION TIME #
+# PLOT ESTIMATE TIME SERIES #
 #---------------------------#
 
-GT_estimates <- extract_GenTime(mcmc.out = IDSM.out.tidy, 
-                                N_areas = input_data$nim.constants$N_areas, 
-                                area_names = input_data$nim.constant$area_names, 
-                                area_coord = LT_data$d_coord,
-                                mapNM = NorwayMunic.map,
-                                save = TRUE)
+TimeSeriesPlot <- plotTimeSeries_gyr(IDSM_out = IDSM.out,
+                                     minYear = minYear)
 
 
-# OPTIONAL: MODEL COMPARISON (PLOTS) #
-#------------------------------------#
 
-plotModelComparison(modelPaths = c("rypeIDSM_dHN_multiArea_realData_allAreas_tidy.rds",
-                                   "rypeIDSM_dHN_multiArea_realData_allAreas_tidy_noTelemetry.rds"), 
-                    modelChars = c("Including telemetry",
-                                   "Without telemetry"), 
-                    N_areas = input_data$nim.constants$N_areas, 
-                    area_names = areas, 
-                    N_sites = input_data$nim.constants$N_sites, 
-                    N_years = input_data$nim.constants$N_years, 
-                    minYear = minYear, 
-                    maxYear = maxYear, 
-                    max_years = input_data$nim.constants$max_years, 
-                    survAreaIdx = input_data$nim.constants$SurvAreaIdx, 
-                    plotPath = "Plots/Comp_noTelemetry", 
-                    returnData = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
