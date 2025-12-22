@@ -38,17 +38,26 @@ setupModel_Integ <- function(modelCode, customDist,
   require('nimbleDistance')
   
   ## Set parameters to monitor
-  params <- c("esw", "p", #"D",
-              "R_year", "Mu.R",  "sigmaR.R",
-              "sigma", "mu.dd", "sigmaR.dd", 
-              "sigmaT.Occ", "sigmaT.Prod", 
-              "meanDens", "totDens_std", "totDens_raw",
+  params <- c(# Distance sampling
+              "esw", "p", #"D",
+              "Mu.D1",
+              "sigma", "mu.dd", "sigmaR.dd",
+              # Vital rates ptarmigan
+              "R_year", "Mu.R",
+              "S", "Mu.S", 
+              # Vital rates gyrfalcon
               "probOcc", "terrProd",
               "alphaPtar.Occ", "alphaPtar.Prod",
+              # Ptarmigan density
+              "meanDens", "totDens_std", "totDens_raw",
+              # Covariate slopes
               "betaPtar.Occ", "betaPtar.Prod", 
-              "sigmaT.Occ", "sigmaT.Prod",
-              "Mu.D1", "sigma.D",
-              "S", "Mu.S", "betaGyr.S"
+              "betaGyr.S", "betaTemp.R",
+              # Random effects
+              "sigmaT.Occ", "epsT.Occ",
+              "sigmaT.Prod", "epsT.Prod",
+              "sigma.D", 
+              "sigmaR.R", "epsR.R"
               #"betaSD.S",
   )
   
@@ -57,7 +66,7 @@ setupModel_Integ <- function(modelCode, customDist,
   }
   
   if(survVarT){
-    params <- c(params, "sigmaR.S")
+    params <- c(params, "sigmaR.S", "epsR.S")
   }
   
   if(fitRodentCov){
