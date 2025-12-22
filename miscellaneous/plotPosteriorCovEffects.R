@@ -3,10 +3,10 @@ library(dplyr)
 library(stringr)
 library(tidyr)
 
-posterior <- as.matrix(IDSM.out)
+posterior <- as.matrix(temprun)
 
 # keep only the parameters of interest
-effects <- posterior[, grep("betaPtar.Prod|betaPtar.Occ|betaGyr.S|betaR.R", colnames(posterior))]
+effects <- posterior[, grep("betaPtar.Prod|betaPtar.Occ|betaGyr.S|betaR.R|betaTemp.R", colnames(posterior))]
 
 # reshape to long format
 effects_df <- as.data.frame(effects) %>%
@@ -16,8 +16,9 @@ effects_df <- as.data.frame(effects) %>%
     type = case_when(
       str_detect(parameter, "betaPtar.Occ") ~ "Prey → Predator occupancy",
       str_detect(parameter, "betaPtar.Prod") ~ "Prey → Predator productivity",
-      str_detect(parameter, "betaGyr.S") ~ "Predator → Prey",
-      str_detect(parameter, "betaR.R") ~ "Alternative Prey → Prey"
+      str_detect(parameter, "betaGyr.S") ~ "Predator → Prey surival",
+      str_detect(parameter, "betaR.R") ~ "Alternative Prey → Prey recruitment",
+      str_detect(parameter, "betaTemp.R") ~ "Temperature → Prey recruitment"
     ),
     area = as.integer(str_extract(parameter, "(?<=\\[)\\d+(?=\\])"))
   )

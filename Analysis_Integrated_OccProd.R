@@ -14,8 +14,8 @@ set.seed(mySeed)
 
 ## Set number of chains, iterations, burn in and thinning
 nchains <- 3
-niter <- 200000
-nburn <- 140000
+niter <- 20000
+nburn <- 14000
 nthin <- 20
 
 ## Source all functions in "R" folder
@@ -96,9 +96,23 @@ d_rodent <- wrangleData_RodentGyr(#localities = localities,
 
 # WRANGLE WEATHER DATA #
 #----------------------#
-weather_data <- wrangleData_Weather(areas = areas,
+
+# Using gyrfalcon territory coordinates
+weather_data <- wrangleData_Weather_GT(areas = areas,
                                     areaAggregation = areaAggregation,
                                     minYear = minYear, maxYear = maxYear)
+
+
+## Using ptarmigan line transect coordinates
+d_temp <- wrangleData_Temp(minYear = minYear,
+                           maxYear = maxYear,
+                           areas = areas)
+# 
+# saveRDS(d_temp, "data/weather/temp.rds")
+
+
+## Or import the ptarmigan weather data that is imported and processed earlier
+d_temp <- readRDS("data/weather/temp.rds")
 
 
 # WRANGLE GYRFALCON DATA #
@@ -242,7 +256,7 @@ if(!parallelMCMC){
   
 }
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_16-09_longrun_fullloop_onlyOcc.rds")
+saveRDS(IDSM.out, file = "rypeIDSM_dHN_gyrData_23-10_mediumrun_fullloop_onlyOcc_RE.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #

@@ -19,7 +19,7 @@
 # minYear <- 1991
 # maxYear <- 2020
 
-wrangleData_Weather <- function(localities = NULL, areas = NULL, areaAggregation, minYear, maxYear){
+wrangleData_Weather_GT <- function(localities = NULL, areas = NULL, areaAggregation, minYear, maxYear){
   
   ## Check if .csv file is available
   if(!file.exists("data/Gyr_data.csv")){

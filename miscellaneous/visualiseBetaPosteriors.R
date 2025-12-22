@@ -6,10 +6,10 @@ library(dplyr)
 library(ggridges)
 
 # Convert to matrix
-samps <- as.matrix(IDSM.out)
+samps <- as.matrix(model_output)
 
 # Grab only the totDens_raw variables
-cov_names <- c("betaR.R", "betaPtar.Occ", "betaPtar.Prod", "betaGyr.S")
+cov_names <- c("betaR.R", "betaPtar.Occ", "betaPtar.Prod", "betaGyr.S", "betaTemp.R")
 samps_sel <- samps[, cov_names, drop = FALSE]
 
 # Prepare data
@@ -18,12 +18,13 @@ posterior_df <- samps_sel %>%
   pivot_longer(cols = everything(), names_to = "Parameter", values_to = "Draw") %>%
   mutate(Parameter = factor(Parameter, levels = rev(unique(Parameter))),
          Parameter = fct_recode(Parameter, 
-                            "β-rodent" = "betaR.R",
-                            "β-Occ" = "betaPtar.Occ",
-                            "β-prod" = "betaPtar.Prod",
-                            "β-gyr" = "betaGyr.S"))
+                            "β-Rodent" = "betaR.R",
+                            "β-Init" = "betaPtar.Occ",
+                            "β-Prod" = "betaPtar.Prod",
+                            "β-Gyr" = "betaGyr.S",
+                            "β-Temp" = "betaTemp.R"))
 
-# Correct ridge plot with x-axis gradient fill
+# Ridge plot with x-axis gradient fill
 ggplot(posterior_df, aes(x = Draw, y = Parameter, group = Parameter)) +
   geom_density_ridges_gradient(
     aes(height = after_stat(density), fill = after_stat(x)), # fill by x-axis
