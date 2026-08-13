@@ -55,9 +55,3 @@ given here: <https://r-nimble.org/download>). Second, the analysis uses
 code from the nimbleDistance package
 (<https://github.com/scrogster/nimbleDistance>). to estimate the half
 normal detection distribution. 
-
-Finally, running the workflow requires access to additional data
-(radio-telemetry data on ptarmigan, rodent occupancy data, and
-shapefiles for municipalities in Norway). Auxiliary data is now bundled
-with the repository, while shapefiles can be downloaded from OSF:
-<https://osf.io/7326r/>.
