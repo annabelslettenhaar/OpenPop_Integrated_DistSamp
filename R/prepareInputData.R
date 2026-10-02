@@ -40,7 +40,12 @@
 
 
 
-prepareInputData <- function(d_trans, d_obs, d_cmr, d_rodent, localities = NULL, areas = NULL, areaAggregation, excl_neverObs = TRUE, R_perF, R_parent_drop0, sumR.Level = "group", dataVSconstants = TRUE, addDummyDim = TRUE, save = TRUE){
+prepareInputData <- function(d_trans, d_obs, d_rodent,
+                             #d_cmr,
+                             localities = NULL, areas = NULL, areaAggregation, 
+                             excl_neverObs = TRUE, R_perF, R_parent_drop0, 
+                             sumR.Level = "group", dataVSconstants = TRUE, 
+                             addDummyDim = TRUE, save = TRUE){
   
   
   # Multi-area setup #
@@ -315,15 +320,15 @@ prepareInputData <- function(d_trans, d_obs, d_cmr, d_rodent, localities = NULL,
   #---------------#
   
   ## Set spatial index for CMR data
-  if(areaAggregation){
-    SurvAreaIdx <- which(sUnits == d_cmr$area_names)
-  }else{
-    SurvAreaIdx <- which(sUnits == d_cmr$locality_names)
-  }
-  
-  if(length(SurvAreaIdx) == 0){
-    stop("No overlap in areas for line transect and survival data. The present implementation of the model requires including line transect data from Lierne.")
-  }
+  # if(areaAggregation){
+  #   SurvAreaIdx <- which(sUnits == d_cmr$area_names)
+  # }else{
+  #   SurvAreaIdx <- which(sUnits == d_cmr$locality_names)
+  # }
+  # 
+  # if(length(SurvAreaIdx) == 0){
+  #   stop("No overlap in areas for line transect and survival data. The present implementation of the model requires including line transect data from Lierne.")
+  # }
   
   ## Add dummy dimensions if running for only one spatial unit
   if(N_sUnits == 1 & addDummyDim){
@@ -355,11 +360,11 @@ prepareInputData <- function(d_trans, d_obs, d_cmr, d_rodent, localities = NULL,
     W = W, # Truncation distance
     N_ageC = N_ageC, # Number of age classes
     
-    Survs1 = d_cmr$Survs1, # Season 1 releases & survivors (area 1)
-    Survs2 = d_cmr$Survs2, # Season 2 releases & survivors (area 1)
-    SurvAreaIdx = SurvAreaIdx,
-    year_Survs = d_cmr$year_Survs, # Years (indices) of telemetry data
-    N_years_RT = length(d_cmr$year_Survs),
+    # Survs1 = d_cmr$Survs1, # Season 1 releases & survivors (area 1)
+    # Survs2 = d_cmr$Survs2, # Season 2 releases & survivors (area 1)
+    # SurvAreaIdx = SurvAreaIdx,
+    # year_Survs = d_cmr$year_Survs, # Years (indices) of telemetry data
+    # N_years_RT = length(d_cmr$year_Survs),
     
     RodentOcc = d_rodent$rodentAvg,
     RodentOcc_meanCov = d_rodent$meanCov,
@@ -385,7 +390,7 @@ prepareInputData <- function(d_trans, d_obs, d_cmr, d_rodent, localities = NULL,
                    N_line_year = input.data$N_line_year, 
                    N_a_line_year = input.data$N_a_line_year, 
                    A = input.data$A,
-                   Survs1 = input.data$Survs1, Survs2 = input.data$Survs2,
+                   # Survs1 = input.data$Survs1, Survs2 = input.data$Survs2,
                    RodentOcc = input.data$RodentOcc)
   
   ## Assembling Nimble constants
@@ -395,11 +400,11 @@ prepareInputData <- function(d_trans, d_obs, d_cmr, d_rodent, localities = NULL,
                         N_sites = input.data$N_sites, 
                         N_ageC = N_ageC,
                         N_areas = input.data$N_areas, area_names = input.data$area_names,
-                        SurvAreaIdx = input.data$SurvAreaIdx,
-                        year_Survs = input.data$year_Survs, N_years_RT = input.data$N_years_RT,
+                        # SurvAreaIdx = input.data$SurvAreaIdx,
+                        # year_Survs = input.data$year_Survs, N_years_RT = input.data$N_years_RT,
                         sumR_obs_year = input.data$sumR_obs_year, N_sumR_obs = input.data$N_sumR_obs,
                         N_ageC = N_ageC,
-                        telemetryData = telemetryData,
+                        # telemetryData = telemetryData,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov)
   

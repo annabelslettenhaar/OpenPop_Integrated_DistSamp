@@ -40,11 +40,14 @@ setupModel <- function(modelCode, customDist,
               "sigma", "mu.dd", "h.mu.dd", "h.sigma.dd", "sigmaT.dd", "sigmaR.dd",
               "meanDens", 
               "Mu.D1", "sigma.D",
-              "S", "Mu.S", "h.Mu.S", "h.sigma.S",
-              "Mu.S1")
+              "S", "Mu.S", "h.Mu.S", "h.sigma.S"
+              # "Mu.S1"
+              )
   
   if(survVarT){
-    params <- c(params, "sigmaT.S", "sigmaR.S", "eps.S1.prop")
+    params <- c(params, "sigmaT.S", "sigmaR.S" 
+                #"eps.S1.prop"
+                )
   }
   
   if(fitRodentCov){

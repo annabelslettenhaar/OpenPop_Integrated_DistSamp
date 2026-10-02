@@ -12,7 +12,7 @@ mySeed <- 32
 set.seed(mySeed)
 
 ## Set number of chains
-nchains <- 5
+nchains <- 3
 
 ## Source all functions in "R" folder
 sourceDir <- function(path, trace = TRUE, ...) {
@@ -50,15 +50,14 @@ survVarT <- TRUE
 # Rodent covariate on reproduction
 fitRodentCov <- TRUE
 
-# Use of telemetry data from Lierne
-telemetryData <- TRUE
+# # Use of telemetry data from Lierne
+# telemetryData <- TRUE
 
 # Test run or not
 testRun <- TRUE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
-
 
 # DOWNLOAD/FETCH DATA #
 #---------------------#
@@ -77,10 +76,10 @@ if(downloadData){
 
 ## Set localities/areas and time period of interest
 localities <- listLocations()
-areas <- listAreas()
-#areas <- listAreas()[c(5, 17, 34)]
+#areas <- listAreas()
+areas <- listAreas()[c(5, 17, 34)]
 minYear <- 2007
-maxYear <- 2021
+maxYear <- 2013
 
 ## List duplicate transects to remove
 duplTransects <- listDuplTransects()
@@ -97,9 +96,9 @@ LT_data <- wrangleData_LineTrans(DwC_archive_list = Rype_arkiv,
 # WRANGLE KNOWN FATE CMR DATA #
 #-----------------------------#
 
-## Read in and reformat CMR data
-d_cmr <- wrangleData_CMR(minYear = minYear)
-
+# ## Read in and reformat CMR data
+# d_cmr <- wrangleData_CMR(minYear = minYear)
+# 
 
 # WRANGLE RODENT DATA #
 #---------------------#
@@ -118,7 +117,7 @@ d_rodent <- wrangleData_Rodent(duplTransects = duplTransects,
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputData(d_trans = LT_data$d_trans, 
                                d_obs = LT_data$d_obs,
-                               d_cmr = d_cmr,
+                               # d_cmr = d_cmr,
                                d_rodent = d_rodent,
                                #localities = localities, 
                                areas = areas,
@@ -136,7 +135,8 @@ input_data <- prepareInputData(d_trans = LT_data$d_trans,
 
 ## Write model code
 modelCode <- writeModelCode(survVarT = survVarT,
-                            telemetryData = telemetryData)
+                            #telemetryData = telemetryData
+                            )
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
@@ -179,7 +179,7 @@ if(!parallelMCMC){
   input_data$nim.constants$fitRodentCov <- fitRodentCov
   input_data$nim.constants$survVarT <- survVarT
   input_data$nim.constants$R_perF <- R_perF
-  input_data$nim.constants$telemetryData <- telemetryData
+  # input_data$nim.constants$telemetryData <- telemetryData
   
   ## Set up cluster
   this_cluster <- makeCluster(model_setup$mcmcParams$nchains)
