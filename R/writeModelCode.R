@@ -2,9 +2,7 @@
 #'
 #' @param survVarT logical. If TRUE, writes code for a model including random
 #' year variation in survival probability. If FALSE, assumed constant survival
-#' probability across time. 
-#' @param telemetryData logical. If TRUE, uses information from telemetry data
-#' from Lierne. If FALSE, only line transect data is used. 
+#' probability across time.
 #' @return an R call object specifying the model structure for integrated 
 #' distance sampling model. 
 #' @export
@@ -143,24 +141,6 @@ writeModelCode <- function(survVarT, telemetryData){
     } # x
     
     
-    # if(telemetryData){
-    #   ## Known-fate telemetry data
-    #   # N_years_RT = number of yeard for which radio-telemetry data is available
-    #   # Survs1[t, z] = numbers of collared individuals released (z = 1) and 
-    #   # recovered alive (z = 2) during season 1 of year t
-    #   # Survs2[t, z] = numbers of collared individuals released (z = 1) and 
-    #   # recovered alive (z = 2) during season 2 of year t
-    #   # S1[t] = survival probability through season 1 of year t
-    #   # S2[t] = survival probability through season 2 of year t
-    #   
-    #   for (t in 1:N_years_RT){
-    #     
-    #     Survs1[t, 2] ~ dbinom(S1[year_Survs[t]], Survs1[t, 1])
-    #     Survs2[t, 2] ~ dbinom(S2[year_Survs[t]], Survs2[t, 1])
-    #   }
-    # }
-
-    
     ################################
     # PARAMETER MODELS/CONSTRAINTS #
     ################################
@@ -206,18 +186,6 @@ writeModelCode <- function(survVarT, telemetryData){
     } # x
     
     
-    # ## Seasonal survival probabilities in area with radiotelemetry data
-    # # Season 1
-    # if(survVarT){
-    #   logit(S1[1:(N_years-1)]) <- logit(Mu.S1) + eps.S1.prop*(epsT.S[1:(N_years-1)] + epsR.S[SurvAreaIdx, 1:(N_years-1)])
-    # }else{
-    #   S1[1:(N_years-1)] <- Mu.S1
-    # }
-    # 
-    # # Season 2
-    # S2[1:(N_years-1)] <- S[SurvAreaIdx, 1:(N_years-1)] / S1[1:(N_years-1)]
-    # 
-    # 
     ###########
     # PRIORS  #
     ###########
@@ -262,12 +230,10 @@ writeModelCode <- function(survVarT, telemetryData){
     
     # Survival 
     h.sigma.S ~ dunif(0, 5)
-    # Mu.S1 ~ dunif(0, 1)
     
     if(survVarT){
       sigmaT.S ~ dunif(0, 5)
       sigmaR.S ~ dunif(0, 5)
-      # eps.S1.prop ~ dunif(0, 1)
     }
     
     # Detection

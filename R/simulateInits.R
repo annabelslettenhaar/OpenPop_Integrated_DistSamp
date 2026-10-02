@@ -59,7 +59,6 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   ## Area-specific survival parameters
   h.Mu.S <- runif(1, 0.40, 0.45) 
   h.sigma.S <- runif(1, 0.05, 0.2)
-  # Mu.S1 <- runif(1, 0.5, 0.7)
   
   # mu.S <- EnvStats::rnormTrunc(N_areas, qlogis(h.Mu.S), sd = h.sigma.S, max = qlogis(Mu.S1))
   mu.S <- EnvStats::rnormTrunc(N_areas, qlogis(h.Mu.S), sd = h.sigma.S)
@@ -69,9 +68,6 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   
   Mu.S <- rep(NA, N_areas)
   S <-  matrix(NA, nrow = N_areas, ncol = N_years-1)
-  # S1 <- S2 <- rep(NA, N_years)
-  
-  # eps.S1.prop <- runif(1, 0.3, 0.8)
   
   if(survVarT){
     epsT.S <- rep(0, N_years-1)
@@ -89,9 +85,6 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     S[x, 1:(N_years-1)] <- plogis(qlogis(Mu.S[x]) + epsT.S[1:(N_years-1)] + epsR.S[x, 1:(N_years-1)])
   }
 
-  # S1[1:(N_years-1)] <- plogis(qlogis(Mu.S1) + eps.S1.prop*(epsT.S[1:(N_years-1)] + epsR.S[nim.constants$SurvAreaIdx, 1:(N_years-1)]))
-  # S2[1:(N_years-1)] <- S[nim.constants$SurvAreaIdx, 1:(N_years-1)] / S1[1:(N_years-1)]
-  
   ## Area-specific reproductive parameters
   h.Mu.R  <- runif(1, 1.5, 3)
   h.sigma.R <- runif(1, 0.05, 0.2)
@@ -256,9 +249,6 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     sigmaT.S = sigmaT.S, sigmaR.S = sigmaR.S,
     epsT.S = epsT.S, epsR.S = epsR.S,
     epsA.S = mu.S - logit(h.Mu.S),
-    # Mu.S1 = Mu.S1,
-    # eps.S1.prop = eps.S1.prop,
-    # S1 = S1, S2 = S2, S = S,
     
     Density = Density,
     meanDens = meanDens,

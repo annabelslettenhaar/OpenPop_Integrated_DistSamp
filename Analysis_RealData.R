@@ -50,9 +50,6 @@ survVarT <- TRUE
 # Rodent covariate on reproduction
 fitRodentCov <- TRUE
 
-# # Use of telemetry data from Lierne
-# telemetryData <- TRUE
-
 # Test run or not
 testRun <- TRUE
 
@@ -93,13 +90,6 @@ LT_data <- wrangleData_LineTrans(DwC_archive_list = Rype_arkiv,
                                  minYear = minYear, maxYear = maxYear)
 
 
-# WRANGLE KNOWN FATE CMR DATA #
-#-----------------------------#
-
-# ## Read in and reformat CMR data
-# d_cmr <- wrangleData_CMR(minYear = minYear)
-# 
-
 # WRANGLE RODENT DATA #
 #---------------------#
 
@@ -117,7 +107,6 @@ d_rodent <- wrangleData_Rodent(duplTransects = duplTransects,
 ## Reformat data into vector/array list for analysis with Nimble
 input_data <- prepareInputData(d_trans = LT_data$d_trans, 
                                d_obs = LT_data$d_obs,
-                               # d_cmr = d_cmr,
                                d_rodent = d_rodent,
                                #localities = localities, 
                                areas = areas,
@@ -134,9 +123,7 @@ input_data <- prepareInputData(d_trans = LT_data$d_trans,
 #-------------#
 
 ## Write model code
-modelCode <- writeModelCode(survVarT = survVarT,
-                            #telemetryData = telemetryData
-                            )
+modelCode <- writeModelCode(survVarT = survVarT)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
@@ -179,7 +166,6 @@ if(!parallelMCMC){
   input_data$nim.constants$fitRodentCov <- fitRodentCov
   input_data$nim.constants$survVarT <- survVarT
   input_data$nim.constants$R_perF <- R_perF
-  # input_data$nim.constants$telemetryData <- telemetryData
   
   ## Set up cluster
   this_cluster <- makeCluster(model_setup$mcmcParams$nchains)
