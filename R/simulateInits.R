@@ -35,6 +35,13 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   pi <- 3.141593
   A <- nim.data$A
   
+  # Spatial spline stuff #
+  #----------------------#
+  
+  sigma.beta.D1 <- runif(1, 0.1, 2)
+  
+  beta.D1 <- rnorm(K, mean = 0, sd = sigma.beta.D1)
+  
   
   # Missing covariate values #
   #--------------------------#
@@ -253,7 +260,10 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     Density = Density,
     meanDens = meanDens,
     N_exp = N_exp,
-    N_tot_exp = N_tot_exp
+    N_tot_exp = N_tot_exp,
+    
+    sigma.beta.D1 = sigma.beta.D1,
+    beta.D1 = beta.D1
   )
   
   if(fitRodentCov){

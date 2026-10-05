@@ -22,6 +22,7 @@ writeModelCode <- function(survVarT, telemetryData){
     # N_exp[x, a, j, t] = Number of age class a individuals in site j of area x in year t
     # Density[x, a, j, t] = Density of age class a individuals in site j of area x in year t
     # L[x, j, t] = length of transect line in site j of area x in year t
+    # X_spatial[x, j, k] = Value of spline basis function k at site j of area x
     # W = truncation distance for line transect surveys
     
     # Mu.D1[x] = average initial density in area x
@@ -32,6 +33,8 @@ writeModelCode <- function(survVarT, telemetryData){
     # sigma[x, t] = average distance sampling detection decay rate in area x in year t
     
     # eps.D1[x, j] = random site effect on initial density area x (site j)
+    
+    # spatial.D1[x, j] = smooth spatial effect on initial density for transect j in area x
     
 
     
@@ -47,8 +50,12 @@ writeModelCode <- function(survVarT, telemetryData){
       
       for (j in 1:N_sites[x]){
         
+        # Constructing the spatial effect
+        spatial.D1[x, j] <- inprod(X_spatial[x, j, 1:K], beta.D1[1:K]) # estimating betas for each transect and spline basis function
+        
         ## Adult densities
-        Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
+        # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
+        Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + spatial.D1[x, j] + eps.D1[x, j])
         
         ## Juvenile densities
         if(R_perF){
@@ -80,6 +87,8 @@ writeModelCode <- function(survVarT, telemetryData){
           
           ## Adult and juvenile numbers
           N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, j, t]*L[x, j, t]*W*2
+          
+          
         }
       }
       
@@ -216,6 +225,16 @@ writeModelCode <- function(survVarT, telemetryData){
       mu.dd[x] <- h.mu.dd + epsA.dd[x]
     }
     
+    #----------------#
+    # Spatial spline #
+    #----------------#
+    
+    sigma.beta.D1 ~ dunif(0, 10)
+    
+    for(k in 1:K){
+      
+      beta.D1[k] ~ dnorm(0, sd = sigma.beta.D1)
+    }
     
     #----------------#
     # Random effects #

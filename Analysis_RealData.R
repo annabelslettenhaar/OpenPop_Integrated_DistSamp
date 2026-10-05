@@ -282,6 +282,18 @@ if(!parallelMCMC){
   
 }
 
+
+# Quick check whether the spline is doing something: 
+samples <- as.matrix(IDSM.out)
+
+spatial_mean <- colMeans(
+  samples[, grep("spatial.D1", colnames(samples))]
+)
+
+hist(spatial_mean,
+     breaks = 20,
+     main = "Posterior mean spatial effects")
+
 saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_realData_allAreas.rds")
 
 
