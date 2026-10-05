@@ -92,7 +92,7 @@ wrangleData_LineTrans <- function(DwC_archive_list, duplTransects, localities = 
   
   ## Assemble transect geometry information for spatial extension using info from d_trans
   d_spatial <- d_trans %>%
-    dplyr::select(eventID, LineName, verbatimLocality) %>%
+    dplyr::select(eventID, locationID, verbatimLocality) %>%
     dplyr::left_join(
       Eve %>%
         dplyr::select(eventID, footprintWKT) %>%
