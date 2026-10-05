@@ -73,7 +73,7 @@ if(downloadData){
 
 ## Set localities/areas and time period of interest
 localities <- listLocations()
-#areas <- listAreas()
+# areas <- listAreas()
 areas <- listAreas()[c(5, 17, 34)]
 minYear <- 2007
 maxYear <- 2013
@@ -88,6 +88,12 @@ LT_data <- wrangleData_LineTrans(DwC_archive_list = Rype_arkiv,
                                  areas = areas,
                                  areaAggregation = areaAggregation,
                                  minYear = minYear, maxYear = maxYear)
+
+# Check whether spatial object succeeded
+library(mapview)
+mapview(LT_data$d_spatial,
+        zcol = "verbatimLocality")
+
 
 
 # WRANGLE RODENT DATA #

@@ -90,6 +90,25 @@ wrangleData_LineTrans <- function(DwC_archive_list, duplTransects, localities = 
     stop("There are duplicate transects (> 1 transect in same location per year).")
   }
   
+  ## Assemble transect geometry information for spatial extension using info from d_trans
+  d_spatial <- d_trans %>%
+    dplyr::select(eventID, LineName, verbatimLocality) %>%
+    dplyr::left_join(
+      Eve %>%
+        dplyr::select(eventID, footprintWKT) %>%
+        dplyr::filter(!is.na(footprintWKT)) %>%
+        dplyr::distinct(),
+      by = "eventID"
+    ) %>%
+    dplyr::filter(!is.na(footprintWKT))
+  
+  # Convert line transect info to spatial object
+  d_spatial <- d_spatial %>% 
+    sf::st_as_sf(
+      wkt = "footprintWKT",
+      crs = 4326
+    )
+  
   ## Assemble observation level info
   
   # Observations: distance to transect lines
@@ -138,5 +157,5 @@ wrangleData_LineTrans <- function(DwC_archive_list, duplTransects, localities = 
                      latitudeAvg = mean(decimalLatitude, na.rm = TRUE))
   
   ## Collate and return data
-  LT_data <- list(d_trans = d_trans, d_obs = d_obs, d_coord = d_coord)
+  LT_data <- list(d_trans = d_trans, d_obs = d_obs, d_coord = d_coord, d_spatial = d_spatial)
 }
