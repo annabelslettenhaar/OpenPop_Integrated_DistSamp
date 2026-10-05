@@ -40,7 +40,7 @@
 
 
 
-prepareInputData <- function(d_trans, d_obs, d_rodent,
+prepareInputData <- function(d_trans, d_obs, d_rodent, basis_df,
                              localities = NULL, areas = NULL, areaAggregation, 
                              excl_neverObs = TRUE, R_perF, R_parent_drop0, 
                              sumR.Level = "group", dataVSconstants = TRUE, 
@@ -111,6 +111,10 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
   
   N_a_line_year <- array(0, dim = c(N_sUnits, N_ageC, max(site_count$count), N_yearsTot))
   
+  X_spatial <- array(NA, dim = c(N_sUnits, max(site_count$count), K)) # Spatial spline structure
+  
+  basis_lookup <- basis_df %>%
+    mutate(rowX = 1:n()) # Not sure why we are doing this
   
   for(x in 1:N_sUnits){
     
@@ -139,6 +143,20 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
     years_mon <- sort(unique(d_trans_sub$Year)) - min(range_yearsTot) + 1 
     min_years[x] <- min(years_mon)
     max_years[x] <- max(years_mon)
+    
+    # Spatial stuff #
+    #---------------#
+    
+    sites_area <- d_trans_sub %>%
+      distinct(locationID) %>%
+      arrange(locationID)
+    
+    sites_area <- sites_area %>%
+      left_join(basis_lookup,
+                by = "locationID")
+    
+    X_area <- X[sites_area$rowX, , drop = FALSE]
+    X_spatial[x, 1:N_sites[x], 1:K] <- X_area
 
     # Transect characteristics #
     #--------------------------#
@@ -372,7 +390,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                    N_line_year = input.data$N_line_year, 
                    N_a_line_year = input.data$N_a_line_year, 
                    A = input.data$A,
-                   RodentOcc = input.data$RodentOcc)
+                   RodentOcc = input.data$RodentOcc,
+                   X_spatial = X_spatial)
   
   ## Assembling Nimble constants
   nim.constants <- list(N_years = input.data$N_years, min_years = input.data$min_years, max_years = input.data$max_years,
@@ -384,7 +403,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                         sumR_obs_year = input.data$sumR_obs_year, N_sumR_obs = input.data$N_sumR_obs,
                         N_ageC = N_ageC,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
-                        RodentOcc_sdCov = input.data$RodentOcc_sdCov)
+                        RodentOcc_sdCov = input.data$RodentOcc_sdCov,
+                        K = K)
   
   ## Make final data list to return
   if(dataVSconstants){
