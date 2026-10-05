@@ -51,7 +51,7 @@ survVarT <- TRUE
 fitRodentCov <- TRUE
 
 # Test run or not
-testRun <- TRUE
+testRun <- FALSE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -97,10 +97,14 @@ library(mapview)
 mapview(LT_data$d_spatial,
         zcol = "verbatimLocality")
 
-## First spatial structure: no grid, only transects and their coordinates
+# Spatial structure V1 #
+#----------------------#
+
+## No grid yet, only transects and their coordinates, implementing a spatial spline
+## Eventually this will be replaced with a function rather than the raw code to keep it clean
 
 # Project transects to another spatial unit (UTM instead of WGS84)
-# # We do this so we can eventually measure grid cells in meters easily
+# We do this so we can eventually measure grid cells in meters easily
 d_spatial_utm <- st_transform(LT_data$d_spatial, 25833)
 
 # Define transect centroids as the 'knots' for the spatial field
@@ -109,17 +113,15 @@ d_spatial_utm <- d_spatial_utm %>%
   distinct()
 
 tran_centroids <- st_centroid(d_spatial_utm)
-
 coords <- st_coordinates(tran_centroids)
-
 tran_centroids$x <- coords[,1]
 tran_centroids$y <- coords[,2]
 
-# run smoothCon to create the spatial spline structure
 basis_df <- st_drop_geometry(tran_centroids)
 basis_df %>%
   arrange(locationID)
 
+# run smoothCon to create the spatial spline structure
 library(mgcv)
 sm <- smoothCon(
   s(x, y, bs = "tp", k = 50),
@@ -134,6 +136,8 @@ K <- ncol(X)
 # # SET UP SPATIAL GRID #
 # #---------------------#
 # 
+# # FOR LATER
+#
 # # Project transects to another spatial unit (UTM instead of WGS84)
 # # We do this so we can eventually measure grid cells in meters easily
 # d_spatial_utm <- st_transform(LT_data$d_spatial, 25833)
@@ -227,7 +231,13 @@ model_setup <- setupModel(modelCode = modelCode,
                           nim.constants = input_data$nim.constants,
                           testRun = testRun, 
                           nchains = nchains,
-                          initVals.seed = MCMC.seeds)
+                          initVals.seed = MCMC.seeds,
+                          # niter = 200000,
+                          niter = 10000,
+                          # nthin = 30,
+                          nthin = 5,
+                          # nburn = 111000,
+                          nburn = 5000)
 
 
 # MODEL (TEST) RUN #
@@ -294,7 +304,7 @@ hist(spatial_mean,
      breaks = 20,
      main = "Posterior mean spatial effects")
 
-saveRDS(IDSM.out, file = "rypeIDSM_dHN_multiArea_realData_allAreas.rds")
+saveRDS(IDSM.out, file = "SpatialInitialDensity_transectLevel_shortrun.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #

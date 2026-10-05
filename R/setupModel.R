@@ -28,7 +28,7 @@
 setupModel <- function(modelCode, customDist,
                        nim.data, nim.constants,
                        R_perF, survVarT, fitRodentCov, addDummyDim = TRUE,
-                       niter = 200000, nthin = 30, nburn = 111000, nchains = 3,
+                       niter = niter, nthin = nthin, nburn = nburn, nchains = 3,
                        testRun = FALSE, initVals.seed){
   
   require('nimble')
