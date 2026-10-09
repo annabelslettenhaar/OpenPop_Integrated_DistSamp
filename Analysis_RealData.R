@@ -51,7 +51,7 @@ survVarT <- TRUE
 fitRodentCov <- TRUE
 
 # Test run or not
-testRun <- FALSE
+testRun <- TRUE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -266,7 +266,7 @@ input_data <- prepareInputData(d_trans = LT_data$d_trans,
 #-------------#
 
 ## Write model code
-modelCode <- writeModelCode(survVarT = survVarT)
+modelCode <- writeModelCode_grid(survVarT = survVarT)
 
 ## Expand seeds for simulating initial values
 MCMC.seeds <- expandSeed_MCMC(seed = mySeed, 
@@ -361,7 +361,7 @@ saveRDS(IDSM.out, file = "SpatialInitialDensity_transectLevel_shortrun.rds")
 #---------------------------#
 
 IDSM.out.tidy <- tidySamples(IDSM.out = IDSM.out, 
-                             save = TRUE,
+                             save = FALSE,
                              fileName = "rypeIDSM_dHN_multiArea_realData_allAreas_tidy.rds")
 
 
