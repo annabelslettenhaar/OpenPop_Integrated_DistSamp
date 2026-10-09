@@ -52,6 +52,7 @@ writeModelCode <- function(survVarT, telemetryData){
         
         # Constructing the spatial effect
         spatial.D1[x, j] <- inprod(X_spatial[x, j, 1:K], beta.D1[1:K]) # estimating betas for each transect and spline basis function
+
         
         ## Adult densities
         # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
@@ -230,12 +231,12 @@ writeModelCode <- function(survVarT, telemetryData){
     #----------------#
     
     sigma.beta.D1 ~ dunif(0, 10)
-    
+
     for(k in 1:K){
-      
+
       beta.D1[k] ~ dnorm(0, sd = sigma.beta.D1)
     }
-    
+
     #----------------#
     # Random effects #
     #----------------#
