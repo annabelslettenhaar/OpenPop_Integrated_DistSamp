@@ -126,7 +126,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
   N_a_line_year <- array(0, dim = c(N_sUnits, N_ageC, max(site_count$count), N_yearsTot))
   
   # X_spatial <- array(NA, dim = c(N_sUnits, max(site_count$count), K)) # Spatial spline structure
-  X_grid <- array(NA, dim = c(N_sUnits, max(grid_count$count), K)) # Spatial spline structure
+  X_grid <- array(0, dim = c(N_sUnits, max(grid_count$count), K)) # Spatial spline structure
   
   # basis_lookup <- basis_df %>%
   #   mutate(rowX = 1:n()) # Not sure why we are doing this
