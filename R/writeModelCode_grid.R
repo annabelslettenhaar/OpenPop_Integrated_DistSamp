@@ -21,6 +21,7 @@ writeModelCode_grid <- function(survVarT, telemetryData){
     
     # N_exp[x, a, j, t] = Number of age class a individuals in site j of area x in year t
     # Density[x, a, j, t] = Density of age class a individuals in site j of area x in year t
+    # Density[x, a, g, t] = Density of age class a individuals in grid-cell g of area x in year t
     # L[x, j, t] = length of transect line in site j of area x in year t
     # X_grid[x, g, k] = Value of spline basis function k at grid cell g in area x
     # W = truncation distance for line transect surveys
@@ -33,6 +34,7 @@ writeModelCode_grid <- function(survVarT, telemetryData){
     # sigma[x, t] = average distance sampling detection decay rate in area x in year t
     
     # eps.D1[x, j] = random site effect on initial density area x (site j)
+    # eps.D1[x, g] = random site effect on initial density area x (grid-cell g)
     
     # spatial.D1[x, g] = smooth spatial effect on initial density for grid cell g in area x
     
@@ -54,46 +56,75 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       #   spatial.D1[x, g] <- inprod(X_grid[x, g, 1:K], beta.D1[1:K]) # estimating betas for each grid cell and spline basis function
       # }
       
-      for (j in 1:N_sites[x]){
-        
+      # for (j in 1:N_sites[x]){
+      for (g in 1:N_grid[x]){
+          
         ## Adult densities
-        Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
+        # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
         # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + spatial.D1[x, transect_grid[x,j]] + eps.D1[x, j])
+        Density[x, 2, g, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, g])
         
         ## Juvenile densities
-        if(R_perF){
-          Density[x, 1, j, 1] <- (Density[x, 2, j, 1]/2)*R_year[x, 1] 
-        }else{
-          Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1]
-        }
+        # if(R_perF){
+        #   Density[x, 1, j, 1] <- (Density[x, 2, j, 1]/2)*R_year[x, 1] 
+        # }else{
+        #   Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1]
+        # }
         
+        if(R_perF){
+          Density[x, 1, g, 1] <- (Density[x, 2, g, 1]/2)*R_year[x, 1] 
+        }else{
+          Density[x, 1, g, 1] <- Density[x, 2, g, 1]*R_year[x, 1]
+        }
+      
         ## Adult and juvenile numbers
-        N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, j, 1]*L[x, j, 1]*W*2      
+        # N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, j, 1]*L[x, j, 1]*W*2      
+      }
+      
+      for (j in 1:N_sites[x]){
+        N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, transect_grid[x, j], 1]*L[x, j, 1]*W*2
       }
       
       #-------------------------------#
       # Population dynamics for t > 1 #
       #-------------------------------#
       
-      for(j in 1:N_sites[x]){
-        for(t in 2:N_years){
+      # for(j in 1:N_sites[x]){
+      #   for(t in 2:N_years){
+      for (t in 2:N_years){
+        
+        for(g in 1:N_grid[x]){
           
           ## Adult densities
-          Density[x, 2, j, t] <- sum(Density[x, 1:N_ageC, j, t-1])*S[x, t-1] 
+          # Density[x, 2, j, t] <- sum(Density[x, 1:N_ageC, j, t-1])*S[x, t-1]
+          Density[x, 2, g, t] <- sum(Density[x, 1:N_ageC, g, t-1])*S[x, t-1]
           
           ## Juvenile densities
+          # if(R_perF){
+          #   Density[x, 1, j, t] <- (Density[x, 2, j, t]/2)*R_year[x, t] 
+          # }else{
+          #   Density[x, 1, j, t] <- Density[x, 2, j, t]*R_year[x, t]
+          # }
           if(R_perF){
-            Density[x, 1, j, t] <- (Density[x, 2, j, t]/2)*R_year[x, t] 
+            Density[x, 1, g, t] <- (Density[x, 2, g, t]/2)*R_year[x, t] 
           }else{
-            Density[x, 1, j, t] <- Density[x, 2, j, t]*R_year[x, t]
+            Density[x, 1, g, t] <- Density[x, 2, g, t]*R_year[x, t]
           }
           
           ## Adult and juvenile numbers
-          N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, j, t]*L[x, j, t]*W*2
+          # N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, j, t]*L[x, j, t]*W*2
           
+        } # g
+        
+        for(j in 1:N_sites[x]){
           
-        }
-      }
+          N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, transect_grid[x, j], t]*L[x, j, t]*W*2
+          
+          } # j
+         
+      } # t
+      
+      
       
       #--------------------#
       # Derived parameters #
@@ -107,7 +138,8 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       ## Area-, year-, and age-class specific density (for monitoring)
       for(a in 1:N_ageC){
         for(t in 1:N_years){
-          meanDens[x, a, t] <- mean(Density[x, a, 1:N_sites[x], t])
+          # meanDens[x, a, t] <- mean(Density[x, a, 1:N_sites[x], t])
+          meanDens[x, a, t] <- mean(Density[x, a, 1:N_grid[x], t])
         } # t
       } # a
     } # x
@@ -304,10 +336,17 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       }
     }
     
-    # Site/transect variation
+    # # Site/transect variation
+    # for(x in 1:N_areas){
+    #   for(j in 1:N_sites[x]){
+    #     eps.D1[x, j] ~ dnorm(0, sd = sigma.D[x])
+    #   }
+    # }
+    
+    # Grid cell variation
     for(x in 1:N_areas){
-      for(j in 1:N_sites[x]){
-        eps.D1[x, j] ~ dnorm(0, sd = sigma.D[x])
+      for(g in 1:N_grid[x]){
+        eps.D1[x, g] ~ dnorm(0, sd = sigma.D[x])
       }
     }
     
