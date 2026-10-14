@@ -24,7 +24,7 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   N_ageC <- nim.constants$N_ageC
   N_years <- nim.constants$N_years
   N_grid <- nim.constants$N_grid
-  transect_grid <- nim.data$transect_grid
+  transect_grid <- nim.constants$transect_grid
   
   if(N_areas == 1){
     N_sites <- nim.constants$N_sites[1]

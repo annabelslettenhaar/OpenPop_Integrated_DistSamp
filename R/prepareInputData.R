@@ -434,10 +434,10 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                    N_line_year = input.data$N_line_year, 
                    N_a_line_year = input.data$N_a_line_year, 
                    A = input.data$A,
-                   RodentOcc = input.data$RodentOcc,
+                   RodentOcc = input.data$RodentOcc
                    # X_spatial = X_spatial
                    # X_grid = X_grid,
-                   transect_grid = transect_grid)
+                   )
   
   ## Assembling Nimble constants
   nim.constants <- list(N_years = input.data$N_years, min_years = input.data$min_years, max_years = input.data$max_years,
@@ -451,7 +451,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
                         # K = K,
-                        N_grid = N_grid)
+                        N_grid = N_grid,
+                        transect_grid = transect_grid)
   
   ## Make final data list to return
   if(dataVSconstants){
