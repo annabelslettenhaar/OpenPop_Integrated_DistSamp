@@ -23,6 +23,8 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   N_areas <- nim.constants$N_areas
   N_ageC <- nim.constants$N_ageC
   N_years <- nim.constants$N_years
+  N_grid <- nim.constants$N_grid
+  transect_grid <- nim.data$transect_grid
   
   if(N_areas == 1){
     N_sites <- nim.constants$N_sites[1]
@@ -161,7 +163,9 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   Mu.D1 <- rep(NA, N_areas)
   sigma.D <- runif(N_areas, 0.1, 2)
   
-  N_exp <- Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
+  # N_exp <- Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
+  Density <- array(0, dim = c(N_areas, N_ageC, max(N_grid), N_years))
+  N_exp <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
   
   for(x in 1:N_areas){
     
@@ -169,37 +173,79 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     D_data <- D_x_sum[which(!is.na(D_x_sum) & D_x_sum > 0)]
     Mu.D1[x] <- runif(1, quantile(D_data, 0.25), quantile(D_data, 0.75))  
     
-    for(j in 1:N_sites[x]){
+    # for(j in 1:N_sites[x]){
+    #   
+    #   Density[x, 2, j, 1] <- Mu.D1[x]
+    #   
+    #   if(R_perF){
+    #     Density[x, 1, j, 1] <- (Density[x, 2, j, 1]/2)*R_year[x, 1] # Juveniles 
+    #   }else{
+    #     Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1] # Juveniles
+    #   }
+    #   
+    #   N_exp[x, 1, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 1, j, 1]*L[x, j, 1]*W*2, a = 1)
+    #   N_exp[x, 2, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 2, j, 1]*L[x, j, 1]*W*2, a = 1)
+    # }
+    
+    for(g in 1:N_grid[x]){
       
-      Density[x, 2, j, 1] <- Mu.D1[x]
+      Density[x, 2, g, 1] <- Mu.D1[x]
       
       if(R_perF){
-        Density[x, 1, j, 1] <- (Density[x, 2, j, 1]/2)*R_year[x, 1] # Juveniles 
+        Density[x, 1, g, 1] <- (Density[x, 2, g, 1]/2)*R_year[x, 1] # Juveniles 
       }else{
-        Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1] # Juveniles
+        Density[x, 1, g, 1] <- Density[x, 2, g, 1]*R_year[x, 1] # Juveniles
       }
+    } 
+    
+    for (j in 1:N_sites[x]){
       
-      N_exp[x, 1, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 1, j, 1]*L[x, j, 1]*W*2, a = 1)
-      N_exp[x, 2, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 2, j, 1]*L[x, j, 1]*W*2, a = 1)
+      g <- transect_grid[x, j]
+      
+      N_exp[x, 1, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 1, g, 1]*L[x, j, 1]*W*2, a = 1)
+      N_exp[x, 2, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 2, g, 1]*L[x, j, 1]*W*2, a = 1)
     }
   }
 
   ## Population projection over time
+  # for(x in 1:N_areas){
+  #   for(j in 1:N_sites[x]){
+  #     for(t in 2:N_years){
+  #       
+  #       Density[x, 2, j, t] <- sum(Density[x, 1:N_ageC, j, t-1])*S[x, t-1] # Adults
+  #       
+  #       if(R_perF){
+  #         Density[x, 1, j, t] <- (Density[x, 2, j, t]/2)*R_year[x, t] # Juveniles 
+  #       }else{
+  #         Density[x, 1, j, t] <- Density[x, 2, j, t]*R_year[x, t] # Juveniles
+  #       }
+  #       
+  #       N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, j, t]*L[x, j, t]*W*2
+  #     }
+  #   }
+  # }
+  
   for(x in 1:N_areas){
-    for(j in 1:N_sites[x]){
-      for(t in 2:N_years){
+    for(t in 2:N_years){
+      for(g in 1:N_grid[x]){
         
-        Density[x, 2, j, t] <- sum(Density[x, 1:N_ageC, j, t-1])*S[x, t-1] # Adults
+        Density[x, 2, g, t] <- sum(Density[x, 1:N_ageC, g, t-1])*S[x, t-1] # Adults
         
         if(R_perF){
-          Density[x, 1, j, t] <- (Density[x, 2, j, t]/2)*R_year[x, t] # Juveniles 
+          Density[x, 1, g, t] <- (Density[x, 2, g, t]/2)*R_year[x, t] # Juveniles 
         }else{
-          Density[x, 1, j, t] <- Density[x, 2, j, t]*R_year[x, t] # Juveniles
+          Density[x, 1, g, t] <- Density[x, 2, g, t]*R_year[x, t] # Juveniles
         }
         
-        N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, j, t]*L[x, j, t]*W*2
       }
-    }
+    
+    for(j in 1:N_sites[x]){
+        
+        g <- transect_grid[x, j]
+        N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, g, t]*L[x, j, t]*W*2
+        
+      }
+    } 
   }
   
   ## Area-specific population size and density
@@ -217,7 +263,7 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   for(x in 1:N_areas){
     for(a in 1:N_ageC){
       for(t in 1:N_years){
-        meanDens[x, a, t] <- mean(Density[x, a, 1:N_sites[x], t])
+        meanDens[x, a, t] <- mean(Density[x, a, 1:N_grid[x], t])
       }
     } 
   }
@@ -231,7 +277,8 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     
     Mu.D1 = Mu.D1, 
     sigma.D = sigma.D,
-    eps.D1 = matrix(0, nrow = nim.constants$N_areas, ncol = max(N_sites)),
+    # eps.D1 = matrix(0, nrow = nim.constants$N_areas, ncol = max(N_sites)),
+    eps.D1 = matrix(0, nrow = nim.constants$N_areas, ncol = max(N_grid)),
     
     Mu.R = Mu.R,
     h.Mu.betaR.R = h.Mu.betaR.R, h.sigma.betaR.R = h.sigma.betaR.R,
