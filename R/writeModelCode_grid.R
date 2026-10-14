@@ -48,17 +48,17 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       # Initial population size/density (t = 1) #
       #-----------------------------------------#
       
-      for (g in 1:max(N_grid)){ # max because of unused 'cells': we compute a square object in Nimble even though not all areas have the same number of grid cells assigned
-        
-        # Constructing the spatial effect at grid cell level
-        spatial.D1[x, g] <- inprod(X_grid[x, g, 1:K], beta.D1[1:K]) # estimating betas for each grid cell and spline basis function
-      }
+      # for (g in 1:max(N_grid)){ 
+      #   
+      #   # Constructing the spatial effect at grid cell level
+      #   spatial.D1[x, g] <- inprod(X_grid[x, g, 1:K], beta.D1[1:K]) # estimating betas for each grid cell and spline basis function
+      # }
       
       for (j in 1:N_sites[x]){
         
         ## Adult densities
-        # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
-        Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + spatial.D1[x, transect_grid[x,j]] + eps.D1[x, j])
+        Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
+        # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + spatial.D1[x, transect_grid[x,j]] + eps.D1[x, j])
         
         ## Juvenile densities
         if(R_perF){
@@ -228,16 +228,17 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       mu.dd[x] <- h.mu.dd + epsA.dd[x]
     }
     
-    #----------------#
-    # Spatial spline #
-    #----------------#
-    
-    sigma.beta.D1 ~ dunif(0, 10)
-    
-    for(k in 1:K){
-      
-      beta.D1[k] ~ dnorm(0, sd = sigma.beta.D1)
-    }
+    # #----------------#
+    # # Spatial spline #
+    # #----------------#
+    # 
+    # sigma.beta.D1 ~ dunif(0, 10)
+    # 
+    # for(k in 1:K){
+    #   
+    #   beta.D1[k] ~ dnorm(0, sd = sigma.beta.D1)
+    # }
+    # 
     
     #----------------#
     # Random effects #
