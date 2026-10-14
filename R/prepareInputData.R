@@ -94,16 +94,16 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
     dplyr::group_by(spatialUnit) %>%
     dplyr::summarise(count = n_distinct(locationID))
   
+  if(length(which(site_count$count == 0)) > 0){
+    stop("One or more specified areas contain no willow ptarmigan observations")
+  }
+  
   ## Count grid cells per area and set up indexing structure for grid_df 
   grid_count <- grid_df %>%
     dplyr::group_by(spatialUnit) %>%
     dplyr::summarise(count = n())
-  grid_df <- grid_df %>%
-    mutate(rowX = row_number())
-  
-  if(length(which(site_count$count == 0)) > 0){
-    stop("One or more specified areas contain no willow ptarmigan observations")
-  }
+  # grid_df <- grid_df %>%
+  #   mutate(rowX = row_number())
   
   ## Count observations per area
   obs_count <- d_obs %>% 
@@ -126,12 +126,12 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
   N_a_line_year <- array(0, dim = c(N_sUnits, N_ageC, max(site_count$count), N_yearsTot))
   
   # X_spatial <- array(NA, dim = c(N_sUnits, max(site_count$count), K)) # Spatial spline structure
-  X_grid <- array(0, dim = c(N_sUnits, max(grid_count$count), K)) # Spatial spline structure
+  # X_grid <- array(0, dim = c(N_sUnits, max(grid_count$count), K)) # Spatial spline structure
   
   # basis_lookup <- basis_df %>%
   #   mutate(rowX = 1:n()) # Not sure why we are doing this
-  grid_lookup <- grid_df %>%
-    mutate(rowX = 1:n())
+  # grid_lookup <- grid_df %>%
+  #   mutate(rowX = 1:n())
 
   
   for(x in 1:N_sUnits){
@@ -187,18 +187,21 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
           select(locationID, grid_id), by = "locationID")
     
     grid_area <- grid_df[grid_df$spatialUnit == sUnits[x], ]
-    
-    grid_area <- dplyr::arrange(grid_area, grid_id)
-    
-    N_grid[x] <- nrow(grid_area)
-    
-    local_grid_index <- match(sites_area$grid_id, grid_area$grid_id)
-    
-    X_area <- X[grid_area$rowX, , drop = FALSE]
-    
-    X_grid[x, 1:N_grid[x], 1:K] <- X_area
-    transect_grid[x, 1:N_sites[x]] <- local_grid_index
 
+    grid_area <- dplyr::arrange(grid_area, grid_id)
+
+    N_grid[x] <- nrow(grid_area)
+
+    local_grid_index <- match(sites_area$grid_id, grid_area$grid_id)
+
+    # X_area <- X[grid_area$rowX, , drop = FALSE]
+    # 
+    # X_grid[x, 1:N_grid[x], 1:K] <- X_area
+    transect_grid[x, 1:N_sites[x]] <- local_grid_index
+    
+    # Eventually transect_grid should also contain covariate information per grid cell
+
+    
     # Transect characteristics #
     #--------------------------#
     
@@ -433,7 +436,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                    A = input.data$A,
                    RodentOcc = input.data$RodentOcc,
                    # X_spatial = X_spatial
-                   X_grid = X_grid,
+                   # X_grid = X_grid,
                    transect_grid = transect_grid)
   
   ## Assembling Nimble constants
@@ -447,7 +450,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                         N_ageC = N_ageC,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
-                        K = K,
+                        # K = K,
                         N_grid = N_grid)
   
   ## Make final data list to return
