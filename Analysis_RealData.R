@@ -48,7 +48,7 @@ sumR.Level <- "line" # Summing at the line level
 survVarT <- TRUE
 
 # Rodent covariate on reproduction
-fitRodentCov <- TRUE
+fitRodentCov <- FALSE
 
 # Test run or not
 testRun <- TRUE
@@ -78,8 +78,8 @@ if(downloadData){
 localities <- listLocations()
 # areas <- listAreas()
 areas <- listAreas()[c(5, 17, 34)]
-minYear <- 2007
-maxYear <- 2013
+minYear <- 2013
+maxYear <- 2022
 
 ## List duplicate transects to remove
 duplTransects <- listDuplTransects()
@@ -133,101 +133,15 @@ mapview(LT_data$d_spatial,
 # X <- sm[[1]]$X # matrix dimensions
 # K <- ncol(X)
 
-# SET UP SPATIAL GRID V1 #
-#------------------------#
+# SET UP SPATIAL GRID #
+#---------------------#
 
-if(areaAggregation){
-  d_trans_grid <- LT_data$d_trans %>%
-    mutate(spatialUnit = verbatimLocality)
-} else {
-  d_trans_grid <- LT_data$d_trans %>%
-    mutate(spatialUnit = locality)
-}
+d_grid <- setupGrid(d_trans = LT_data$d_trans,
+                    d_spatial = LT_data$d_spatial,
+                    areaAggregation = areaAggregation,
+                    gridOnlyTransects = gridOnlyTransects,
+                    grid_cell_size = 5000)
 
-# Project transects to another spatial unit (UTM instead of WGS84)
-# We do this so we can eventually measure grid cells in meters easily
-d_spatial_utm <- st_transform(LT_data$d_spatial, 25833)
-
-# Set up map of Norway
-library(rnaturalearth)
-norway <- ne_countries(
-  country = "Norway",
-  returnclass = "sf"
-) %>%
-  st_transform(25833)
-
-# Create grid covering the country with 10x10 resolution
-grid_all <- st_make_grid(
-  norway,
-  cellsize = 10000
-) %>%
-  st_sf() %>%
-  st_intersection(norway)
-
-# Only include complete grid when toggle is off
-transect_centroids <- st_centroid(d_spatial_utm)
-transect_centroids <- transect_centroids %>%
-  select(locationID) %>%
-  distinct()
-
-if(gridOnlyTransects){
-  cells_selected <- grid_all[lengths(st_intersects(grid_all,transect_centroids)) > 0,]
-} else {
-  cells_selected <- grid_all # BUT REMOVE SVALBARD!!
-}
-
-# Plot resulting map
-ggplot() +
-  geom_sf(data = cells_selected, fill = NA, colour = "grey70") +
-  geom_sf(data = d_spatial_utm, colour = "red") +
-  theme_bw()
-
-# Create gridID's and quantify their centroids
-cells_selected$grid_id <- 1:nrow(cells_selected)
-grid_centroids <- st_centroid(cells_selected)
-grid_xy <- st_coordinates(grid_centroids)
-
-grid_df <- data.frame(grid_id = cells_selected$grid_id, x = grid_xy[,1], y = grid_xy[,2])
-
-# Assign each transect to the grid cell containing its centroid
-d_spatial_utm <- d_spatial_utm %>%
-     select(locationID) %>%
-     distinct()
-grid_area_lookup <- st_join(transect_centroids, cells_selected["grid_id"]) %>%
-  st_drop_geometry() %>%
-  select(locationID, grid_id) %>%
-  left_join(d_trans_grid %>% distinct(locationID, spatialUnit), by = "locationID") %>%
-  distinct()
-
-# Some transect lines do not fall on the Norwegian grid for some reason
-# Therefore we assign to them the nearest grid cell instead. 
-missing <- is.na(grid_area_lookup$grid_id)
-nearest_grid <- st_nearest_feature(
-  transect_centroids[missing, ],
-  cells_selected)
-grid_area_lookup$grid_id[missing] <-
-  cells_selected$grid_id[nearest_grid]
-
-# Adding area names to grid ID's
-grid_area <- grid_area_lookup %>%
-  group_by(grid_id) %>%
-  summarise(spatialUnit = first(spatialUnit))
-
-# Merge area names to the grid dataframe
-grid_df <- grid_df %>%
-  left_join(grid_area, by = "grid_id") 
-
-# Building the spline basis/structure for input in nimble
-library(mgcv)
-sm <- smoothCon(
-  s(x,y,bs="tp",k=15), # Adjust k depending on the number of cells included!
-  data=grid_df,
-  absorb.cons=TRUE
-)
-
-# Extract relevant structure data as input for nimble later
-X <- sm[[1]]$X # matrix dimensions
-K <- ncol(X)
 
 # WRANGLE RODENT DATA #
 #---------------------#
@@ -256,8 +170,8 @@ input_data <- prepareInputData(d_trans = LT_data$d_trans,
                                sumR.Level = "line",
                                dataVSconstants = TRUE,
                                save = TRUE,
-                               grid_df = grid_df,
-                               grid_area_lookup = grid_area_lookup
+                               grid_df = d_grid$grid_df,
+                               grid_area_lookup = d_grid$grid_area_lookup
                                # basis_df = basis_df
                                )
 
