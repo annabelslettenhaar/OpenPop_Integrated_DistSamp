@@ -8,7 +8,7 @@ mySeed <- 1
 set.seed(mySeed)
 
 ## Set number of chains
-nchains <- 4
+nchains <- 3
 
 ## Source all functions in "R" folder
 sourceDir <- function(path, trace = TRUE, ...) {
@@ -46,8 +46,8 @@ survVarT <- FALSE
 # Rodent covariate on reproduction
 fitRodentCov <- TRUE
 
-# Use of telemetry data from Lierne
-telemetryData <- TRUE
+# # Use of telemetry data from Lierne
+# telemetryData <- TRUE
 
 # Test run or not
 testRun <- TRUE
@@ -136,6 +136,7 @@ input_data <- prepareInputData(d_trans = LT_data$d_trans,
 ## Write model code
 modelCode <- writeModelCode_singleArea(survVarT = survVarT,
                                        telemetryData = telemetryData)
+                            
 
 
 ## Expand seeds for simulating initial values

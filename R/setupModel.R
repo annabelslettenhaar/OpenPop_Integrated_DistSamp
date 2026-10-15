@@ -66,7 +66,7 @@ setupModel <- function(modelCode, customDist,
     if(nim.constants$N_areas == 1 & !addDummyDim){
       
       initVals[[c]] <- simulateInits_singleArea(nim.data = nim.data, 
-                                                nim.constants = nim.constants, 
+                                                nim.constants = nim.constants,
                                                 R_perF = R_perF,
                                                 survVarT = survVarT,
                                                 fitRodentCov = fitRodentCov,
