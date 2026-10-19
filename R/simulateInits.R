@@ -112,7 +112,8 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   sigmaT.R <- runif(1, 0.05, 0.2)
   sigmaR.R <- runif(1, 0.05, 0.2)
   
-  R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
+  # R_year <- matrix(NA, nrow = N_areas, ncol = N_years)
+  R_year <- array(NA, dim = c(N_areas, max(N_grid), N_years))
   
   epsT.R <- rep(0, N_years)
   #epsT.R <- rnorm(N_year, 0, sigmaT.R)
@@ -120,7 +121,9 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   #epsR.R <- matrix(rnorm(N_areas*N_years, 0, sigmaR.R), nrow = N_areas, ncol = N_years)
 
   for(x in 1:N_areas){
-    R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+    for(g in 1:N_grid[x]){
+    R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+    }
   }
 
   
@@ -191,10 +194,16 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
       
       Density[x, 2, g, 1] <- Mu.D1[x]
       
+      # if(R_perF){
+      #   Density[x, 1, g, 1] <- (Density[x, 2, g, 1]/2)*R_year[x, 1] # Juveniles 
+      # }else{
+      #   Density[x, 1, g, 1] <- Density[x, 2, g, 1]*R_year[x, 1] # Juveniles
+      # }
+      
       if(R_perF){
-        Density[x, 1, g, 1] <- (Density[x, 2, g, 1]/2)*R_year[x, 1] # Juveniles 
+        Density[x, 1, g, 1] <- (Density[x, 2, g, 1]/2)*R_year[x, g, 1] # Juveniles 
       }else{
-        Density[x, 1, g, 1] <- Density[x, 2, g, 1]*R_year[x, 1] # Juveniles
+        Density[x, 1, g, 1] <- Density[x, 2, g, 1]*R_year[x, g, 1] # Juveniles
       }
     } 
     
@@ -229,12 +238,20 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     for(t in 2:N_years){
       for(g in 1:N_grid[x]){
         
+        # Density[x, 2, g, t] <- sum(Density[x, 1:N_ageC, g, t-1])*S[x, t-1] # Adults
+        # 
+        # if(R_perF){
+        #   Density[x, 1, g, t] <- (Density[x, 2, g, t]/2)*R_year[x, t] # Juveniles 
+        # }else{
+        #   Density[x, 1, g, t] <- Density[x, 2, g, t]*R_year[x, t] # Juveniles
+        # }
+        
         Density[x, 2, g, t] <- sum(Density[x, 1:N_ageC, g, t-1])*S[x, t-1] # Adults
         
         if(R_perF){
-          Density[x, 1, g, t] <- (Density[x, 2, g, t]/2)*R_year[x, t] # Juveniles 
+          Density[x, 1, g, t] <- (Density[x, 2, g, t]/2)*R_year[x, g, t] # Juveniles 
         }else{
-          Density[x, 1, g, t] <- Density[x, 2, g, t]*R_year[x, t] # Juveniles
+          Density[x, 1, g, t] <- Density[x, 2, g, t]*R_year[x, g, t] # Juveniles
         }
         
       }
