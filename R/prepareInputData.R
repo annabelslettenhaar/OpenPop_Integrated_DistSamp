@@ -120,6 +120,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
   A <- matrix(NA, nrow = N_sUnits, ncol = N_yearsTot)
   y <- Year_obs <- zeros_dist <- matrix(NA, nrow = N_sUnits, ncol = max(obs_count$count))
   sumR_obs <- sumR_obs_year <- sumAd_obs <- matrix(NA, nrow = N_sUnits, ncol = max(obs_count$count))
+  sumR_obs_grid <- matrix(NA, nrow = N_sUnits, ncol = max(obs_count$count))
   
   L <- N_line_year <- N_J_line_year <- N_A_line_year <- array(0, dim = c(N_sUnits, max(site_count$count), N_yearsTot))
   
@@ -363,19 +364,28 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
         dplyr::filter(sumAd_use + sumR != 0) %>%
         dplyr::mutate(sumAd_use = ifelse(sumAd_use == 0, 1, sumAd_use))
     }
+    
+    # Add column with grid ID information
+    temp_Rec <- temp_Rec %>%
+      left_join(grid_area_lookup %>%
+          select(locationID, grid_id),
+        by = "locationID")
+    
+    temp_Rec$grid_local <- match(temp_Rec$grid_id, grid_area$grid_id)
 
     # Extract relevant data vectors
     N_sumR_obs[x] <- length(temp_Rec$sumR)
     sumR_obs[x, 1:N_sumR_obs[x]] <- temp_Rec$sumR
     sumAd_obs[x, 1:N_sumR_obs[x]] <- temp_Rec$sumAd_use
     sumR_obs_year[x, 1:N_sumR_obs[x]] <- temp_Rec$Year2
+    sumR_obs_grid[x, 1:N_sumR_obs[x]] <- temp_Rec$grid_local
   }
   
   ## Drop excess columns in recruitment data
   sumR_obs <- sumR_obs[1:N_sUnits, 1:max(N_sumR_obs), drop = FALSE]
   sumAd_obs <- sumAd_obs[1:N_sUnits, 1:max(N_sumR_obs), drop = FALSE]
   sumR_obs_year <- sumR_obs_year[1:N_sUnits, 1:max(N_sumR_obs), drop = FALSE]
-  
+  sumR_obs_grid <- sumR_obs_grid[1:N_sUnits, 1:max(N_sumR_obs),drop = FALSE]
   
   # Data assembly #
   #---------------#
@@ -390,6 +400,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
     sumR_obs = sumR_obs, # Observed numbers of recruits
     sumAd_obs = sumAd_obs, # Observed numbers of adults/adult females
     sumR_obs_year = sumR_obs_year, # Year of observed numbers of recruits
+    sumR_obs_grid = sumR_obs_grid, # Grid ID of observed number of recruits
     N_sumR_obs = N_sumR_obs, # Total number of observations of numbers of recruits
     
     y = y, # Distance to transect line for each individual observation
@@ -447,6 +458,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                         N_ageC = N_ageC,
                         N_areas = input.data$N_areas, area_names = input.data$area_names,
                         sumR_obs_year = input.data$sumR_obs_year, N_sumR_obs = input.data$N_sumR_obs,
+                        sumR_obs_grid = input.data$sumR_obs_grid,
                         N_ageC = N_ageC,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
