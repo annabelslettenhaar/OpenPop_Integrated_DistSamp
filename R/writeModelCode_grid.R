@@ -15,6 +15,7 @@ writeModelCode_grid <- function(survVarT, telemetryData){
     
     # N_areas = number of areas
     # N_sites[x] = number of sites in area x
+    # N_grid[x] = number of grid cells in area x
     # N_ageC = number of age classes
     # N_years = number of years
     # N_sumR_obs[x] = number of data points in juvenile:adult ratio counts
@@ -29,12 +30,14 @@ writeModelCode_grid <- function(survVarT, telemetryData){
     # Mu.D1[x] = average initial density in area x
     
     # S[x, t] = annual survival from year t to t+1 in area x
+    # S[x, g, t] = annual survival from year t to t+1 in grid cell g of area x
     # R_year[x, t] = recruitment rate in year t in area x
+    # R_year[x, g, t] = recruitment rate in year t in grid cell g of area x
     # p[x, t] = average distance sampling detection rate in area x in year t
     # sigma[x, t] = average distance sampling detection decay rate in area x in year t
     
     # eps.D1[x, j] = random site effect on initial density area x (site j)
-    # eps.D1[x, g] = random site effect on initial density area x (grid-cell g)
+    # eps.D1[x, g] = random grid effect on initial density area x (grid-cell g)
     
     # spatial.D1[x, g] = smooth spatial effect on initial density for grid cell g in area x
     
@@ -71,10 +74,16 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         #   Density[x, 1, j, 1] <- Density[x, 2, j, 1]*R_year[x, 1]
         # }
         
+        # if(R_perF){
+        #   Density[x, 1, g, 1] <- (Density[x, 2, g, 1]/2)*R_year[x, 1] 
+        # }else{
+        #   Density[x, 1, g, 1] <- Density[x, 2, g, 1]*R_year[x, 1]
+        # }
+        
         if(R_perF){
-          Density[x, 1, g, 1] <- (Density[x, 2, g, 1]/2)*R_year[x, 1] 
+          Density[x, 1, g, 1] <- (Density[x, 2, g, 1]/2)*R_year[x, g, 1] 
         }else{
-          Density[x, 1, g, 1] <- Density[x, 2, g, 1]*R_year[x, 1]
+          Density[x, 1, g, 1] <- Density[x, 2, g, 1]*R_year[x, g, 1]
         }
       
         ## Adult and juvenile numbers
@@ -105,10 +114,15 @@ writeModelCode_grid <- function(survVarT, telemetryData){
           # }else{
           #   Density[x, 1, j, t] <- Density[x, 2, j, t]*R_year[x, t]
           # }
+          # if(R_perF){
+          #   Density[x, 1, g, t] <- (Density[x, 2, g, t]/2)*R_year[x, t] 
+          # }else{
+          #   Density[x, 1, g, t] <- Density[x, 2, g, t]*R_year[x, t]
+          # }
           if(R_perF){
-            Density[x, 1, g, t] <- (Density[x, 2, g, t]/2)*R_year[x, t] 
+            Density[x, 1, g, t] <- (Density[x, 2, g, t]/2)*R_year[x, g, t] 
           }else{
-            Density[x, 1, g, t] <- Density[x, 2, g, t]*R_year[x, t]
+            Density[x, 1, g, t] <- Density[x, 2, g, t]*R_year[x, g, t]
           }
           
           ## Adult and juvenile numbers
@@ -168,10 +182,17 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       # N_sumR_obs[x] = number of observations in juvenile:adult count data in area x
       # sumR_obs[x, i] = i'th entry in juvenile count data for area x
       # sumAd_obs[x, i] = i'th entry in adult count data for area x
+
+      # for (i in 1:N_sumR_obs[x]){
+      #   
+      #   sumR_obs[x, i] ~ dpois(R_year[x, sumR_obs_year[x, i]]*sumAd_obs[x, i])
+      # }
+      
       for (i in 1:N_sumR_obs[x]){
         
-        sumR_obs[x, i] ~ dpois(R_year[x, sumR_obs_year[x, i]]*sumAd_obs[x, i])
-      }
+        sumR_obs[x, i] ~ dpois(R_year[x, sumR_obs_grid[x, i], sumR_obs_year[x, i]]*sumAd_obs[x, i])
+      } #Because now recruitment is R[x, g, t] rather than R[x, t]
+      
       
       
       
@@ -210,14 +231,14 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       
       ## Annual recruitment rates
       
-      if(fitRodentCov){
-        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
-      }else{
-        R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
-      }
+      # if(fitRodentCov){
+      #   R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+      # }else{
+      #   R_year[x, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+      # }
       
       
-      
+    
       ## Annual survival probabilities
       
       logit(Mu.S[x]) <- mu.S[x]
@@ -228,6 +249,24 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         S[x, 1:(N_years-1)] <- Mu.S[x]
       }
     } # x
+    
+    for(x in 1:N_areas){
+      
+      for (g in 1:N_grid[x]){
+        
+        # for (t in 1:N_years){ 
+        
+        if(fitRodentCov){
+          R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+        }else{
+          R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+        }
+          
+        # } 
+        
+      }
+      
+    }
     
     
     ###########
