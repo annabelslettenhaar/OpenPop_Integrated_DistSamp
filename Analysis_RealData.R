@@ -79,7 +79,7 @@ localities <- listLocations()
 # areas <- listAreas()
 areas <- listAreas()[c(5, 17, 34)]
 minYear <- 2013
-maxYear <- 2022
+maxYear <- 2018
 
 ## List duplicate transects to remove
 duplTransects <- listDuplTransects()
