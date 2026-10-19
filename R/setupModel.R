@@ -38,7 +38,7 @@ setupModel <- function(modelCode, customDist,
   params <- c("esw", "p", #"D",
               "R_year", "Mu.R", "h.Mu.R", "h.sigma.R", "sigmaT.R", "sigmaR.R",
               "sigma", "mu.dd", "h.mu.dd", "h.sigma.dd", "sigmaT.dd", "sigmaR.dd",
-              "meanDens", 
+              "meanDens", "Density",
               "Mu.D1", "sigma.D",
               "S", "Mu.S", "h.Mu.S", "h.sigma.S"
               #"spatial.D1", "sigma.beta.D1"
