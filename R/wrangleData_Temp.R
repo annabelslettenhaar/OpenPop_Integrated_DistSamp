@@ -15,7 +15,7 @@
 #' @import purrr httr jsonlite
 #' @export
 
-wrangleData_Temp <- function(minYear, maxYear, grid_df, startday, endday) {
+wrangleData_Temp <- function(minYear, maxYear, areas, grid_df, startday, endday) {
   
   library(purrr)
   library(httr)
@@ -69,30 +69,38 @@ wrangleData_Temp <- function(minYear, maxYear, grid_df, startday, endday) {
     summarise(temp_mean = mean(Value, na.rm = TRUE), .groups = "drop") %>%
     mutate(YearIdx = Year - minYear + 1)
   
-  ## Setup as matrix for easy input in nimble
-  N_grid <- nrow(grid_df)
+  ## Setup array x, g, t for easy input in nimble
+  areas <- areas
+  N_areas <- length(areas)
+  grid_count <- grid_df %>%
+    dplyr::group_by(spatialUnit) %>%
+    dplyr::summarise(count = n())
+  N_grid <- grid_count$count
   N_years <- length(minYear:maxYear)
+  temp_array <- array(0, dim = c(N_areas, max(N_grid), N_years))
   
-  mat <- matrix(NA, nrow = N_grid, ncol = N_years)
-  
-  for(g in seq_len(N_grid)){
-    this_grid <- grid_df$grid_id[g]
-    temp_sub <- springtemp_summary[springtemp_summary$grid_id == this_grid, ]
-    for(t in seq_len(N_years)){
-      if(t %in% temp_sub$YearIdx){
-        mat[g,t] <- temp_sub$temp_mean[temp_sub$YearIdx == t]
+  for(x in 1:N_areas){
+    grid_area <- grid_df[grid_df$spatialUnit == areas[x], ]
+    grid_area <- dplyr::arrange(grid_area, grid_id)
+    N_grid_x <- nrow(grid_area)
+    for(g in 1:N_grid_x){
+      this_grid <- grid_area$grid_id[g]
+      temp_sub <- springtemp_summary[springtemp_summary$grid_id == this_grid, ]
+      for(t in 1:N_years){
+        if(t %in% temp_sub$YearIdx){
+          temp_array[x,g,t] <- temp_sub$temp_mean[temp_sub$YearIdx == t]
+        }
       }
     }
   }
   
   ## Standardizing uitput
-  cov_mean <- mean(mat, na.rm = TRUE)
-  cov_sd <- sd(mat, na.rm = TRUE)
-  mat_std <- (mat - cov_mean) / cov_sd
+  cov_mean <- mean(temp_array)
+  cov_sd <- sd(temp_array)
+  temp_array_std <- (temp_array - cov_mean) / cov_sd
+  
   return(
-    list(data = mat_std, mean = cov_mean, sd = cov_sd, grid_lookup = grid_df %>%
-        select(grid_id, spatialUnit))
-  )
+    list(data = temp_array_std, mean = cov_mean, sd = cov_sd, N_grid = N_grid, areas = areas))
 }
 
 # d_temp <- wrangleData_Temp(
