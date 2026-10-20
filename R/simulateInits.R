@@ -125,6 +125,9 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
     }
   }
+  
+  ## Temperature covariate slope
+  betaTemp <- 0
 
   
   
@@ -324,7 +327,9 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     Density = Density,
     meanDens = meanDens,
     N_exp = N_exp,
-    N_tot_exp = N_tot_exp
+    N_tot_exp = N_tot_exp,
+    
+    betaTemp = betaTemp
     
     # sigma.beta.D1 = sigma.beta.D1,
     # beta.D1 = beta.D1
