@@ -257,9 +257,13 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         # for (t in 1:N_years){ 
         
         if(fitRodentCov){
-          R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+          R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + 
+                                           betaTemp * SpringTemp[g, 1:N_years] + 
+                                           epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }else{
-          R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+          R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + 
+                                           betaTemp * SpringTemp[g, 1:N_years] +
+                                           epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }
           
         # } 
@@ -405,6 +409,9 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       }
     }
     
+    ## Spring temperature on recruitment
+    
+    betaTemp ~ dunif(-5, 5)
     
     #------------------#
     # Other parameters #

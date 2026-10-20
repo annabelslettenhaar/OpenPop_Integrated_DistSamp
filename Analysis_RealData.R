@@ -142,6 +142,15 @@ d_grid <- setupGrid(d_trans = LT_data$d_trans,
                     gridOnlyTransects = gridOnlyTransects,
                     grid_cell_size = 5000)
 
+# WRANGLE SPRING TEMP #
+#---------------------#
+
+d_temp <- wrangleData_Temp(minYear = minYear,
+                           maxYear = maxYear,
+                           grid_df = d_grid$grid_df,
+                           startday = 121,
+                           endday = 153)
+
 
 # WRANGLE RODENT DATA #
 #---------------------#

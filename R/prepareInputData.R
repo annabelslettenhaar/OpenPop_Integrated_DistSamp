@@ -421,9 +421,15 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
     W = W, # Truncation distance
     N_ageC = N_ageC, # Number of age classes
     
+    ## Rodent covariate
     RodentOcc = d_rodent$rodentAvg,
     RodentOcc_meanCov = d_rodent$meanCov,
     RodentOcc_sdCov = d_rodent$sdCov,
+    
+    ## Spring temperature covariate
+    SpringTemp = d_temp$data,
+    SpringTemp_meanCov = d_temp$mean,
+    SpringTemp_sdCov = d_temp$sd,
     
     N_areas = N_sUnits,
     area_names = sUnits
@@ -445,7 +451,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                    N_line_year = input.data$N_line_year, 
                    N_a_line_year = input.data$N_a_line_year, 
                    A = input.data$A,
-                   RodentOcc = input.data$RodentOcc
+                   RodentOcc = input.data$RodentOcc,
+                   SpringTemp = input.data$SpringTemp
                    # X_spatial = X_spatial
                    # X_grid = X_grid,
                    )
@@ -462,6 +469,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                         N_ageC = N_ageC,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
+                        SpringTemp_meanCov = input.data$SpringTemp_meanCov,
+                        SpringTemp_sdCov = input.data$SpringTemp_sdCov,
                         # K = K,
                         N_grid = N_grid,
                         transect_grid = transect_grid)
