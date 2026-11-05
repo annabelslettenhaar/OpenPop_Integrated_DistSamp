@@ -250,6 +250,9 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       }
     } # x
     
+    
+    ## Annual recruitment rates
+    
     for(x in 1:N_areas){
       
       for (g in 1:N_grid[x]){
@@ -426,9 +429,11 @@ writeModelCode_grid <- function(survVarT, telemetryData){
     
     if(fitRodentCov){
       for(x in 1:N_areas){
-        for (t in 1:N_years){
+        for (g in 1:N_grid[x]){
+          for (t in 1:N_years){
           
-          RodentOcc[x, t] ~ dnorm(mean = 0, sd = 1)
+          RodentOcc[x, g, t] ~ dnorm(mean = 0, sd = 1)
+          }
         }
       }
     }
