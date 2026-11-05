@@ -69,44 +69,105 @@ wrangleData_Rodent <- function(duplTransects, localities = NULL, areas = NULL, a
     colnames(rodent_data)[which(colnames(rodent_data) == "locality")] <- "spatialUnit"
   }
   
-  ## Summarise observation by spatial unit and year
+  ## Merge with grid cell information/lookup table
+  rodent_data <- rodent_data %>%
+    left_join(
+      d_grid$grid_area_lookup %>%
+        select(locationID, grid_id),
+      by = "locationID"
+    )
+  
+  if(any(is.na(rodent_data$grid_id))){
+    stop("Some locationID values could not be matched to a grid_id.")
+  }
+  
+  # ## Summarise observation by spatial unit and year
+  # rodent_obs <- rodent_data %>% 
+  #   dplyr::group_by(spatialUnit, Year) %>%
+  #   dplyr::summarise(rodentAvg = mean(rodentOcc, na.rm = TRUE),
+  #                    .groups = "keep")
+  
+  
+  ## Summarise observation by grid cell, spatial unit, and year
   rodent_obs <- rodent_data %>% 
-    dplyr::group_by(spatialUnit, Year) %>%
-    dplyr::summarise(rodentAvg = mean(rodentOcc), .groups = "keep")
+    dplyr::group_by(grid_id, spatialUnit, Year) %>%
+    dplyr::summarise(rodentAvg = mean(rodentOcc, na.rm = TRUE),
+                     .groups = "drop")
+  
   
   ## Add year index
   rodent_obs$YearIdx <- rodent_obs$Year - minYear + 1
     
-  ## Set up matrix for area-specific data
-  rodentAvg <- matrix(NA, nrow = N_sUnits, ncol = length(minYear:maxYear))
+  # ## Set up matrix for area-specific data
+  # rodentAvg <- matrix(NA, nrow = N_sUnits, ncol = length(minYear:maxYear))
 
+  ## Set up array for gridcell level data
   
-  for(x in 1:N_sUnits){
+  grid_count <- d_grid$grid_df %>%
+    dplyr::group_by(spatialUnit) %>%
+    dplyr::summarise(count = n())
+  
+  N_grid <- grid_count$count
+  N_years <- length(minYear:maxYear)
+  N_areas <- length(areas)
+  
+  rodent_array <- array(NA, dim = c(N_areas, max(N_grid), N_years))
+  
+  # for(x in 1:N_sUnits){
+  #   
+  #   ## Subset data (specific area)
+  #   if(!(sUnits[x] %in% rodent_obs$spatialUnit)){
+  #     stop(paste0("Spatial unit ", sUnits[x], " (index ", x, ") is not in the data."))
+  #   }
+  #   
+  #   rodent_obs_sub <- subset(rodent_obs, spatialUnit == sUnits[x])
+  # 
+  #   ## Extract year-specific data
+  #   for(t in 1:length(minYear:maxYear)){
+  #     
+  #     if(t %in% rodent_obs_sub$YearIdx){
+  #       rodentAvg[x, t] <- rodent_obs_sub$rodentAvg[which(rodent_obs_sub$YearIdx == t)]
+  #     }
+  #   }
+  # }
+  
+  ## Fill the array
+  
+  for(x in 1:N_areas){
     
-    ## Subset data (specific area)
-    if(!(sUnits[x] %in% rodent_obs$spatialUnit)){
-      stop(paste0("Spatial unit ", sUnits[x], " (index ", x, ") is not in the data."))
-    }
+    grid_area <- d_grid$grid_df[d_grid$grid_df$spatialUnit == areas[x], ]
+    grid_area <- dplyr::arrange(grid_area, grid_id)
+    N_grid_x <- nrow(grid_area)
     
-    rodent_obs_sub <- subset(rodent_obs, spatialUnit == sUnits[x])
-
-    ## Extract year-specific data
-    for(t in 1:length(minYear:maxYear)){
+    for(g in 1:N_grid_x){
       
-      if(t %in% rodent_obs_sub$YearIdx){
-        rodentAvg[x, t] <- rodent_obs_sub$rodentAvg[which(rodent_obs_sub$YearIdx == t)]
+      this_grid <- grid_area$grid_id[g]
+      rodent_sub <- rodent_obs[rodent_obs$grid_id == this_grid & rodent_obs$spatialUnit == areas[x], ]
+      
+      for(t in 1:N_years){
+        
+        if(t %in% rodent_sub$YearIdx){
+          
+          rodent_array[x,g,t] <- rodent_sub$rodentAvg[rodent_sub$YearIdx == t]
+        }
       }
     }
   }
+  
  
   ## Z-standardize covariate values
-  meanCov <- mean(rodentAvg, na.rm = TRUE)
-  sdCov <- sd(rodentAvg, na.rm = TRUE)
-  rodentAvg <- (rodentAvg - meanCov) / sdCov
+  # meanCov <- mean(rodentAvg, na.rm = TRUE)
+  # sdCov <- sd(rodentAvg, na.rm = TRUE)
+  # rodentAvg <- (rodentAvg - meanCov) / sdCov
+  meanCov <- mean(rodent_array, na.rm = TRUE)
+  sdCov <- sd(rodent_array, na.rm = TRUE)
+  rodentAvg <- (rodent_array - meanCov) / sdCov
   
   ## Return data
   return(list(rodentAvg = rodentAvg,
               meanCov = meanCov, 
-              sdCov = sdCov))
+              sdCov = sdCov,
+              N_grid = N_grid,
+              areas = areas))
   
 }
