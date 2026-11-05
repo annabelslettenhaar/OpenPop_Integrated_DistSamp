@@ -51,7 +51,7 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   if(!is.null(nim.data$RodentOcc)){
     RodentOcc <- nim.data$RodentOcc
   }else{
-    RodentOcc <- matrix(0, nrow = N_areas, ncol = N_years)
+    RodentOcc <- array(0, dim = c(N_areas, N_ageC, max(N_grid), N_years))
   }
   
   if(NA %in% RodentOcc){
@@ -122,7 +122,7 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
 
   for(x in 1:N_areas){
     for(g in 1:N_grid[x]){
-    R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
+    R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, g, 1:N_years] + epsT.R[1:N_years] + epsR.R[x, 1:N_years])
     }
   }
   
