@@ -260,7 +260,7 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         # for (t in 1:N_years){ 
         
         if(fitRodentCov){
-          R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, 1:N_years] + 
+          R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, g, 1:N_years] + 
                                            betaTemp * SpringTemp[x, g, 1:N_years] + 
                                            epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }else{
