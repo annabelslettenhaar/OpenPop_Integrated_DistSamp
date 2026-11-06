@@ -261,11 +261,13 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         
         if(fitRodentCov){
           R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, g, 1:N_years] + 
-                                           betaTemp * SpringTemp[x, g, 1:N_years] + 
+                                           betaMTemp * MeanTemp[x, g] +
+                                           betaTempA * TempAnom[x, g, 1:N_years] +
                                            epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }else{
           R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + 
-                                           betaTemp * SpringTemp[x, g, 1:N_years] +
+                                           bbetaMTemp * MeanTemp[x, g] +
+                                           betaTempA * TempAnom[x, g, 1:N_years] +
                                            epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }
           
@@ -414,7 +416,8 @@ writeModelCode_grid <- function(survVarT, telemetryData){
     
     ## Spring temperature on recruitment
     
-    betaTemp ~ dunif(-5, 5)
+    betaMTemp ~ dunif(-5, 5) # mean temperature per grid cell (spatial effect)
+    betaTempA ~ dunif(-5, 5) # temperature anomaly per year (temporal effect)
     
     #------------------#
     # Other parameters #
