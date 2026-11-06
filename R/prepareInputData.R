@@ -427,9 +427,10 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
     RodentOcc_sdCov = d_rodent$sdCov,
     
     ## Spring temperature covariate
-    SpringTemp = d_temp$data,
-    SpringTemp_meanCov = d_temp$mean,
-    SpringTemp_sdCov = d_temp$sd,
+    MeanTemp = d_temp$MeanTemp,
+    # SpringTemp_meanCov = d_temp$mean,
+    # SpringTemp_sdCov = d_temp$sd,
+    TempAnom = d_temp$TempAnom,
     
     N_areas = N_sUnits,
     area_names = sUnits
@@ -452,7 +453,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                    N_a_line_year = input.data$N_a_line_year, 
                    A = input.data$A,
                    RodentOcc = input.data$RodentOcc,
-                   SpringTemp = input.data$SpringTemp
+                   MeanTemp = input.data$MeanTemp,
+                   TempAnom = input.data$TempAnom
                    # X_spatial = X_spatial
                    # X_grid = X_grid,
                    )
@@ -469,8 +471,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                         N_ageC = N_ageC,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
-                        SpringTemp_meanCov = input.data$SpringTemp_meanCov,
-                        SpringTemp_sdCov = input.data$SpringTemp_sdCov,
+                        # SpringTemp_meanCov = input.data$SpringTemp_meanCov,
+                        # SpringTemp_sdCov = input.data$SpringTemp_sdCov,
                         # K = K,
                         N_grid = N_grid,
                         transect_grid = transect_grid)

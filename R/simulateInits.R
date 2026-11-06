@@ -127,8 +127,8 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   }
   
   ## Temperature covariate slope
-  betaTemp <- 0
-
+  betaMTemp <- 0
+  betaTempA <- 0
   
   
   # Detection parameters #
@@ -329,7 +329,8 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     N_exp = N_exp,
     N_tot_exp = N_tot_exp,
     
-    betaTemp = betaTemp
+    betaMTemp = betaMTemp,
+    betaTempA = betaTempA
     
     # sigma.beta.D1 = sigma.beta.D1,
     # beta.D1 = beta.D1
