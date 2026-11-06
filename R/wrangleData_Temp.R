@@ -15,7 +15,7 @@
 #' @import purrr httr jsonlite
 #' @export
 
-wrangleData_Temp <- function(minYear, maxYear, areas, grid_df, startday, endday) {
+wrangleData_Temp <- function(minYear, maxYear, areas, grid_df, startday, endday, d_temp_raw) {
   
   # library(purrr)
   # library(httr)
