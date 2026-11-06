@@ -47,12 +47,12 @@ wrangleData_Temp <- function(minYear, maxYear, areas, grid_df, startday, endday)
   #   data_list[[coord]] <- dat
   # }
   
-  data_list <- temp_raw$data_list
-  coords_df <- temp_raw$coords_df
-  dates <- temp_raw$dates
-  minYear <- temp_raw$minYear
-  maxYear <- temp_raw$maxYear
-  df.temp <- weather_raw$df.temp_raw
+  data_list <- d_temp_raw$data_list
+  coords_df <- d_temp_raw$coords_df
+  dates <- d_temp_raw$dates
+  minYear <- d_temp_raw$minYear
+  maxYear <- d_temp_raw$maxYear
+  df.temp <- d_temp_raw$df.temp_raw
   
   ## Join with grid information
   df.temp <- df.temp %>%

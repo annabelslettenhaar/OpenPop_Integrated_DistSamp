@@ -145,6 +145,11 @@ d_grid <- setupGrid(d_trans = LT_data$d_trans,
 # WRANGLE SPRING TEMP #
 #---------------------#
 
+d_temp_raw <- downloadData_Temp(minYear = 2013,
+                                maxYear = 2018,
+                                grid_df = d_grid$grid_df)
+  
+
 d_temp <- wrangleData_Temp(minYear = minYear,
                            maxYear = maxYear,
                            areas = areas,

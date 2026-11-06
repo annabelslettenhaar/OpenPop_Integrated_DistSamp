@@ -39,7 +39,7 @@ downloadData_Temp <- function(minYear,
     coord <- coords_df$utm_coord[i]
     url <- paste0(base_url, coord, "/", start_date_str, "/", end_date_str, "/", param, ".json")
     
-    cat("Downloading:", coord, "\n")
+    # cat("Downloading:", coord, "\n")
     
     res <- httr::GET(url, timeout(seconds = 30))
     dat <- jsonlite::fromJSON(rawToChar(res$content))
@@ -67,8 +67,8 @@ downloadData_Temp <- function(minYear,
   )
 }
 
-temp_raw <- downloadData_Temp(
-  minYear = 2013,
-  maxYear = 2018,
-  grid_df = d_grid$grid_df
-)
+# temp_raw <- downloadData_Temp(
+#   minYear = 2013,
+#   maxYear = 2018,
+#   grid_df = d_grid$grid_df
+# )
