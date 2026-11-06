@@ -12,7 +12,7 @@ mySeed <- 32
 set.seed(mySeed)
 
 ## Set number of chains
-nchains <- 3
+nchains <- 2
 
 ## Source all functions in "R" folder
 sourceDir <- function(path, trace = TRUE, ...) {
@@ -48,10 +48,10 @@ sumR.Level <- "line" # Summing at the line level
 survVarT <- TRUE
 
 # Rodent covariate on reproduction
-fitRodentCov <- FALSE
+fitRodentCov <- TRUE
 
 # Test run or not
-testRun <- TRUE
+testRun <- FALSE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -147,6 +147,7 @@ d_grid <- setupGrid(d_trans = LT_data$d_trans,
 
 d_temp <- wrangleData_Temp(minYear = minYear,
                            maxYear = maxYear,
+                           areas = areas,
                            grid_df = d_grid$grid_df,
                            startday = 121,
                            endday = 153)
@@ -203,14 +204,14 @@ model_setup <- setupModel(modelCode = modelCode,
                           nim.data = input_data$nim.data,
                           nim.constants = input_data$nim.constants,
                           testRun = testRun, 
-                          nchains = nchains,
+                          nchains = 2,
                           initVals.seed = MCMC.seeds,
                           # niter = 200000,
-                          niter = 10000,
+                          niter = 20000,
                           # nthin = 30,
                           nthin = 5,
                           # nburn = 111000,
-                          nburn = 5000)
+                          nburn = 10000)
 
 
 # MODEL (TEST) RUN #
@@ -277,7 +278,7 @@ hist(spatial_mean,
      breaks = 20,
      main = "Posterior mean spatial effects")
 
-saveRDS(IDSM.out, file = "SpatialInitialDensity_transectLevel_shortrun.rds")
+saveRDS(IDSM.out, file = "SpatialDensityRecruitment_SpringTemp_shortrun.rds")
 
 
 # TIDY UP POSTERIOR SAMPLES #

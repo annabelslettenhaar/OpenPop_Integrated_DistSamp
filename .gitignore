@@ -2,6 +2,8 @@
 .Rproj.user/
 data/norway_municipalities
 
+data/PCA_maps
+
 # History files
 .Rhistory
 .Rapp.history
