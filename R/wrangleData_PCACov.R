@@ -18,7 +18,7 @@
 #' @param pca_map An `sf` object containing PCA-derived habitat data. Must
 #'   contain columns named `PCA1` and `PCA2`.
 
-wrangleData_PCACov <- function(grid_poly, pca_path = "data/PCA_maps") {
+wrangleData_PCACov <- function(d_grid, pca_path = "data/PCA_maps", areas) {
   
   library(sf)
   library(dplyr)
@@ -55,7 +55,8 @@ wrangleData_PCACov <- function(grid_poly, pca_path = "data/PCA_maps") {
   ## Read map
   pca_map <- sf::st_read(shp_file, quiet = TRUE)
   
-
+  grid_poly <- d_grid$grid_poly
+  grid_df <- d_grid$grid_df
   
   ## Make sure grid dataframe and pca map have the same projection/CRS
   if (st_crs(grid_poly) != st_crs(pca_map)) {
@@ -92,12 +93,15 @@ wrangleData_PCACov <- function(grid_poly, pca_path = "data/PCA_maps") {
            PCA2 = as.numeric(scale(PCA2_mean)))
   
   ## Build x by g matrices for easy input in nimble data
-  areas <- unique(grid_pca$spatialUnit)
-  N_grid <- sapply(areas, function(a) sum(grid_pca$spatialUnit == a))
+  N_areas <- length(areas)
+  grid_count <- grid_df %>%
+    dplyr::group_by(spatialUnit) %>%
+    dplyr::summarise(count = n())
+  N_grid <- grid_count$count
   max_grid <- max(N_grid)
-  PCA1_mat <- matrix(NA, nrow = length(areas), ncol = max_grid, dimnames = list(areas, NULL))
+  PCA1_mat <- matrix(NA, nrow = N_areas, ncol = max_grid)
   
-  PCA2_mat <- matrix(NA, nrow = length(areas), ncol = max_grid, dimnames = list(areas, NULL))
+  PCA2_mat <- matrix(NA, nrow = N_areas, ncol = max_grid)
   
   for (x in seq_along(areas)) { ## Filling the matrix
     tmp <- grid_pca %>%
@@ -108,8 +112,7 @@ wrangleData_PCACov <- function(grid_poly, pca_path = "data/PCA_maps") {
     PCA2_mat[x, 1:ng] <- tmp$PCA2
   }
   
-  return(list(d_pca = grid_pca,
-              PCA1 = PCA1_mat,
+  return(list(PCA1 = PCA1_mat,
               PCA2 = PCA2_mat
   ))
   
