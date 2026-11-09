@@ -11,6 +11,7 @@
 #' @param d_rodent list containing the matrix with average number of transects 
 #' with rodent observations per area and year and the mean and standard deviation
 #' of the original covariate. 
+#' @param d_pca dataframe containing grid cell specific environmental habitat information (PCA1 and PCA2)
 #' @param grid_df dataframe containing grid cell centroids and area information
 #' @param grid_area_lookup dataframe containing info about which transect comes from which area and lies within which grid cell
 #' @param localities vector of strings listing localities to consider. Either localities or areas must be provided. 
@@ -42,7 +43,7 @@
 
 
 
-prepareInputData <- function(d_trans, d_obs, d_rodent, 
+prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca, 
                              # basis_df, 
                              grid_df, grid_area_lookup,
                              localities = NULL, areas = NULL, areaAggregation, 
@@ -432,6 +433,10 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
     # SpringTemp_sdCov = d_temp$sd,
     TempAnom = d_temp$TempAnom,
     
+    ## PCA habitat information 
+    PCA1 = d_pca$PCA1,
+    PCA2 = d_pca$PCA2,
+    
     N_areas = N_sUnits,
     area_names = sUnits
   )
@@ -471,6 +476,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent,
                         N_ageC = N_ageC,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
+                        PCA1 = input.data$PCA1,
+                        PCA2 = input.data$PCA2,
                         # SpringTemp_meanCov = input.data$SpringTemp_meanCov,
                         # SpringTemp_sdCov = input.data$SpringTemp_sdCov,
                         # K = K,
