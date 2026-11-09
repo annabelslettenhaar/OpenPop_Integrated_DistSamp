@@ -72,15 +72,49 @@ wrangleData_PCACov <- function(grid_poly, pca_path = "data/PCA_maps") {
   grid_pca <- pca_grid %>%
     st_drop_geometry() %>%
     group_by(grid_id) %>%
-    summarise(PCA1 = mean(PCA1, na.rm = TRUE),
-              PCA2 = mean(PCA2, na.rm = TRUE),
+    summarise(PCA1_mean = mean(PCA1, na.rm = TRUE),
+              PCA2_mean = mean(PCA2, na.rm = TRUE),
               PCA1_sd   = sd(PCA1, na.rm = TRUE),
               PCA2_sd   = sd(PCA2, na.rm = TRUE),
               n_cells   = n(),
-              .groups = "drop")
+              .groups = "drop")%>%
+    left_join(
+      grid_poly |>
+        st_drop_geometry() |>
+        dplyr::select(grid_id, spatialUnit),
+      by = "grid_id"
+    ) %>%
+    dplyr::relocate(spatialUnit, grid_id)
   
-  return(grid_pca)
+  ## Standardise means
+  grid_pca <- grid_pca %>%
+    mutate(PCA1 = as.numeric(scale(PCA1_mean)),
+           PCA2 = as.numeric(scale(PCA2_mean)))
+  
+  ## Build x by g matrices for easy input in nimble data
+  areas <- unique(grid_pca$spatialUnit)
+  N_grid <- sapply(areas, function(a) sum(grid_pca$spatialUnit == a))
+  max_grid <- max(N_grid)
+  PCA1_mat <- matrix(NA, nrow = length(areas), ncol = max_grid, dimnames = list(areas, NULL))
+  
+  PCA2_mat <- matrix(NA, nrow = length(areas), ncol = max_grid, dimnames = list(areas, NULL))
+  
+  for (x in seq_along(areas)) { ## Filling the matrix
+    tmp <- grid_pca %>%
+      filter(spatialUnit == areas[x]) %>%
+      arrange(grid_id)
+    ng <- nrow(tmp)
+    PCA1_mat[x, 1:ng] <- tmp$PCA1
+    PCA2_mat[x, 1:ng] <- tmp$PCA2
+  }
+  
+  return(list(d_pca = grid_pca,
+              PCA1 = PCA1_mat,
+              PCA2 = PCA2_mat
+  ))
+  
 }
+
 
 # grid_pca <- wrangleData_PCACov(
 #   grid_poly = d_grid$grid_poly,

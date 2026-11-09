@@ -77,6 +77,9 @@ setupGrid <- function(d_trans, d_spatial,
   grid_df <- grid_df %>%
     dplyr::left_join(grid_area, by = "grid_id")
   
+  cells_selected <- cells_selected %>%
+    dplyr::left_join(grid_area, by = "grid_id")
+  
   return(list(
       grid_df = grid_df,
       grid_area_lookup = grid_area_lookup,
