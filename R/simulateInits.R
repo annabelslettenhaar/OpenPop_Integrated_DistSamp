@@ -130,6 +130,10 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   betaMTemp <- 0
   betaTempA <- 0
   
+  ## PCA covariate slopes
+  betaPCA1 <- 0
+  betaPCA2 <- 0
+  
   
   # Detection parameters #
   #----------------------#
@@ -330,7 +334,9 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     N_tot_exp = N_tot_exp,
     
     betaMTemp = betaMTemp,
-    betaTempA = betaTempA
+    betaTempA = betaTempA,
+    betaPCA1 = betaPCA1,
+    betaPCA2 = betaPCA2
     
     # sigma.beta.D1 = sigma.beta.D1,
     # beta.D1 = beta.D1
