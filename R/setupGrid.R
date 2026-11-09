@@ -79,7 +79,8 @@ setupGrid <- function(d_trans, d_spatial,
   
   return(list(
       grid_df = grid_df,
-      grid_area_lookup = grid_area_lookup
+      grid_area_lookup = grid_area_lookup,
+      grid_poly = cells_selected
     )
   )
 }
