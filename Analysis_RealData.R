@@ -178,14 +178,15 @@ d_rodent <- wrangleData_Rodent(duplTransects = duplTransects,
 ## PCA covariates from Bakkestuen et al. 2008
 ## Maps owned by NINA, shared by Lasse
 
-d_pca <- wrangleData_PCACov(grid_poly = d_grid$grid_poly,
-                            pca_path = "data/PCA_maps")
+d_pca <- wrangleData_PCACov(d_grid = d_grid,
+                            pca_path = "data/PCA_maps",
+                            areas = areas)
 
-## test for correlations
-
-cor.test(d_pca$PCA1, d_pca$PCA2)
-# cor.test(map_all$PCA1, map_all$PCA2)
-vif <- 1 / (1 - cor(d_pca$PCA1, d_pca$PCA2)^2)
+# ## test for correlations
+# 
+# cor.test(d_pca$PCA1, d_pca$PCA2)
+# # cor.test(map_all$PCA1, map_all$PCA2)
+# vif <- 1 / (1 - cor(d_pca$PCA1, d_pca$PCA2)^2)
 
 
 # PREPARE INPUT DATA FOR INTEGRATED MODEL #
@@ -195,6 +196,7 @@ vif <- 1 / (1 - cor(d_pca$PCA1, d_pca$PCA2)^2)
 input_data <- prepareInputData(d_trans = LT_data$d_trans, 
                                d_obs = LT_data$d_obs,
                                d_rodent = d_rodent,
+                               d_pca = d_pca,
                                #localities = localities, 
                                areas = areas,
                                areaAggregation = areaAggregation,

@@ -9,7 +9,7 @@ runMCMC_allcode <- function(model_setup, input_data, per_chain_info) {
                          data = input_data$nim.data, 
                          constants = input_data$nim.constants,
                          inits = per_chain_info$inits)
-  
+
   CmyModel <- compileNimble(myModel)
   
   myMCMC <- buildMCMC(CmyModel, 
