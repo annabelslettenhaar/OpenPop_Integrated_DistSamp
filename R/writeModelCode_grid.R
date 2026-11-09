@@ -65,7 +65,8 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         ## Adult densities
         # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
         # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + spatial.D1[x, transect_grid[x,j]] + eps.D1[x, j])
-        Density[x, 2, g, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, g])
+        # Density[x, 2, g, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, g])
+        Density[x, 2, g, 1] <- exp(log(Mu.D1[x]) + betaPCA1 * PCA1[x, g] + betaPCA2 * PCA2[x, g] + eps.D1[x, g])
         
         ## Juvenile densities
         # if(R_perF){
@@ -418,6 +419,10 @@ writeModelCode_grid <- function(survVarT, telemetryData){
     
     betaMTemp ~ dunif(-5, 5) # mean temperature per grid cell (spatial effect)
     betaTempA ~ dunif(-5, 5) # temperature anomaly per year (temporal effect)
+    
+    ## PCA habitat descriptors
+    betaPCA1 ~ dunif(-2, 2)
+    betaPCA2 ~ dunif(-2, 2)
     
     #------------------#
     # Other parameters #

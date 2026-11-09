@@ -40,6 +40,7 @@ setupModel <- function(modelCode, customDist,
               "sigma", "mu.dd", "h.mu.dd", "h.sigma.dd", "sigmaT.dd", "sigmaR.dd",
               "meanDens", "Density",
               "betaMTemp", "betaTempA",
+              "betaPCA1", "betaPCA2",
               "Mu.D1", "sigma.D",
               "S", "Mu.S", "h.Mu.S", "h.sigma.S"
               #"spatial.D1", "sigma.beta.D1"
