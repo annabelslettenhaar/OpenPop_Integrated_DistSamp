@@ -51,7 +51,7 @@ survVarT <- TRUE
 fitRodentCov <- TRUE
 
 # Test run or not
-testRun <- FALSE
+testRun <- TRUE
 
 # Run MCMC in parallel
 parallelMCMC <- FALSE
@@ -149,8 +149,7 @@ d_temp_raw <- downloadData_Temp(minYear = 2013,
                                 maxYear = 2018,
                                 grid_df = d_grid$grid_df)
 
-saveRDS(d_temp_raw, file = "data/d_temp_raw")
-  
+# saveRDS(d_temp_raw, file = "data/d_temp_raw")
 
 d_temp <- wrangleData_Temp(minYear = minYear,
                            maxYear = maxYear,
@@ -158,8 +157,9 @@ d_temp <- wrangleData_Temp(minYear = minYear,
                            grid_df = d_grid$grid_df,
                            startday = 121,
                            endday = 153,
-                           # d_temp_raw = d_temp_raw,
-                           d_temp_raw = readRDS("data/d_temp_raw"))
+                           d_temp_raw = d_temp_raw
+                           # d_temp_raw = readRDS("data/d_temp_raw")
+                           )
 
 
 # WRANGLE RODENT DATA #
@@ -171,6 +171,21 @@ d_rodent <- wrangleData_Rodent(duplTransects = duplTransects,
                                areas = areas,
                                areaAggregation = areaAggregation,
                                minYear = minYear, maxYear = maxYear)
+
+# WRANGLE PCA COVARIATE DATA #
+#----------------------------#
+
+## PCA covariates from Bakkestuen et al. 2008
+## Maps owned by NINA, shared by Lasse
+
+d_pca <- wrangleData_PCACov(grid_poly = d_grid$grid_poly,
+                            pca_path = "data/PCA_maps")
+
+## test for correlations
+
+cor.test(d_pca$PCA1, d_pca$PCA2)
+# cor.test(map_all$PCA1, map_all$PCA2)
+vif <- 1 / (1 - cor(d_pca$PCA1, d_pca$PCA2)^2)
 
 
 # PREPARE INPUT DATA FOR INTEGRATED MODEL #
