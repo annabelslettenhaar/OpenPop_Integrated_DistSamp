@@ -114,14 +114,15 @@ wrangleData_LineTrans <- function(DwC_archive_list, duplTransects, localities = 
   # Observations: distance to transect lines
   d_obsTemp <- Eve %>% 
     dplyr::select(locationID, locality, verbatimLocality, parentEventID, eventID, eventRemarks, 
-                  dynamicProperties, eventDate) %>%
-    dplyr::filter(eventRemarks == "Human observation" & !is.na(dynamicProperties)) %>%
+                  dynamicProperties, eventDate, decimalLongitude, decimalLatitude) %>%
+    dplyr::filter(eventRemarks == "Human observation" & !is.na(dynamicProperties)) %>% ## Only extract the observations, not transect info
     dplyr::mutate(dynamicProperties = purrr::map(dynamicProperties, ~ jsonlite::fromJSON(.) %>% as.data.frame())) %>%
     tidyr::unnest(dynamicProperties) %>% 
     dplyr::rename(DistanceToTransectLine = "perpendicular.distance.in.meters.from.transect.line.as.reported.by.the.field.worker") %>%
     dplyr::mutate(DistanceToTransectLine = as.numeric(DistanceToTransectLine), 
                   Year = lubridate::year(eventDate)) %>%
-    dplyr::select(locationID, locality, verbatimLocality, parentEventID, eventID, DistanceToTransectLine, Year)
+    dplyr::select(locationID, locality, verbatimLocality, parentEventID, eventID, DistanceToTransectLine, 
+                  Year, decimalLongitude, decimalLatitude)
   
   # Observations: remaining information (willow ptarmigan only)
   d_obs <- Occ %>% 
@@ -138,6 +139,11 @@ wrangleData_LineTrans <- function(DwC_archive_list, duplTransects, localities = 
   ## Remove observations from transects with suspiciously short length (< 200) and duplicate transects
   d_obs <- d_obs %>%
     dplyr::filter(!(parentEventID %in% bad_transects))
+  
+  ## Spatial information for each observation
+  d_obs_spatial <- d_obs %>%
+    sf::st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), crs = 4326) %>%
+    sf::st_transform(25833)
   
   ## Extract locality-/area-level coodinate information
   
@@ -157,5 +163,5 @@ wrangleData_LineTrans <- function(DwC_archive_list, duplTransects, localities = 
                      latitudeAvg = mean(decimalLatitude, na.rm = TRUE))
   
   ## Collate and return data
-  LT_data <- list(d_trans = d_trans, d_obs = d_obs, d_coord = d_coord, d_spatial = d_spatial)
+  LT_data <- list(d_trans = d_trans, d_obs = d_obs, d_obs_spatial = d_obs_spatial, d_coord = d_coord, d_spatial = d_spatial)
 }
