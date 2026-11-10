@@ -51,6 +51,10 @@ setupGrid <- function(d_trans, d_spatial,
   # Assign unique grid IDs
   cells_selected$grid_id <- seq_len(nrow(cells_selected))
   
+  # Split transect lines between grid cells
+  transect_segments <- sf::st_intersection(d_spatial_utm, cells_selected)
+  transect_segments$segmentLength <- as.numeric(sf::st_length(transect_segments))
+  
   # Grid centroids
   grid_centroids <- sf::st_centroid(cells_selected)
   
@@ -70,6 +74,14 @@ setupGrid <- function(d_trans, d_spatial,
         dplyr::distinct(locationID, spatialUnit), by = "locationID") %>%
     dplyr::distinct()
   
+  # Transect -> grid -> transect length
+  transect_grid_lookup <- transect_segments %>%
+    st_drop_geometry() %>%
+    select(locationID, grid_id, segmentLength) %>%
+    dplyr::left_join(d_trans_grid %>%
+        dplyr::distinct(locationID, spatialUnit), by = "locationID") %>%
+    dplyr::distinct()
+  
   # Area assignment for grids
   grid_area <- grid_area_lookup %>%
     dplyr::distinct(grid_id, spatialUnit)
@@ -83,6 +95,7 @@ setupGrid <- function(d_trans, d_spatial,
   return(list(
       grid_df = grid_df,
       grid_area_lookup = grid_area_lookup,
+      transect_grid_lookup = transect_grid_lookup,
       grid_poly = cells_selected
     )
   )
