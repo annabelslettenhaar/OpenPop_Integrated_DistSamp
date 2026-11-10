@@ -74,7 +74,8 @@ wrangleData_Rodent <- function(duplTransects, localities = NULL, areas = NULL, a
     left_join(
       d_grid$grid_area_lookup %>%
         select(locationID, grid_id),
-      by = "locationID"
+      by = "locationID",
+      relationship = "many-to-many"
     )
   
   if(any(is.na(rodent_data$grid_id))){
