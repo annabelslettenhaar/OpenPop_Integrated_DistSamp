@@ -14,7 +14,7 @@
 #' spatialUnit name (grid_df), and one containing information that links transects to grid
 #' cells and their spatial Units (grid_area_lookup)
 
-setupGrid <- function(d_trans, d_spatial, 
+setupGrid <- function(d_trans, d_spatial, d_obs_spatial,
                       areaAggregation, gridOnlyTransects,
                       grid_cell_size = 5000
                       ) {
@@ -30,6 +30,7 @@ setupGrid <- function(d_trans, d_spatial,
   
   # Project transects
   d_spatial_utm <- sf::st_transform(d_spatial, 25833)
+  d_obs_spatial_utm <- sf::st_transform(d_obs_spatial, 25833)
   
   # Create transect centroids
   transect_centroids <- sf::st_centroid(d_spatial_utm)
@@ -41,7 +42,7 @@ setupGrid <- function(d_trans, d_spatial,
   # Select grid cells
   if (gridOnlyTransects) {
     # Keep only cells containing transect centroids
-    cells_selected <- grid_all[lengths(st_intersects(grid_all,transect_centroids)) > 0,
+    cells_selected <- grid_all[lengths(sf::st_intersects(grid_all, d_spatial_utm)) > 0,
     ]
   } else {
     # Keep entire grid
@@ -50,6 +51,14 @@ setupGrid <- function(d_trans, d_spatial,
   
   # Assign unique grid IDs
   cells_selected$grid_id <- seq_len(nrow(cells_selected))
+  
+  # Observation -> grid lookup
+  obs_grid_lookup <- sf::st_join(d_obs_spatial_utm, cells_selected["grid_id"], left = FALSE) %>%
+    sf::st_drop_geometry() %>%
+    dplyr::select(eventID, parentEventID, locationID, grid_id, Year) %>%
+    dplyr::left_join(d_trans_grid %>%
+        dplyr::distinct(locationID, spatialUnit), by = "locationID") %>%
+    dplyr::distinct()
   
   # Split transect lines between grid cells
   transect_segments <- sf::st_intersection(d_spatial_utm, cells_selected)
@@ -67,11 +76,17 @@ setupGrid <- function(d_trans, d_spatial,
   )
   
   # Transect -> grid lookup
-  grid_area_lookup <- sf::st_join(transect_centroids, cells_selected["grid_id"]) %>%
+  # grid_area_lookup <- sf::st_join(transect_centroids, cells_selected["grid_id"]) %>%
+  #   sf::st_drop_geometry() %>%
+  #   dplyr::select(locationID, grid_id) %>%
+  #   dplyr::left_join(d_trans_grid %>%
+  #       dplyr::distinct(locationID, spatialUnit), by = "locationID") %>%
+  #   dplyr::distinct()
+  grid_area_lookup <- transect_segments %>%
     sf::st_drop_geometry() %>%
     dplyr::select(locationID, grid_id) %>%
     dplyr::left_join(d_trans_grid %>%
-        dplyr::distinct(locationID, spatialUnit), by = "locationID") %>%
+        dplyr::distinct(locationID, spatialUnit),by = "locationID") %>%
     dplyr::distinct()
   
   # Transect -> grid -> transect length
@@ -96,6 +111,7 @@ setupGrid <- function(d_trans, d_spatial,
       grid_df = grid_df,
       grid_area_lookup = grid_area_lookup,
       transect_grid_lookup = transect_grid_lookup,
+      obs_grid_lookup = obs_grid_lookup,
       grid_poly = cells_selected
     )
   )
