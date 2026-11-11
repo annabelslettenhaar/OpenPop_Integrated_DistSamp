@@ -32,8 +32,13 @@ setupGrid <- function(d_trans, d_spatial, d_obs_spatial,
   d_spatial_utm <- sf::st_transform(d_spatial, 25833)
   d_obs_spatial_utm <- sf::st_transform(d_obs_spatial, 25833)
   
-  # Create transect centroids
-  transect_centroids <- sf::st_centroid(d_spatial_utm)
+  d_spatial_utm <- d_spatial_utm %>%
+    group_by(locationID) %>%
+    slice(1) %>%
+    ungroup() # Only one locationID, not replicates for all years
+  
+  # # Create transect centroids (this will eventually be replaced with the intersections below)
+  # transect_centroids <- sf::st_centroid(d_spatial_utm)
   
   # Create grid
   grid_all <- sf::st_make_grid(d_spatial_utm, cellsize = grid_cell_size) %>%
@@ -83,6 +88,8 @@ setupGrid <- function(d_trans, d_spatial, d_obs_spatial,
   #   dplyr::left_join(d_trans_grid %>%
   #       dplyr::distinct(locationID, spatialUnit), by = "locationID") %>%
   #   dplyr::distinct()
+  
+  ## Rather than connecting grid cells to transect centroids, we connect transect sections to grid cells and areas
   grid_area_lookup <- transect_segments %>%
     sf::st_drop_geometry() %>%
     dplyr::select(locationID, grid_id) %>%
@@ -96,7 +103,13 @@ setupGrid <- function(d_trans, d_spatial, d_obs_spatial,
     select(segmentID, locationID, grid_id, segmentLength) %>%
     dplyr::left_join(d_trans_grid %>%
         dplyr::distinct(locationID, spatialUnit), by = "locationID") %>%
-    dplyr::distinct()
+    dplyr::distinct() 
+  
+  # Calculate what proportion of the entire transect lies this segment represents
+  transect_grid_lookup <- transect_grid_lookup %>%
+    group_by(locationID) %>%
+    mutate(propLength = segmentLength / sum(segmentLength)) %>%
+    ungroup()
   
   # Area assignment for grids
   grid_area <- grid_area_lookup %>%
