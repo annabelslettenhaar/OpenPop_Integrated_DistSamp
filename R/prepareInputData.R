@@ -141,6 +141,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
   
   L <- N_line_year <- N_J_line_year <- N_A_line_year <- array(0, dim = c(N_sUnits, max(site_count$count), N_yearsTot))
   L_segment <- array(0, dim = c(N_sUnits, max_segments, N_yearsTot))
+  L_grid <- array(0, dim = c(N_sUnits, max(grid_count$count), N_yearsTot))
   
   N_a_line_year <- array(0, dim = c(N_sUnits, N_ageC, max(site_count$count), N_yearsTot))
   
@@ -287,22 +288,14 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
       L_segment[x, 1:N_segments[x], t] <- segment_effort_year$segmentEffort
     }
     
-    cat("\n", sUnits[x], "\n")
-    
-    print(
-      data.frame(
-        year = range_yearsTot,
-        transect_effort = colSums(L[x,,], na.rm = TRUE),
-        segment_effort =
-          apply(
-            L_segment[x,,],
-            2,
-            sum,
-            na.rm = TRUE
-          )
-      )
-    )
- 
+    for(t in 1:N_yearsTot){
+      for(g in 1:N_grid[x]){
+        seg_idx <- which(segment_grid[x, 1:N_segments[x]] == g)
+        if(length(seg_idx) > 0){
+          L_grid[x, g, t] <- sum(L_segment[x, seg_idx, t], na.rm = TRUE)
+        }
+      }
+    }
     
     ## Total covered area 
     A[x, 1:N_yearsTot] <- colSums(L[x,,])*W*2
@@ -418,14 +411,28 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
                     sumAdF = FemaleAdult) %>%
       dplyr::mutate(Year2 = Year - (min(Year)) + 1)
   
-    # Optional: summarise data at line level (per year)
+    # # Optional: summarise data at line level (per year)
+    # if(sumR.Level == "line"){
+    #   temp_Rec <- temp_Rec %>%
+    #     dplyr::group_by(locationID, Year, Year2) %>%
+    #     dplyr::summarise(sumR = sum(sumR),
+    #                      sumAd = sum(sumAd),
+    #                      sumAdF = sum(sumAdF), .groups = "keep")
+    # }
+    
+    # # Attach grid information BEFORE aggregation
+    # temp_Rec <- temp_Rec %>%
+    #   left_join(obs_grid_lookup %>%
+    #       select(eventID, grid_id), by = "eventID")
+    # 
+    
+    # Aggregate by grid-year (earlier this was transect-year level, shoudl eventually change the wording in this toggle from "line" to "grid")
     if(sumR.Level == "line"){
       temp_Rec <- temp_Rec %>%
-        dplyr::group_by(locationID, Year, Year2) %>%
-        dplyr::summarise(sumR = sum(sumR),
-                         sumAd = sum(sumAd),
-                         sumAdF = sum(sumAdF), .groups = "keep")
+        dplyr::group_by(grid_id, Year, Year2) %>%
+        dplyr::summarise(sumR = sum(sumR), sumAd = sum(sumAd), sumAdF = sum(sumAdF), .groups = "drop")
     }
+    
     
     # Set which adult measure to use
     if(R_perF){
@@ -451,13 +458,9 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     #   left_join(grid_area_lookup %>%
     #       select(locationID, grid_id),
     #     by = "locationID")
-    temp_Rec <- temp_Rec %>%
-      left_join(obs_grid_lookup %>%
-                  select(eventID, grid_id),
-                by = "eventID")
     
     temp_Rec$grid_local <- match(temp_Rec$grid_id, grid_area$grid_id)
-
+    
     # Extract relevant data vectors
     N_sumR_obs[x] <- length(temp_Rec$sumR)
     sumR_obs[x, 1:N_sumR_obs[x]] <- temp_Rec$sumR
@@ -494,6 +497,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     segment_length = segment_length, # length of the segments
     N_segments = N_segments, # number of segments per ... grid cell?
     L_segment = L_segment, # segment 'length' corrected for effort
+    L_grid = L_grid, # segment length corrected for effort, summed for all segments in a grid cell
     
     y = y, # Distance to transect line for each individual observation
     zeros_dist = zeros_dist, # Vector of 0's of same length as y
@@ -547,6 +551,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
                    zeros.dist = input.data$zeros_dist, 
                    L = input.data$L,
                    L_segment = input.data$L_segment,
+                   L_grid = input.data$L_grid,
                    N_line_year = input.data$N_line_year, 
                    N_a_line_year = input.data$N_a_line_year, 
                    A = input.data$A,
