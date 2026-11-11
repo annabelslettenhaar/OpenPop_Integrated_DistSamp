@@ -45,7 +45,8 @@
 
 prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca, 
                              # basis_df, 
-                             grid_df, grid_area_lookup,
+                             grid_df, 
+                             transect_grid_lookup, obs_grid_lookup,
                              localities = NULL, areas = NULL, areaAggregation, 
                              excl_neverObs = TRUE, R_perF, R_parent_drop0, 
                              sumR.Level = "group", dataVSconstants = TRUE, 
@@ -77,7 +78,13 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     d_trans <- d_trans %>%
       dplyr::filter(locationID %in% d_obs$locationID)
   }
-
+  
+  ## Build observation-grid lookup so each observation is linked to a grid cell through coordinates
+  # Should this be replaced by observation-segment lookup? Or added?
+  d_obs <- d_obs %>%
+    left_join(obs_grid_lookup %>%
+        select(eventID, grid_id), by = "eventID")
+  
   ## Variables shared across areas
   # Number of age classes
   N_ageC <- 2
@@ -113,10 +120,19 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     dplyr::summarise(count = n())
     
   ## Set up arrays for area-specific data
-  N_sites <- N_years <- min_years <- max_years <- N_obs <- N_sumR_obs <- rep(NA, N_sUnits)
-  N_grid <- rep(NA, N_sUnits)
+  N_sites <- N_years <- min_years <- max_years <- N_obs <- N_sumR_obs <- rep(NA, N_sUnits) 
+  N_grid <- rep(NA, N_sUnits) # Number of grid cells within an area
+  N_segments <- rep(NA, N_sUnits) # Number of transect segments within an area. Like N_sites but for parts of the transect line
+  max_segments <- max(transect_grid_lookup %>%
+      group_by(spatialUnit) %>%
+      summarise(n = n()) %>%
+      pull(n))
   
   transect_grid <- matrix(NA, nrow = N_sUnits,ncol = max(site_count$count))
+  
+  segment_grid <- matrix(NA, nrow = N_sUnits, ncol = max_segments)
+  segment_prop <- matrix(NA, nrow = N_sUnits, ncol = max_segments)
+  segment_length <- matrix(NA, nrow = N_sUnits, ncol = max_segments)
   
   A <- matrix(NA, nrow = N_sUnits, ncol = N_yearsTot)
   y <- Year_obs <- zeros_dist <- matrix(NA, nrow = N_sUnits, ncol = max(obs_count$count))
@@ -124,6 +140,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
   sumR_obs_grid <- matrix(NA, nrow = N_sUnits, ncol = max(obs_count$count))
   
   L <- N_line_year <- N_J_line_year <- N_A_line_year <- array(0, dim = c(N_sUnits, max(site_count$count), N_yearsTot))
+  L_segment <- array(0, dim = c(N_sUnits, max_segments, N_yearsTot))
   
   N_a_line_year <- array(0, dim = c(N_sUnits, N_ageC, max(site_count$count), N_yearsTot))
   
@@ -134,7 +151,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
   #   mutate(rowX = 1:n()) # Not sure why we are doing this
   # grid_lookup <- grid_df %>%
   #   mutate(rowX = 1:n())
-
+  
+  transect_grid_segments <- vector("list", N_sUnits)
   
   for(x in 1:N_sUnits){
     
@@ -179,35 +197,58 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     # X_area <- X[sites_area$rowX, , drop = FALSE]
     # X_spatial[x, 1:N_sites[x], 1:K] <- X_area
     
-    # New version of spatial structure: density on grid level rather than site level
-    sites_area <- d_trans_sub %>%
-      distinct(locationID) %>%
-      arrange(locationID)
+    # # New version of spatial structure: density on grid level rather than site level
+    # sites_area <- d_trans_sub %>%
+    #   distinct(locationID) %>%
+    #   arrange(locationID)
+    # 
+    # sites_area <- sites_area %>%
+    #   left_join(grid_area_lookup %>%
+    #       select(locationID, grid_id), by = "locationID")
+    # 
+    # grid_area <- grid_df[grid_df$spatialUnit == sUnits[x], ]
+    # 
+    # grid_area <- dplyr::arrange(grid_area, grid_id)
+    #
+    # N_grid[x] <- nrow(grid_area)
+    # 
+    # local_grid_index <- match(sites_area$grid_id, grid_area$grid_id)
+    # 
+    # # X_area <- X[grid_area$rowX, , drop = FALSE]
+    # # 
+    # # X_grid[x, 1:N_grid[x], 1:K] <- X_area
+    # transect_grid[x, 1:N_sites[x]] <- local_grid_index
     
-    sites_area <- sites_area %>%
-      left_join(grid_area_lookup %>%
-          select(locationID, grid_id), by = "locationID")
+    ## Once again a new version, now taking into account that transects can belong to multiple grid cells 
+    ## Observations are split between grid cells
     
     grid_area <- grid_df[grid_df$spatialUnit == sUnits[x], ]
-
     grid_area <- dplyr::arrange(grid_area, grid_id)
-
-    N_grid[x] <- nrow(grid_area)
-
-    local_grid_index <- match(sites_area$grid_id, grid_area$grid_id)
-
-    # X_area <- X[grid_area$rowX, , drop = FALSE]
-    # 
-    # X_grid[x, 1:N_grid[x], 1:K] <- X_area
-    transect_grid[x, 1:N_sites[x]] <- local_grid_index
     
-    # Eventually transect_grid should also contain covariate information per grid cell
-
+    N_grid[x] <- nrow(grid_area)
+    
+    transect_segments_area <- transect_grid_lookup %>%
+      dplyr::filter(spatialUnit == sUnits[x])
+    transect_segments_area <- transect_segments_area %>%
+      arrange(segmentID)
+    
+    transect_segments_area$grid_local <- match(transect_segments_area$grid_id, grid_area$grid_id)
+    
+    N_segments[x] <- nrow(transect_segments_area)
+    
+    segment_grid[x, 1:N_segments[x]] <- transect_segments_area$grid_local
+    
+    segment_prop[x, 1:N_segments[x]] <- transect_segments_area$propLength
+    
+    segment_length[x, 1:N_segments[x]] <- transect_segments_area$segmentLength
+    
+    transect_grid_segments[[x]] <- transect_segments_area
+    
     
     # Transect characteristics #
     #--------------------------#
     
-    ## Tansect lengths
+    ## Transect lengths
     TransLen <- d_trans_sub %>% 
       dplyr::select(locationID, Year, sampleSizeValue) %>%
       reshape2::dcast(locationID~Year, value.var = "sampleSizeValue", sum) %>%
@@ -216,12 +257,51 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     TransLen_mat <- TransLen %>% select(-locationID) %>% as.matrix()
     colnames(TransLen_mat) <- as.numeric(colnames(TransLen_mat)) - min(range_yearsTot) + 1
     
+    segment_effort_lookup <- transect_segments_area %>%
+      dplyr::select(segmentID, locationID, propLength)
+    
     for(t in 1:N_yearsTot){
       
+      ## ORiginal transect effort
+      
       if(t %in% years_mon){
-        L[x, 1:N_sites[x], t] <- TransLen_mat[1:N_sites[x], which(years_mon == t)]
+        
+        L[x, 1:N_sites[x], t] <- TransLen_mat[
+          1:N_sites[x],
+          which(years_mon == t)
+        ]
       }
+      
+     ## New transect effort
+      
+      yr <- range_yearsTot[t]
+      
+      effort_year <- d_trans_sub %>%
+        dplyr::filter(Year == yr) %>%
+        dplyr::select(locationID, sampleSizeValue)
+      
+      segment_effort_year <- segment_effort_lookup %>%
+        dplyr::left_join(effort_year, by = "locationID") %>%
+        dplyr::mutate(segmentEffort = sampleSizeValue * propLength)
+      
+      L_segment[x, 1:N_segments[x], t] <- segment_effort_year$segmentEffort
     }
+    
+    cat("\n", sUnits[x], "\n")
+    
+    print(
+      data.frame(
+        year = range_yearsTot,
+        transect_effort = colSums(L[x,,], na.rm = TRUE),
+        segment_effort =
+          apply(
+            L_segment[x,,],
+            2,
+            sum,
+            na.rm = TRUE
+          )
+      )
+    )
  
     
     ## Total covered area 
@@ -367,10 +447,14 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     }
     
     # Add column with grid ID information
+    # temp_Rec <- temp_Rec %>%
+    #   left_join(grid_area_lookup %>%
+    #       select(locationID, grid_id),
+    #     by = "locationID")
     temp_Rec <- temp_Rec %>%
-      left_join(grid_area_lookup %>%
-          select(locationID, grid_id),
-        by = "locationID")
+      left_join(obs_grid_lookup %>%
+                  select(eventID, grid_id),
+                by = "eventID")
     
     temp_Rec$grid_local <- match(temp_Rec$grid_id, grid_area$grid_id)
 
@@ -403,6 +487,13 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     sumR_obs_year = sumR_obs_year, # Year of observed numbers of recruits
     sumR_obs_grid = sumR_obs_grid, # Grid ID of observed number of recruits
     N_sumR_obs = N_sumR_obs, # Total number of observations of numbers of recruits
+    
+    ## Transect segment information
+    segment_grid = segment_grid, # which grid cell does each segment belong to
+    segment_prop = segment_prop, # segment proportion of the entire transect line
+    segment_length = segment_length, # length of the segments
+    N_segments = N_segments, # number of segments per ... grid cell?
+    L_segment = L_segment, # segment 'length' corrected for effort
     
     y = y, # Distance to transect line for each individual observation
     zeros_dist = zeros_dist, # Vector of 0's of same length as y
@@ -453,7 +544,9 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
   ## Assembling Nimble data
   nim.data <- list(sumR_obs = input.data$sumR_obs, sumAd_obs = input.data$sumAd_obs,
                    y = input.data$y, 
-                   zeros.dist = input.data$zeros_dist, L = input.data$L, 
+                   zeros.dist = input.data$zeros_dist, 
+                   L = input.data$L,
+                   L_segment = input.data$L_segment,
                    N_line_year = input.data$N_line_year, 
                    N_a_line_year = input.data$N_a_line_year, 
                    A = input.data$A,
@@ -474,6 +567,11 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
                         sumR_obs_year = input.data$sumR_obs_year, N_sumR_obs = input.data$N_sumR_obs,
                         sumR_obs_grid = input.data$sumR_obs_grid,
                         N_ageC = N_ageC,
+                        # transect_grid_segments = input.data$transect_grid_segments,
+                        N_segments = input.data$N_segments,
+                        segment_grid = input.data$segment_grid,
+                        segment_prop = input.data$segment_prop,
+                        segment_length = input.data$segment_length,
                         RodentOcc_meanCov = input.data$RodentOcc_meanCov,
                         RodentOcc_sdCov = input.data$RodentOcc_sdCov,
                         PCA1 = input.data$PCA1,
@@ -481,8 +579,9 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
                         # SpringTemp_meanCov = input.data$SpringTemp_meanCov,
                         # SpringTemp_sdCov = input.data$SpringTemp_sdCov,
                         # K = K,
-                        N_grid = N_grid,
-                        transect_grid = transect_grid)
+                        N_grid = N_grid
+                        # transect_grid = transect_grid)
+                        )
   
   ## Make final data list to return
   if(dataVSconstants){
