@@ -91,8 +91,12 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         # N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, j, 1]*L[x, j, 1]*W*2      
       }
       
-      for (j in 1:N_sites[x]){
-        N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, transect_grid[x, j], 1]*L[x, j, 1]*W*2
+      # for (j in 1:N_sites[x]){
+      #   N_exp[x, 1:N_ageC, j, 1] <- Density[x, 1:N_ageC, transect_grid[x, j], 1]*L[x, j, 1]*W*2
+      # }
+      
+      for (s in 1:N_segments[x]){
+        N_exp_segment[x, 1:N_ageC, s, 1] <- Density[x, 1:N_ageC, segment_grid[x, s], 1]*L_segment[x, s, 1]*W*2
       }
       
       #-------------------------------#
@@ -131,12 +135,18 @@ writeModelCode_grid <- function(survVarT, telemetryData){
           
         } # g
         
-        for(j in 1:N_sites[x]){
+        # for(j in 1:N_sites[x]){
+        #   
+        #   N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, transect_grid[x, j], t]*L[x, j, t]*W*2
+        #   
+        #   } # j
+        
+        for(s in 1:N_segments[x]){
           
-          N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, transect_grid[x, j], t]*L[x, j, t]*W*2
+          N_exp_segment[x, 1:N_ageC, s, t] <- Density[x, 1:N_ageC, segment_grid[x, s], t]*L_segment[x, s, t]*W*2
           
-          } # j
-         
+        } # j
+        
       } # t
       
       
@@ -147,9 +157,10 @@ writeModelCode_grid <- function(survVarT, telemetryData){
       
       ## Area- and year-specific total densities
       for (t in 1:N_years){
-        N_tot_exp[x, t] <- sum(N_exp[x, 1, 1:N_sites[x], t] + N_exp[x, 2, 1:N_sites[x], t])
+        # N_tot_exp[x, t] <- sum(N_exp[x, 1, 1:N_sites[x], t] + N_exp[x, 2, 1:N_sites[x], t])
+         N_tot_exp[x, t] <- sum(N_exp_segment[x, 1, 1:N_segments[x], t] + N_exp_segment[x, 2, 1:N_segments[x], t]) ## Segment version
       }
-      
+    
       ## Area-, year-, and age-class specific density (for monitoring)
       for(a in 1:N_ageC){
         for(t in 1:N_years){
@@ -166,13 +177,24 @@ writeModelCode_grid <- function(survVarT, telemetryData){
     
     for(x in 1:N_areas){
       
-      ## Age-specific line transect counts
-      # N_a_line_year[x, a, j, t] = number of age class a individuals detected in site j of area x in year t
-      for(j in 1:N_sites[x]){
+      # ## Age-specific line transect counts
+      # # N_a_line_year[x, a, j, t] = number of age class a individuals detected in site j of area x in year t
+      # for(j in 1:N_sites[x]){
+      #   for(t in 1:N_years){
+      #     for(a in 1:N_ageC){
+      #       
+      #       N_a_line_year[x, a, j, t] ~ dpois(p[x, t]*N_exp[x, a, j, t])
+      #     }
+      #   }
+      # }
+      
+      ## Age-specific line transect segment counts
+      # N_a_segment_year[x, a, s, t] = number of age class a individuals detected in segment s of area x in year t
+      for(s in 1:N_segments[x]){
         for(t in 1:N_years){
           for(a in 1:N_ageC){
             
-            N_a_line_year[x, a, j, t] ~ dpois(p[x, t]*N_exp[x, a, j, t])
+            N_a_segment_year[x, a, s, t] ~ dpois(p[x, t]*N_exp_segment[x, a, s, t])
           }
         }
       }
