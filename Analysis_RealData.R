@@ -42,7 +42,7 @@ R_parent_drop0 <- TRUE
 
 # Aggregation level for reproduction data
 # NOTE: if this is not defined, will default to group level
-sumR.Level <- "line" # Summing at the line level
+sumR.Level <- "line" # Summing at the group level now that the spatial structure is grid-based
 
 # Time variation in survival
 survVarT <- TRUE
@@ -138,6 +138,7 @@ mapview(LT_data$d_spatial,
 
 d_grid <- setupGrid(d_trans = LT_data$d_trans,
                     d_spatial = LT_data$d_spatial,
+                    d_obs_spatial = LT_data$d_obs_spatial,
                     areaAggregation = areaAggregation,
                     gridOnlyTransects = gridOnlyTransects,
                     grid_cell_size = 5000)
@@ -207,7 +208,9 @@ input_data <- prepareInputData(d_trans = LT_data$d_trans,
                                dataVSconstants = TRUE,
                                save = TRUE,
                                grid_df = d_grid$grid_df,
-                               grid_area_lookup = d_grid$grid_area_lookup
+                               transect_grid_lookup = d_grid$transect_grid_lookup,
+                               obs_segment_lookup = d_grid$obs_segment_lookup
+                               # grid_area_lookup = d_grid$grid_area_lookup
                                # basis_df = basis_df
                                )
 
