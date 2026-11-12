@@ -111,6 +111,23 @@ setupGrid <- function(d_trans, d_spatial, d_obs_spatial,
     mutate(propLength = segmentLength / sum(segmentLength)) %>%
     ungroup()
   
+  # Observation -> segment lookup (to which segment does an observation belong?)
+  obs_segment_lookup <- obs_grid_lookup %>%
+    dplyr::left_join(
+      transect_grid_lookup %>%
+        dplyr::select(locationID, grid_id, segmentID),
+      by = c("locationID", "grid_id")
+    )
+  
+  ## DIAG
+  cat(
+    "\nObservations without segment assignment:",
+    sum(is.na(obs_segment_lookup$segmentID)),
+    "\n"
+  )
+  
+  ##
+  
   # Area assignment for grids
   grid_area <- grid_area_lookup %>%
     dplyr::distinct(grid_id, spatialUnit)
@@ -125,6 +142,7 @@ setupGrid <- function(d_trans, d_spatial, d_obs_spatial,
       grid_df = grid_df,
       grid_area_lookup = grid_area_lookup,
       transect_grid_lookup = transect_grid_lookup,
+      obs_segment_lookup = obs_segment_lookup,
       obs_grid_lookup = obs_grid_lookup,
       grid_poly = cells_selected,
       transect_segments = transect_segments
