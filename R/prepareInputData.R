@@ -285,7 +285,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
       
       segment_effort_year <- segment_effort_lookup %>%
         dplyr::left_join(effort_year, by = "locationID") %>%
-        dplyr::mutate(segmentEffort = sampleSizeValue * propLength)
+        dplyr::mutate(sampleSizeValue = ifelse(is.na(sampleSizeValue), 0, sampleSizeValue), segmentEffort = sampleSizeValue * propLength)
       
       L_segment[x, 1:N_segments[x], t] <- segment_effort_year$segmentEffort
     }
