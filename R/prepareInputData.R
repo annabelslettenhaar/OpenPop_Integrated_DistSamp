@@ -46,7 +46,7 @@
 prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca, 
                              # basis_df, 
                              grid_df, 
-                             transect_grid_lookup, obs_grid_lookup,
+                             transect_grid_lookup, obs_segment_lookup,
                              localities = NULL, areas = NULL, areaAggregation, 
                              excl_neverObs = TRUE, R_perF, R_parent_drop0, 
                              sumR.Level = "group", dataVSconstants = TRUE, 
@@ -82,8 +82,8 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
   ## Build observation-grid lookup so each observation is linked to a grid cell through coordinates
   # Should this be replaced by observation-segment lookup? Or added?
   d_obs <- d_obs %>%
-    left_join(obs_grid_lookup %>%
-        select(eventID, grid_id), by = "eventID")
+    left_join(obs_segment_lookup %>%
+        select(eventID, grid_id, segmentID), by = "eventID")
   
   ## Variables shared across areas
   # Number of age classes
@@ -140,10 +140,12 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
   sumR_obs_grid <- matrix(NA, nrow = N_sUnits, ncol = max(obs_count$count))
   
   L <- N_line_year <- N_J_line_year <- N_A_line_year <- array(0, dim = c(N_sUnits, max(site_count$count), N_yearsTot))
+  N_segment_year <- N_J_segment_year <- N_A_segment_year <- array(0, dim = c(N_sUnits, max_segments, N_yearsTot))
   L_segment <- array(0, dim = c(N_sUnits, max_segments, N_yearsTot))
   L_grid <- array(0, dim = c(N_sUnits, max(grid_count$count), N_yearsTot))
   
   N_a_line_year <- array(0, dim = c(N_sUnits, N_ageC, max(site_count$count), N_yearsTot))
+  N_a_segment_year <- array(0, dim = c(N_sUnits, N_ageC, max_segments, N_yearsTot))
   
   # X_spatial <- array(NA, dim = c(N_sUnits, max(site_count$count), K)) # Spatial spline structure
   # X_grid <- array(0, dim = c(N_sUnits, max(grid_count$count), K)) # Spatial spline structure
@@ -303,7 +305,6 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     
     # Observation distance from transect #
     #------------------------------------#
- 
     
     temp_dist <- d_obs_sub %>% 
       dplyr::filter(between(DistanceToTransectLine, -0.1, W)) %>% 
@@ -369,7 +370,7 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
         N_J_line_year[x, 1:N_sites[x], t] <- TaksObs_J_mat[1:N_sites[x], which(years_mon == t)]
       }
     }
-    
+   
     ## Adults 
     TaksObs_A <- d_obs_sub %>% 
       filter(between(DistanceToTransectLine, -0.1, W)) %>%
@@ -397,6 +398,77 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     N_a_line_year[x, 1,,] <- N_J_line_year[x,,]
     N_a_line_year[x, 2,,] <- N_A_line_year[x,,]
     
+    
+    # Number of birds/segment (by age class) #
+    #----------------------------------------#
+   
+    ## Essentially the same as above, but now aggregated in segments rather than full transect line
+    
+    ## Pooled age classes
+    segment_temp <- transect_segments_area %>%
+      select(segmentID)
+    
+    TaksObs_seg <- d_obs_sub %>%
+      filter(between(DistanceToTransectLine, -0.1, W)) %>%
+      filter(!is.na(segmentID)) %>%
+      mutate(cs = unknownJuvenile + unknownunknown + FemaleAdult + MaleAdult) %>%
+      reshape2::dcast(segmentID ~ Year, value.var = "cs", sum) %>%
+      right_join(segment_temp, by = "segmentID") %>%
+      replace(is.na(.), 0) %>%
+      arrange(segmentID)
+    
+    TaksObs_seg_mat <- TaksObs_seg %>% dplyr::select(-segmentID) %>% as.matrix() 
+    colnames(TaksObs_seg_mat) <- as.numeric(colnames(TaksObs_seg_mat)) - min(range_yearsTot) + 1
+    
+    for(t in 1:N_yearsTot){
+      
+      if(t %in% years_mon){
+        N_segment_year[x, 1:N_segments[x], t] <- TaksObs_seg_mat[1:N_segments[x], which(years_mon == t)]
+      }
+    }
+    
+    ## Juveniles & unknowns
+    TaksObs_J_seg <- d_obs_sub %>% 
+      filter(between(DistanceToTransectLine, -0.1, W)) %>%
+      dplyr::mutate(cs = unknownJuvenile + unknownunknown) %>%
+      filter(!is.na(segmentID)) %>%
+      reshape2::dcast(segmentID~Year, value.var="cs", sum) %>%
+      dplyr::right_join(., segment_temp, by=c("segmentID"="segmentID")) %>%
+      replace(., is.na(.), 0) %>%
+      dplyr::arrange(segmentID)
+    
+    TaksObs_J_seg_mat <- TaksObs_J_seg %>% dplyr::select(-segmentID) %>% as.matrix() 
+    colnames(TaksObs_J_seg_mat) <- as.numeric(colnames(TaksObs_J_seg_mat)) - min(range_yearsTot) + 1
+    
+    for(t in 1:N_yearsTot){
+      
+      if(t %in% years_mon){
+        N_J_segment_year[x, 1:N_segments[x], t] <- TaksObs_J_seg_mat[1:N_segments[x], which(years_mon == t)]
+      }
+    }
+    
+    ## Adults
+    TaksObs_A_seg <- d_obs_sub %>% 
+      filter(between(DistanceToTransectLine, -0.1, W)) %>%
+      dplyr::mutate(cs = FemaleAdult + MaleAdult) %>%
+      filter(!is.na(segmentID)) %>%
+      reshape2::dcast(segmentID~Year, value.var="cs", sum) %>%
+      dplyr::right_join(., segment_temp, by=c("segmentID"="segmentID")) %>%
+      replace(., is.na(.), 0) %>%
+      dplyr::arrange(segmentID)
+    
+    TaksObs_A_seg_mat <- TaksObs_A_seg %>% dplyr::select(-segmentID) %>% as.matrix() 
+    colnames(TaksObs_A_seg_mat) <- as.numeric(colnames(TaksObs_A_seg_mat)) - min(range_yearsTot) + 1
+    
+    for(t in 1:N_yearsTot){
+      
+      if(t %in% years_mon){
+        N_A_segment_year[x, 1:N_segments[x], t] <- TaksObs_A_seg_mat[1:N_segments[x], which(years_mon == t)]
+      }
+    }
+    
+    N_a_segment_year[x,1,,] <- N_J_segment_year[x,,]
+    N_a_segment_year[x,2,,] <- N_A_segment_year[x,,]
     
     # Recruitment #
     #-------------#
@@ -505,7 +577,9 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     N_obs = N_obs, # Total number of observations
     
     N_line_year = N_line_year, # Number of birds observed per site per year
+    N_segment_year = N_segment_year, # Number of birds observed per transect segment per year
     N_a_line_year = N_a_line_year, # Number of birds observed per ageclass per site per year
+    N_a_segment_year = N_a_segment_year, # Number of birds observed per age class per segment per year
     L = L, # Transect length per site and year
     
     N_years = N_yearsTot, # Max number of years with data
