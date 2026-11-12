@@ -24,7 +24,10 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   N_ageC <- nim.constants$N_ageC
   N_years <- nim.constants$N_years
   N_grid <- nim.constants$N_grid
-  transect_grid <- nim.constants$transect_grid
+  # transect_grid <- nim.constants$transect_grid
+  segment_grid <- nim.constants$segment_grid
+  N_segments <- nim.constants$N_segments
+  L_segment <- nim.data$L_segment
   
   if(N_areas == 1){
     N_sites <- nim.constants$N_sites[1]
@@ -176,6 +179,7 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   # N_exp <- Density <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
   Density <- array(0, dim = c(N_areas, N_ageC, max(N_grid), N_years))
   N_exp <- array(0, dim = c(N_areas, N_ageC, max(N_sites), N_years))
+  N_exp_segment <- array(0, dim = c(N_areas, N_ageC, max(N_segments), N_years))
   
   for(x in 1:N_areas){
     
@@ -214,12 +218,21 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
       }
     } 
     
-    for (j in 1:N_sites[x]){
+    # for (j in 1:N_sites[x]){
+    #   
+    #   g <- transect_grid[x, j]
+    #   
+    #   N_exp[x, 1, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 1, g, 1]*L[x, j, 1]*W*2, a = 1)
+    #   N_exp[x, 2, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 2, g, 1]*L[x, j, 1]*W*2, a = 1)
+    # }
+    
+    for (s in 1:N_segments[x]) {
       
-      g <- transect_grid[x, j]
+      g <- segment_grid[x, s]
       
-      N_exp[x, 1, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 1, g, 1]*L[x, j, 1]*W*2, a = 1)
-      N_exp[x, 2, j, 1] <- extraDistr::rtpois(1, lambda = Density[x, 2, g, 1]*L[x, j, 1]*W*2, a = 1)
+      N_exp_segment[x, 1, s, 1] <- extraDistr::rtpois(1, lambda = Density[x, 1, g, 1] * L_segment[x, s, 1] * W * 2, a = 1)
+      
+      N_exp_segment[x, 2, s, 1] <- extraDistr::rtpois(1, lambda = Density[x, 2, g, 1] * L_segment[x, s, 1] * W * 2, a = 1)
     }
   }
 
@@ -263,11 +276,18 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
         
       }
     
-    for(j in 1:N_sites[x]){
+    # for(j in 1:N_sites[x]){
+    #     
+    #     g <- transect_grid[x, j]
+    #     N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, g, t]*L[x, j, t]*W*2
+    #     
+    #   }
+      
+      for(s in 1:N_segments[x]){
         
-        g <- transect_grid[x, j]
-        N_exp[x, 1:N_ageC, j, t] <- Density[x, 1:N_ageC, g, t]*L[x, j, t]*W*2
+        g <- segment_grid[x, s]
         
+        N_exp_segment[x, 1:N_ageC, s, t] <- Density[x, 1:N_ageC, g, t] * L_segment[x, s, t] * W * 2
       }
     } 
   }
@@ -276,9 +296,11 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
   N_tot_exp <- matrix(NA, nrow = N_areas, ncol = N_years)
   
   for(x in 1:N_areas){
-    for (t in 1:N_years){
-      N_tot_exp[x, t] <- sum(N_exp[x, 1, 1:N_sites[x], t] + N_exp[x, 2, 1:N_sites[x], t])    ## Summing up expected number of birds in covered area; 
-    }
+    # for (t in 1:N_years){
+    #   N_tot_exp[x, t] <- sum(N_exp[x, 1, 1:N_sites[x], t] + N_exp[x, 2, 1:N_sites[x], t])    ## Summing up expected number of birds in covered area; 
+    # }
+    
+    N_tot_exp[x, t] <- sum(N_exp_segment[x, 1, 1:N_segments[x], t] + N_exp_segment[x, 2, 1:N_segments[x], t])
   }
   
   ## Area-, year-, and age-class specific density (for monitoring)
@@ -331,13 +353,13 @@ simulateInits <- function(nim.data, nim.constants, R_perF, survVarT, fitRodentCo
     Density = Density,
     meanDens = meanDens,
     N_exp = N_exp,
+    N_exp_segment = N_exp_segment,
     N_tot_exp = N_tot_exp,
     
     betaMTemp = betaMTemp,
     betaTempA = betaTempA,
     betaPCA1 = betaPCA1,
     betaPCA2 = betaPCA2
-    
     # sigma.beta.D1 = sigma.beta.D1,
     # beta.D1 = beta.D1
   )
