@@ -47,17 +47,21 @@ wrangleData_Temp <- function(minYear, maxYear, areas, grid_df, startday, endday,
   #   data_list[[coord]] <- dat
   # }
   
-  data_list <- d_temp_raw$data_list
-  coords_df <- d_temp_raw$coords_df
-  dates <- d_temp_raw$dates
+  # data_list <- d_temp_raw$data_list
+  # coords_df <- d_temp_raw$coords_df
+  # dates <- d_temp_raw$dates
+  # minYear <- d_temp_raw$minYear
+  # maxYear <- d_temp_raw$maxYear
+  # df.temp <- d_temp_raw$df.temp_raw
+  # 
+  # ## Join with grid information
+  # df.temp <- df.temp %>%
+  #   left_join(coords_df %>%
+  #       select(grid_id, spatialUnit, utm_coord), by = c("Coordinate" = "utm_coord"))
+  
   minYear <- d_temp_raw$minYear
   maxYear <- d_temp_raw$maxYear
   df.temp <- d_temp_raw$df.temp_raw
-  
-  ## Join with grid information
-  df.temp <- df.temp %>%
-    left_join(coords_df %>%
-        select(grid_id, spatialUnit, utm_coord), by = c("Coordinate" = "utm_coord"))
   
   ## Select only the spring/early chick period
   df.temp$julianday <- as.numeric(format(df.temp$Date,"%j"))
