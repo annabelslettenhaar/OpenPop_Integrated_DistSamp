@@ -50,6 +50,13 @@ survVarT <- TRUE
 # Rodent covariate on reproduction
 fitRodentCov <- TRUE
 
+# Other covariates
+fitMeanTemp <- FALSE
+fitTempAnom <- FALSE
+fitPCA1 <- TRUE
+fitPCA2 <- TRUE
+# Add more if more arrive
+
 # Test run or not
 testRun <- TRUE
 

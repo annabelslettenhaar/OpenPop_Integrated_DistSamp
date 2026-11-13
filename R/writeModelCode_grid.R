@@ -66,7 +66,10 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, j])
         # Density[x, 2, j, 1] <- exp(log(Mu.D1[x]) + spatial.D1[x, transect_grid[x,j]] + eps.D1[x, j])
         # Density[x, 2, g, 1] <- exp(log(Mu.D1[x]) + eps.D1[x, g])
-        Density[x, 2, g, 1] <- exp(log(Mu.D1[x]) + betaPCA1 * PCA1[x, g] + betaPCA2 * PCA2[x, g] + eps.D1[x, g])
+        Density[x, 2, g, 1] <- exp(log(Mu.D1[x]) + 
+                                     PCA1_on * betaPCA1 * PCA1[x, g] + 
+                                     PCA2_on * betaPCA2 * PCA2[x, g] + 
+                                     eps.D1[x, g])
         
         ## Juvenile densities
         # if(R_perF){
@@ -284,13 +287,13 @@ writeModelCode_grid <- function(survVarT, telemetryData){
         
         if(fitRodentCov){
           R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + betaR.R[x]*RodentOcc[x, g, 1:N_years] + 
-                                           betaMTemp * MeanTemp[x, g] +
-                                           betaTempA * TempAnom[x, g, 1:N_years] +
+                                           MTemp_on * betaMTemp * MeanTemp[x, g] +
+                                           TempA_on * betaTempA * TempAnom[x, g, 1:N_years] +
                                            epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }else{
           R_year[x, g, 1:N_years] <- exp(log(Mu.R[x]) + 
-                                           bbetaMTemp * MeanTemp[x, g] +
-                                           betaTempA * TempAnom[x, g, 1:N_years] +
+                                           MTemp_on * betaMTemp * MeanTemp[x, g] +
+                                           TempA_on * betaTempA * TempAnom[x, g, 1:N_years] +
                                            epsT.R[1:N_years] + epsR.R[x, 1:N_years])
         }
           

@@ -547,6 +547,13 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
   sumR_obs_year <- sumR_obs_year[1:N_sUnits, 1:max(N_sumR_obs), drop = FALSE]
   sumR_obs_grid <- sumR_obs_grid[1:N_sUnits, 1:max(N_sumR_obs),drop = FALSE]
   
+  ## Covariate toggles
+  PCA1_on <- ifelse(fitPCA1, 1, 0)
+  PCA2_on <- ifelse(fitPCA2, 1, 0)
+  MTemp_on <- ifelse(fitMeanTemp, 1, 0)
+  TempA_on <- ifelse(fitTempAnom, 1, 0)
+  
+  
   # Data assembly #
   #---------------#
   
@@ -607,7 +614,13 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
     PCA2 = d_pca$PCA2,
     
     N_areas = N_sUnits,
-    area_names = sUnits
+    area_names = sUnits,
+    
+    ## Covariate toggles
+    PCA1_on = PCA1_on,
+    PCA2_on = PCA2_on,
+    MTemp_on = MTemp_on,
+    TempA_on = TempA_on
   )
   
   ## Drop dummy dimension when only one area is included
@@ -659,9 +672,12 @@ prepareInputData <- function(d_trans, d_obs, d_rodent, d_pca,
                         PCA2 = input.data$PCA2,
                         # SpringTemp_meanCov = input.data$SpringTemp_meanCov,
                         # SpringTemp_sdCov = input.data$SpringTemp_sdCov,
-                        # K = K,
-                        N_grid = N_grid
+                        N_grid = N_grid,
                         # transect_grid = transect_grid)
+                        PCA1_on = input.data$PCA1_on,
+                        PCA2_on = input.data$PCA2_on,
+                        MTemp_on = input.data$MTemp_on,
+                        TempA_on = input.data$TempA_on
                         )
   
   ## Make final data list to return
