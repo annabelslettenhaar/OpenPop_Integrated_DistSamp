@@ -136,5 +136,4 @@ wrangleData_PCACov <- function(d_grid, pca_path = "data/PCA_maps", areas) {
 #   pch = 15,
 #   cex = 0.5
 # )
-# 
 

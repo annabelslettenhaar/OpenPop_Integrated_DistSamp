@@ -155,9 +155,9 @@ d_grid <- setupGrid(d_trans = LT_data$d_trans,
 
 d_temp_raw <- downloadData_Temp(minYear = 2013,
                                 maxYear = 2018,
-                                grid_df = d_grid$grid_df)
+                                grid_poly = d_grid$grid_poly)
 
-# saveRDS(d_temp_raw, file = "data/d_temp_raw")
+saveRDS(d_temp_raw, file = "data/d_temp_raw")
 
 d_temp <- wrangleData_Temp(minYear = minYear,
                            maxYear = maxYear,
@@ -165,8 +165,8 @@ d_temp <- wrangleData_Temp(minYear = minYear,
                            grid_df = d_grid$grid_df,
                            startday = 121,
                            endday = 153,
-                           d_temp_raw = d_temp_raw
-                           # d_temp_raw = readRDS("data/d_temp_raw")
+                           # d_temp_raw = d_temp_raw
+                           d_temp_raw = readRDS("data/d_temp_raw")
                            )
 
 

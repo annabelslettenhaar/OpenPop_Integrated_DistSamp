@@ -160,7 +160,7 @@ wrangleData_Rodent <- function(duplTransects, localities = NULL, areas = NULL, a
   # meanCov <- mean(rodentAvg, na.rm = TRUE)
   # sdCov <- sd(rodentAvg, na.rm = TRUE)
   # rodentAvg <- (rodentAvg - meanCov) / sdCov
-  meanCov <- mean(rodent_array, na.rm = TRUE)
+  meanCov <- mean(rodent_array, na.rm = TRUE) ## Maybe eventually we want to correct for transect effort (length)
   sdCov <- sd(rodent_array, na.rm = TRUE)
   rodentAvg <- (rodent_array - meanCov) / sdCov
   
